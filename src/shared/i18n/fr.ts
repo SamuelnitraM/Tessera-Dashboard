@@ -14,13 +14,51 @@ export const fr = {
     pickProgram: 'Choisir un programme',
     programFilter: 'Programmes (.exe, .bat, .cmd, .lnk)'
   },
+  web: {
+    contextMenu: {
+      cut: 'Couper',
+      copy: 'Copier',
+      paste: 'Coller',
+      selectAll: 'Tout sélectionner',
+      openLink: 'Ouvrir le lien dans le navigateur',
+      copyLink: 'Copier l’adresse du lien',
+      copyImage: 'Copier l’image',
+      addToDictionary: 'Ajouter au dictionnaire',
+      back: 'Précédent',
+      forward: 'Suivant',
+      reload: 'Actualiser',
+      inspect: 'Inspecter l’élément'
+    },
+    permission: {
+      title: 'Autorisation demandée',
+      message: '« {{host}} » demande l’accès à {{what}}.',
+      detail:
+        'Ton choix sera mémorisé pour cette application. Tu pourras le réinitialiser dans Paramètres → Applications.',
+      microphone: 'ton micro',
+      camera: 'ta caméra',
+      microphoneAndCamera: 'ton micro et ta caméra',
+      geolocation: 'ta position',
+      allow: 'Autoriser',
+      deny: 'Refuser'
+    }
+  },
   nav: {
     pages: 'Pages',
     home: 'Accueil',
     newPage: 'Nouvelle page',
     apps: 'Applications',
-    noApps: 'Les applications ajoutées apparaîtront ici.',
+    noApps: 'Ajoute Discord, WhatsApp… pour les ouvrir ici.',
+    addApp: 'Ajouter une application',
     settings: 'Paramètres'
+  },
+  apps: {
+    back: 'Précédent',
+    forward: 'Suivant',
+    reload: 'Actualiser',
+    home: 'Page d’accueil de l’application',
+    openInBrowser: 'Ouvrir dans le navigateur',
+    close: 'Fermer l’onglet (libère la mémoire)',
+    loadError: 'La page n’a pas pu être chargée ({{error}}).'
   },
   pages: {
     defaultName: 'Page {{n}}',
@@ -107,9 +145,27 @@ export const fr = {
     comingSoon: {
       title: 'Bientôt disponible',
       notifications:
-        'Activation par application, sons personnalisés et mode Ne pas déranger arriveront avec le système de notifications.',
-      applications:
-        'L’ajout et la configuration de tes applications (sites, lanceurs, widgets) arriveront ici.'
+        'Activation par application, sons personnalisés et mode Ne pas déranger arriveront avec le système de notifications.'
+    },
+    applications: {
+      intro:
+        'Les applications web s’ouvrent dans un onglet de Tessera, avec leur propre connexion, conservée entre deux lancements. Elles restent chargées en arrière-plan une fois ouvertes.',
+      name: 'Nom',
+      url: 'Adresse',
+      namePlaceholder: 'Nom (facultatif)',
+      urlPlaceholder: 'Adresse, ex. app.exemple.com',
+      invalidUrl: 'Adresse web invalide (http:// ou https://).',
+      addTitle: 'Ajouter une application',
+      add: 'Ajouter',
+      open: 'Ouvrir',
+      moveUp: 'Monter',
+      moveDown: 'Descendre',
+      resetPermissions: 'Réinitialiser les autorisations (micro, caméra, position)',
+      delete: 'Supprimer',
+      cancel: 'Annuler',
+      deleteTitle: 'Supprimer « {{name}} » ?',
+      deleteMessage:
+        'L’application disparaîtra de Tessera, et sa connexion (cookies, données enregistrées) sera effacée.'
     },
     extensions: {
       intro:

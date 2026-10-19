@@ -88,6 +88,7 @@ Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peu
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `files`     | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>`                                      | `"permissions": ["files"], "files": { "folder": "Notes" }` |
 | `processes` | Lancer et arrêter des programmes (`.exe`, `.bat`, `.cmd`, `.lnk`), **uniquement** ceux que l'utilisateur a choisis lui-même dans la fenêtre de sélection de Windows | `"permissions": ["processes"]`                             |
+| `web`       | Afficher des pages web (composant `WebView`), isolées de Tessera, avec la session partagée des pages web ou celle d'une application de l'utilisateur                | `"permissions": ["web"]`                                   |
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -134,17 +135,18 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 
 ### API du SDK (`@tessera/plugin-sdk`)
 
-| Élément                                                                     | Rôle                                                                               |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                            |
-| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`          |
-| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`) |
-| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`               |
-| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                      |
-| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                               |
-| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs         |
-| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                            |
-| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                 |
+| Élément                                                                     | Rôle                                                                                       |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                                    |
+| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`                  |
+| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`)         |
+| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`                       |
+| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                              |
+| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                       |
+| `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous |
+| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                 |
+| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                    |
+| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                         |
 
 - **`config`** contient les réglages du manifeste (avec leurs valeurs par défaut) et toute autre donnée enregistrée par le widget. Elle est sauvegardée dans `dashboard.json` avec la page.
 - **`setConfig(patch)`** fusionne le patch avec la configuration existante et sauvegarde.
@@ -191,6 +193,27 @@ Deux modes d'affichage :
 > Un `.bat` doit avoir des fins de ligne Windows (CRLF), ce qui est le cas par défaut. Avec des fins de ligne Unix (LF), `cmd.exe` peut mal lire ses lignes en UTF-8.
 
 L'extension **Lanceur** (`plugins/tessera.launcher`) est un exemple complet d'utilisation.
+
+### Pages web (`WebView`)
+
+Avec la permission `web`, le composant `WebView` affiche une page web isolée : processus séparé, sans accès à Node.js ni à l'API de Tessera.
+
+```tsx
+const frame = useRef<WebViewHandle>(null)
+
+<WebView ref={frame} src="https://fr.wikipedia.org" zoom={1} inert={editing} />
+// frame.current?.reload(), goBack(), goForward(), load(url), getURL()
+```
+
+| Prop                                                          | Rôle                                                                                                     |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `src`                                                         | Adresse http(s) de départ                                                                                |
+| `appId`                                                       | Réutilise la session d'une application de l'utilisateur (`useWebApps()`) : même connexion que son onglet |
+| `zoom`                                                        | Facteur de zoom (1 = 100 %)                                                                              |
+| `inert`                                                       | La page ne reçoit plus la souris. À activer en mode édition, pour que le widget puisse être déplacé      |
+| `onTitle`, `onFavicons`, `onNavigate`, `onLoading`, `onError` | Suivi de la page                                                                                         |
+
+Les liens « nouvel onglet » s'ouvrent dans le navigateur par défaut, et les fenêtres de connexion (OAuth) dans une petite fenêtre partageant la session. Micro, caméra et position sont demandés à l'utilisateur. L'extension **Page web** (`plugins/tessera.web`) est un exemple complet.
 
 ### Bonnes pratiques
 

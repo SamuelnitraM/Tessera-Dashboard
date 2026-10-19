@@ -9,6 +9,7 @@ import {
 } from '../../stores/navigation'
 import { AboutSection } from './sections/AboutSection'
 import { AppearanceSection } from './sections/AppearanceSection'
+import { ApplicationsSection } from './sections/ApplicationsSection'
 import { ComingSoonSection } from './sections/ComingSoonSection'
 import { ExtensionsSection } from './sections/ExtensionsSection'
 import { GeneralSection } from './sections/GeneralSection'
@@ -62,9 +63,7 @@ export function SettingsView({ section }: SettingsViewProps): React.JSX.Element 
           {section === 'notifications' && (
             <ComingSoonSection icon={Bell} text={t('settings.comingSoon.notifications')} />
           )}
-          {section === 'applications' && (
-            <ComingSoonSection icon={LayoutGrid} text={t('settings.comingSoon.applications')} />
-          )}
+          {section === 'applications' && <ApplicationsSection />}
           {section === 'extensions' && <ExtensionsSection />}
           {section === 'about' && <AboutSection />}
         </div>

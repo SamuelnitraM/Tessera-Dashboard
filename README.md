@@ -48,7 +48,13 @@ Deux modes d'intégration :
 
 Types d'applications génériques, à ajouter depuis les paramètres :
 
-- **Site web** : affiché dans une vue intégrée, connexion conservée.
+- **Application web** ✅ (Paramètres → Applications) : Discord, WhatsApp, Slack… ou n'importe quelle adresse.
+  - Ouverte dans un **onglet** de la barre latérale, avec sa propre connexion, conservée entre deux lancements.
+  - Une fois ouverte, elle reste chargée en arrière-plan : pas de rechargement en changeant de page.
+  - **Non-lus** affichés en pastille, d'après le titre de la page (« (3) Discord »).
+  - Barre de navigation : précédent, suivant, actualiser, accueil, ouvrir dans le navigateur, fermer l'onglet.
+  - Micro, caméra et position demandés à l'utilisateur (choix mémorisé, réinitialisable). Notifications autorisées.
+- **Page web** ✅ (widget) : un site ou une application web dans une case de la grille. Il peut réutiliser la connexion d'une application (Discord dans une case), avec zoom et actualisation automatique.
 - **Lanceur** : `.exe`, `.bat`, raccourcis. Démarrage et arrêt, état, journaux.
 - **Flux RSS**.
 - **Widgets officiels** : mails, YouTube, Twitch…
@@ -59,7 +65,7 @@ Types d'applications génériques, à ajouter depuis les paramètres :
   - Outlook (Microsoft Graph).
   - Gmail (API Google, avec un identifiant de connexion fourni par l'utilisateur).
   - Autres fournisseurs via IMAP.
-- **Discord** : onglet web, notifications récupérées dans le centre de notifications.
+- **Discord** ✅ : onglet web (voir ci-dessus). Notifications récupérées dans le centre de notifications à l'étape 8.
 - **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct).
 - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC ».
 - **Bloc-notes** ✅
@@ -93,6 +99,13 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 
 - Application **Android** compagnon : lecture des SMS et des notifications du téléphone via le réseau local, appairage par QR code.
 - Intégration **expérimentale** de fenêtres d'applications externes (VLC, .exe).
+
+### Limites connues des pages web
+
+- **Contenus protégés (DRM)** : Spotify, Netflix, Deezer… ne peuvent pas lire leurs morceaux ou vidéos. Electron n'inclut pas le module Widevine.
+- **Connexion Google** : Google refuse parfois les connexions depuis un navigateur intégré (« ce navigateur n'est peut-être pas sécurisé »). Pour les mails, les widgets par API de l'étape 9 contourneront ce problème.
+- **Partage d'écran** (appels Discord…) : pas encore pris en charge.
+- **Clés d'accès (passkeys)** : la proposition automatique au chargement d'une page est désactivée (Electron l'affichait dans une fenêtre « Sécurité Windows » bloquante). La connexion par clé d'accès reste possible en la choisissant.
 
 ---
 
@@ -152,8 +165,11 @@ src/
 │   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres
 │   ├── json-file.ts          #   Lecture / écriture atomique de fichiers JSON
 │   ├── paths.ts              #   Chemins des ressources (dev / packagé)
+│   ├── web.ts                #   Pages web : verrouillage des <webview>, sessions, permissions, clic droit
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
-├── preload/                  # Pont sécurisé main <-> renderer (window.tessera)
+├── preload/
+│   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
+│   └── webview.ts            #   Script de Tessera dans les pages web (clés d'accès…)
 ├── renderer/                 # Interface React
 │   ├── index.html
 │   └── src/
@@ -161,8 +177,9 @@ src/
 │       │   └── grid/         #     Grille, cadre des widgets, fenêtres d'ajout et de réglages
 │       ├── plugin-sdk/       #   SDK des extensions (importé via @tessera/plugin-sdk)
 │       ├── plugins/          #   Découverte, validation et registre des extensions
-│       ├── views/            #   Vues : page de widgets, paramètres (et ses sections)
-│       ├── stores/           #   État global (réglages, tableau de bord, navigation) avec Zustand
+│       │   └── web/          #     Page web intégrée (WebFrame), commune aux onglets et widgets
+│       ├── views/            #   Vues : page de widgets, onglets d'applications (apps/), paramètres
+│       ├── stores/           #   État global (réglages, tableau de bord, navigation, non-lus) avec Zustand
 │       ├── hooks/            #   Hooks React (taille d'un élément, nom d'une page)
 │       ├── i18n/             #   Initialisation d'i18next
 │       ├── lib/              #   Utilitaires (placement sur la grille, couleur d'accent)
@@ -172,6 +189,8 @@ src/
     ├── dashboard.ts          #   Modèle des pages et de la grille, validation
     ├── plugins.ts            #   Format et validation des manifestes d'extension
     ├── plugin-files.ts       #   Règles d'accès aux fichiers des extensions
+    ├── plugin-processes.ts   #   Règles de lancement de programmes par les extensions
+    ├── web-apps.ts           #   Applications web : catalogue, sessions, adresses, non-lus
     ├── ipc.ts                #   Noms des canaux IPC et types échangés
     ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
     └── app.ts                #   Constantes (nom, identifiant, dépôt)
@@ -180,7 +199,8 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 ├── tessera.clock/            #   Horloge
 ├── tessera.heading/          #   Titre de section
 ├── tessera.notes/            #   Bloc-notes (permission « files »)
-└── tessera.launcher/         #   Lanceur de programmes (permission « processes »)
+├── tessera.launcher/         #   Lanceur de programmes (permission « processes »)
+└── tessera.web/              #   Page web dans la grille (permission « web »)
 docs/
 └── plugins.md                # Guide de création d'une extension
 ```
@@ -271,7 +291,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 - [x] **Étape 5 :** bloc-notes.
 - [x] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
-- [ ] **Étape 7 :** widget web et onglets d'applications (Discord).
+- [x] **Étape 7 :** widget web et onglets d'applications (Discord).
 - [ ] **Étape 8 :** système de notifications complet.
 
 ### Phase 2 : intégrations API

@@ -1,0 +1,150 @@
+.web {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 0.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0 0.375rem;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.title img {
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.75rem;
+}
+
+.page {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- Choix du site ---------- */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0.75rem;
+  overflow: auto;
+  color: var(--color-text-muted);
+  text-align: center;
+  cursor: default;
+}
+
+.picker strong {
+  color: var(--color-text);
+}
+
+.form {
+  display: flex;
+  gap: 0.375rem;
+  width: min(100%, 26rem);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.625rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input[data-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+.invalid {
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+}
+
+.hint {
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.apps {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.375rem;
+}
+
+.app {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+
+.app:hover {
+  border-color: var(--color-accent);
+}
+
+.app img {
+  border-radius: 3px;
+}

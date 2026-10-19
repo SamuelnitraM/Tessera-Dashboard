@@ -98,6 +98,42 @@
   text-align: left;
 }
 
+.appIcon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+/* Application chargée en arrière-plan : petit trait sous l'icône */
+.item[data-open='true']:not([data-active='true']) .appIcon,
+.item[data-open='true']:not([data-active='true']) > svg {
+  box-shadow: 0 3px 0 -1px var(--color-text-muted);
+}
+
+.badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  margin-left: auto;
+  padding: 0 0.3125rem;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.badge[data-dot='true'] {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+}
+
 .itemLabel {
   min-width: 0;
   overflow: hidden;

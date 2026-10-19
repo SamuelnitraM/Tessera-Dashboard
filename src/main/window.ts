@@ -4,6 +4,7 @@ import { APP_NAME } from '@shared/app'
 import { getResourcePath } from './paths'
 import { getSettings } from './settings-store'
 import { getWindowBackground } from './system'
+import { secureWebviews } from './web'
 import { loadWindowState, saveWindowState } from './window-state'
 
 let mainWindow: BrowserWindow | null = null
@@ -39,9 +40,13 @@ export function createMainWindow(): BrowserWindow {
       // Sécurité : le renderer n'a aucun accès direct à Node.js
       sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // Pages web intégrées (onglets d'applications, widgets web), verrouillées par web.ts
+      webviewTag: true,
+      spellcheck: true
     }
   })
+  secureWebviews(mainWindow.webContents)
 
   // Agrandie = occupe tout l'écran courant, sans être en plein écran
   mainWindow.once('ready-to-show', () => {

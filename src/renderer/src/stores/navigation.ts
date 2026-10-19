@@ -14,23 +14,50 @@ export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 /**
  * Vue affichée dans la zone principale.
  * - `page` : une page de widgets
+ * - `app` : l'onglet d'une application web (Discord…)
  * - `settings` : les paramètres, ouverts sur une section
- * Les onglets d'applications (Discord…) s'ajouteront ici à l'étape 7.
  */
-export type View = { type: 'page'; pageId: string } | { type: 'settings'; section: SettingsSection }
+export type View =
+  | { type: 'page'; pageId: string }
+  | { type: 'app'; appId: string }
+  | { type: 'settings'; section: SettingsSection }
 
 interface NavigationState {
   view: View
   /** Mode édition de la page affichée (déplacer, redimensionner, ajouter des widgets). */
   editing: boolean
+  /**
+   * Applications déjà ouvertes : leur onglet reste chargé en arrière-plan
+   * (Discord ne se recharge pas à chaque visite et continue de recevoir les messages).
+   */
+  openedApps: string[]
   /** Change de vue. Quitte toujours le mode édition. */
   navigate: (view: View) => void
   setEditing: (editing: boolean) => void
+  /** Ferme l'onglet d'une application (sa page est déchargée). */
+  closeApp: (appId: string) => void
 }
 
 export const useNavigationStore = create<NavigationState>()((set) => ({
   view: { type: 'page', pageId: MAIN_PAGE_ID },
   editing: false,
-  navigate: (view) => set({ view, editing: false }),
-  setEditing: (editing) => set({ editing })
+  openedApps: [],
+  navigate: (view) =>
+    set((state) => ({
+      view,
+      editing: false,
+      openedApps:
+        view.type === 'app' && !state.openedApps.includes(view.appId)
+          ? [...state.openedApps, view.appId]
+          : state.openedApps
+    })),
+  setEditing: (editing) => set({ editing }),
+  closeApp: (appId) =>
+    set((state) => ({
+      openedApps: state.openedApps.filter((id) => id !== appId),
+      view:
+        state.view.type === 'app' && state.view.appId === appId
+          ? { type: 'page', pageId: MAIN_PAGE_ID }
+          : state.view
+    }))
 }))

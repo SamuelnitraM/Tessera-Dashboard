@@ -4,6 +4,8 @@
  * ancienne version ne peut donc jamais casser l'app, les valeurs invalides reprennent leur défaut.
  */
 
+import { sanitizeWebApps, type WebApp } from './web-apps'
+
 export const LANGUAGES = ['fr', 'en'] as const
 export type Language = (typeof LANGUAGES)[number]
 export type LanguageSetting = Language | 'system'
@@ -36,6 +38,10 @@ export interface Settings {
   plugins: {
     /** Identifiants des extensions désactivées par l'utilisateur. */
     disabled: string[]
+  }
+  apps: {
+    /** Applications web ouvertes en onglet (Discord…), dans l'ordre de la barre latérale. */
+    items: WebApp[]
   }
 }
 
@@ -75,6 +81,9 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   plugins: {
     disabled: []
+  },
+  apps: {
+    items: []
   }
 }
 
@@ -124,6 +133,9 @@ export function sanitizeSettings(input: unknown): Settings {
       disabled: Array.isArray(plugins.disabled)
         ? [...new Set(plugins.disabled.filter((id): id is string => typeof id === 'string'))]
         : defaults.plugins.disabled
+    },
+    apps: {
+      items: sanitizeWebApps(asRecord(root.apps).items)
     }
   }
 }
@@ -135,7 +147,8 @@ export function applySettingsPatch(current: Settings, patch: SettingsPatch): Set
     general: { ...current.general, ...patch.general },
     appearance: { ...current.appearance, ...patch.appearance },
     window: { ...current.window, ...patch.window },
-    plugins: { ...current.plugins, ...patch.plugins }
+    plugins: { ...current.plugins, ...patch.plugins },
+    apps: { ...current.apps, ...patch.apps }
   })
 }
 

@@ -1,0 +1,110 @@
+/*
+ * Les onglets inactifs restent chargés mais invisibles (visibility, et non display:none :
+ * une page web masquée par display:none peut perdre sa taille et se recharger).
+ */
+.tab {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-bg);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.tab[data-active='true'] {
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+}
+
+.toolbarButton {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.toolbarButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.toolbarButton:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  margin: 0 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+}
+
+.address img {
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.appName {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.host {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+}
+
+.page {
+  flex: 1;
+  min-height: 0;
+}
+
+.spin {
+  flex-shrink: 0;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

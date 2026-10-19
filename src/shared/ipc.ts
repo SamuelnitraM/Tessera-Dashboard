@@ -34,6 +34,9 @@ export const IpcChannels = {
   processesChanged: 'processes:changed',
   /** Événement main -> renderer : nouvelle sortie console (extension, exécution, texte). */
   processesOutput: 'processes:output',
+  webFetchIcon: 'web:fetch-icon',
+  webClearAppData: 'web:clear-app-data',
+  webResetPermissions: 'web:reset-permissions',
   systemGetPreferences: 'system:get-preferences',
   /** Événement main -> renderer : une préférence de Windows a changé (ex. couleur d'accent). */
   systemPreferencesChanged: 'system:preferences-changed'

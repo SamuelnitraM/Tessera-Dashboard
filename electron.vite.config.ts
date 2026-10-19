@@ -18,6 +18,12 @@ export default defineConfig({
     },
     build: {
       rolldownOptions: {
+        input: {
+          // Pont entre l'interface de Tessera et le processus principal
+          index: resolve('src/preload/index.ts'),
+          // Script de Tessera dans les pages web intégrées (voir src/preload/webview.ts)
+          webview: resolve('src/preload/webview.ts')
+        },
         // Un preload « sandboxé » doit être en CommonJS
         output: { format: 'cjs', entryFileNames: '[name].cjs' }
       }

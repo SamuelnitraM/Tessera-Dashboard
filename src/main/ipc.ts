@@ -26,6 +26,7 @@ import {
 } from './plugins/processes'
 import { getSettings, updateSettings } from './settings-store'
 import { getSystemPreferences } from './system'
+import { clearAppData, fetchSiteIcon, resetAppPermissions } from './web'
 
 /** Enregistre les réponses du processus principal aux demandes du renderer. */
 export function registerIpcHandlers(): void {
@@ -106,6 +107,13 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IpcChannels.processesIsRunning, (_event, pluginId: string, path: string) =>
     isTargetRunning(pluginId, path)
+  )
+
+  // Applications web
+  ipcMain.handle(IpcChannels.webFetchIcon, (_event, url: string) => fetchSiteIcon(url))
+  ipcMain.handle(IpcChannels.webClearAppData, (_event, appId: string) => clearAppData(appId))
+  ipcMain.handle(IpcChannels.webResetPermissions, (_event, appId: string) =>
+    resetAppPermissions(appId)
   )
 
   ipcMain.handle(IpcChannels.systemGetPreferences, () => getSystemPreferences())

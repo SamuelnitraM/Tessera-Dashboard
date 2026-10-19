@@ -85,8 +85,9 @@ export interface PluginManifest {
  *   `Documents\Tessera Dashboard\<files.folder>`.
  * - `processes` : lancer et arrêter des programmes, uniquement ceux que l'utilisateur
  *   a choisis lui-même dans la fenêtre de sélection de Windows.
+ * - `web` : afficher des pages web (composant `WebView` du SDK).
  */
-export const PLUGIN_PERMISSIONS = ['files', 'processes'] as const
+export const PLUGIN_PERMISSIONS = ['files', 'processes', 'web'] as const
 export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number]
 
 /** Dossier racine des fichiers d'extensions, dans les Documents de l'utilisateur. */

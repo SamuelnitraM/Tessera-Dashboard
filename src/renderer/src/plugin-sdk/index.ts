@@ -104,7 +104,7 @@ export interface PluginFiles {
 }
 
 export function usePluginFiles(): PluginFiles {
-  const pluginId = useContext(PluginContext)
+  const pluginId = useContext(PluginContext)?.id
   return useMemo(() => {
     if (!pluginId) throw new Error('usePluginFiles doit être utilisé dans un widget.')
     const api = window.tessera.pluginFiles
@@ -165,7 +165,7 @@ export interface PluginProcesses {
 }
 
 export function useProcesses(): PluginProcesses {
-  const pluginId = useContext(PluginContext)
+  const pluginId = useContext(PluginContext)?.id
   return useMemo(() => {
     if (!pluginId) throw new Error('useProcesses doit être utilisé dans un widget.')
     const api = window.tessera.processes
@@ -185,6 +185,15 @@ export function useProcesses(): PluginProcesses {
     }
   }, [pluginId])
 }
+
+// ---------------------------------------------------------------------------
+// Pages web (permission `web`)
+// ---------------------------------------------------------------------------
+
+export type { WebFrameHandle as WebViewHandle } from '../components/web/WebFrame'
+export { useWebApps, type UserWebApp } from './apps'
+export { WebView, type WebViewProps } from './web'
+export { normalizeWebUrl } from '@shared/web-apps'
 
 // ---------------------------------------------------------------------------
 // Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera
@@ -208,7 +217,7 @@ type TranslateFunction = (key: string, values?: Record<string, unknown>) => stri
  * Exemple : `const t = usePluginTranslation(); t('placeholder')`.
  */
 export function usePluginTranslation(): TranslateFunction {
-  const pluginId = useContext(PluginContext)
+  const pluginId = useContext(PluginContext)?.id
   const { i18n } = useTranslation()
   const language = i18n.language
 

@@ -14,6 +14,7 @@ import {
 import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
 import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshTrayMenu } from './tray'
+import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web'
 import { createMainWindow, markAppAsQuitting, showMainWindow } from './window'
 
 // Une seule instance de l'app à la fois : un second lancement réaffiche la fenêtre existante
@@ -27,6 +28,7 @@ if (!app.requestSingleInstanceLock()) {
     flushSettings()
     flushDashboard()
     flushProcessApprovals()
+    flushWebPermissions()
     stopCapturedProcesses()
   })
 
@@ -44,6 +46,8 @@ if (!app.requestSingleInstanceLock()) {
     applyTheme(settings.appearance.theme)
     loadDashboard()
     loadProcessApprovals()
+    loadWebPermissions()
+    watchWebContents()
 
     registerIpcHandlers()
     createMainWindow()

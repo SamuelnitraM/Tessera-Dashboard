@@ -83,7 +83,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
         ) : (
           // Une erreur dans le widget n'affecte ni la page ni les autres widgets
           <WidgetErrorBoundary>
-            <PluginContext.Provider value={registered.pluginId}>
+            <PluginContext.Provider value={registered.context}>
               <Component
                 instanceId={widget.id}
                 config={config}

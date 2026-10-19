@@ -12,13 +12,50 @@ export const en: Translation = {
     pickProgram: 'Choose a program',
     programFilter: 'Programs (.exe, .bat, .cmd, .lnk)'
   },
+  web: {
+    contextMenu: {
+      cut: 'Cut',
+      copy: 'Copy',
+      paste: 'Paste',
+      selectAll: 'Select all',
+      openLink: 'Open link in browser',
+      copyLink: 'Copy link address',
+      copyImage: 'Copy image',
+      addToDictionary: 'Add to dictionary',
+      back: 'Back',
+      forward: 'Forward',
+      reload: 'Reload',
+      inspect: 'Inspect element'
+    },
+    permission: {
+      title: 'Permission requested',
+      message: '“{{host}}” is asking for access to {{what}}.',
+      detail: 'Your choice will be remembered for this app. You can reset it in Settings → Apps.',
+      microphone: 'your microphone',
+      camera: 'your camera',
+      microphoneAndCamera: 'your microphone and camera',
+      geolocation: 'your location',
+      allow: 'Allow',
+      deny: 'Deny'
+    }
+  },
   nav: {
     pages: 'Pages',
     home: 'Home',
     newPage: 'New page',
     apps: 'Apps',
-    noApps: 'Apps you add will show up here.',
+    noApps: 'Add Discord, WhatsApp… to open them here.',
+    addApp: 'Add an app',
     settings: 'Settings'
+  },
+  apps: {
+    back: 'Back',
+    forward: 'Forward',
+    reload: 'Reload',
+    home: 'App home page',
+    openInBrowser: 'Open in browser',
+    close: 'Close tab (frees memory)',
+    loadError: 'The page could not be loaded ({{error}}).'
   },
   pages: {
     defaultName: 'Page {{n}}',
@@ -103,9 +140,27 @@ export const en: Translation = {
     comingSoon: {
       title: 'Coming soon',
       notifications:
-        'Per-app toggles, custom sounds and Do Not Disturb will come with the notification system.',
-      applications:
-        'Adding and configuring your apps (websites, launchers, widgets) will live here.'
+        'Per-app toggles, custom sounds and Do Not Disturb will come with the notification system.'
+    },
+    applications: {
+      intro:
+        'Web apps open in a Tessera tab, each with its own sign-in, kept between launches. Once opened, they stay loaded in the background.',
+      name: 'Name',
+      url: 'Address',
+      namePlaceholder: 'Name (optional)',
+      urlPlaceholder: 'Address, e.g. app.example.com',
+      invalidUrl: 'Invalid web address (http:// or https://).',
+      addTitle: 'Add an app',
+      add: 'Add',
+      open: 'Open',
+      moveUp: 'Move up',
+      moveDown: 'Move down',
+      resetPermissions: 'Reset permissions (microphone, camera, location)',
+      delete: 'Delete',
+      cancel: 'Cancel',
+      deleteTitle: 'Delete “{{name}}”?',
+      deleteMessage:
+        'The app will be removed from Tessera, and its sign-in (cookies, saved data) will be erased.'
     },
     extensions: {
       intro:

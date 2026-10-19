@@ -7,6 +7,7 @@ import {
   type WidgetManifest
 } from '@shared/plugins'
 import type { PluginModule, WidgetComponent } from '@tessera/plugin-sdk'
+import type { PluginContextValue } from '../plugin-sdk/context'
 
 /**
  * Registre des extensions.
@@ -32,6 +33,8 @@ export interface RegisteredWidget {
   pluginId: string
   manifest: WidgetManifest
   component: WidgetComponent
+  /** Identité et permissions de l'extension, fournies au widget par le SDK. */
+  context: PluginContextValue
 }
 
 const manifestFiles = import.meta.glob<unknown>('../../../../plugins/*/manifest.json', {
@@ -87,13 +90,15 @@ function loadPlugin(
   if (missing) return invalid(`Aucun composant fourni pour le widget « ${missing.type} ».`)
 
   modules.set(manifest.id, module)
+  const context: PluginContextValue = { id: manifest.id, permissions: manifest.permissions }
   for (const widget of manifest.widgets) {
     const key = widgetKey(manifest.id, widget.type)
     widgets.set(key, {
       key,
       pluginId: manifest.id,
       manifest: widget,
-      component: module.widgets[widget.type]
+      component: module.widgets[widget.type],
+      context
     })
   }
   return { id: manifest.id, manifest, error: null, builtIn: true }

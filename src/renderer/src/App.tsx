@@ -4,6 +4,7 @@ import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
 import { useNavigationStore } from './stores/navigation'
 import { useResolvedAccentColor, useResolvedLanguage } from './stores/settings'
+import { AppTabs } from './views/apps/AppTabs'
 import { PageView } from './views/page/PageView'
 import { SettingsView } from './views/settings/SettingsView'
 import styles from './App.module.css'
@@ -21,11 +22,10 @@ export function App(): React.JSX.Element {
     <div className={styles.shell}>
       <Sidebar />
       <main className={styles.content}>
-        {view.type === 'settings' ? (
-          <SettingsView section={view.section} />
-        ) : (
-          <PageView pageId={view.pageId} />
-        )}
+        {view.type === 'settings' && <SettingsView section={view.section} />}
+        {view.type === 'page' && <PageView pageId={view.pageId} />}
+        {/* Onglets d'applications : toujours montés, pour rester chargés en arrière-plan */}
+        <AppTabs />
       </main>
     </div>
   )

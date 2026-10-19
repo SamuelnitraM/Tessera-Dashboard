@@ -89,6 +89,15 @@ const api = {
       return () => ipcRenderer.removeListener(IpcChannels.processesOutput, listener)
     }
   },
+  /** Applications web (onglets) : icônes et données de session. */
+  web: {
+    fetchIcon: (url: string): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannels.webFetchIcon, url),
+    clearAppData: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.webClearAppData, appId),
+    resetPermissions: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.webResetPermissions, appId)
+  },
   system: {
     getPreferences: (): Promise<SystemPreferences> =>
       ipcRenderer.invoke(IpcChannels.systemGetPreferences),
