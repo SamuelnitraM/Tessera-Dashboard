@@ -45,3 +45,16 @@
 .body {
   padding: 0 0.75rem 0.75rem;
 }
+
+/* Fenêtre de confirmation */
+.message {
+  padding: 0 0.5rem 1rem;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0 0.5rem 0.5rem;
+}

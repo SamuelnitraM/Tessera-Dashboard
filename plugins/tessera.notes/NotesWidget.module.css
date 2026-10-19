@@ -1,0 +1,445 @@
+/*
+ * Mise en page du bloc-notes. Elle s'adapte à la taille du widget (requêtes de conteneur) :
+ * - large : liste des notes à gauche, éditeur à droite
+ * - étroit : liste remplacée par une liste déroulante dans l'en-tête
+ */
+.notes {
+  --notes-font-size: 0.9375rem;
+  container: notes / inline-size;
+  display: flex;
+  height: 100%;
+  font-size: var(--notes-font-size);
+}
+
+.notes[data-font='small'] {
+  --notes-font-size: 0.8125rem;
+}
+
+.notes[data-font='large'] {
+  --notes-font-size: 1.125rem;
+}
+
+/* ---------- Liste des notes ---------- */
+
+.sidebar {
+  display: none;
+  flex-direction: column;
+  width: 13rem;
+  flex-shrink: 0;
+  border-right: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 2.5rem;
+  padding: 0 0.375rem 0 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.noteList {
+  flex: 1;
+  margin: 0;
+  padding: 0 0.375rem 0.375rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.noteItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.4375rem 0.5rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  text-align: left;
+}
+
+.noteItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.noteItem[aria-current='true'] {
+  background: var(--color-accent-soft);
+}
+
+.noteIcon {
+  flex-shrink: 0;
+  margin-top: 0.1875rem;
+  color: var(--color-text-muted);
+}
+
+.noteItemText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.noteItemTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.noteItemDate {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Zone principale ---------- */
+
+.main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2.5rem;
+  padding: 0.25rem 0.375rem 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+}
+
+.title {
+  flex: 1;
+  min-width: 4rem;
+  padding: 0.25rem 0.375rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.title:hover {
+  border-color: var(--color-border);
+}
+
+.title:focus {
+  background: var(--color-bg);
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.noteSelect,
+.formatSelect {
+  min-width: 0;
+  padding: 0.25rem 0.375rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.noteSelect {
+  max-width: 10rem;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.status[data-dirty='true'] {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  margin-left: auto;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.iconButton[aria-pressed='true'] {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+.iconButton[data-danger='true']:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+/* Large : la liste remplace la liste déroulante et son bouton « Nouvelle note » */
+@container notes (min-width: 560px) {
+  .notes[data-list='true'] .sidebar {
+    display: flex;
+  }
+
+  .notes[data-list='true'] .noteSelect,
+  .notes[data-list='true'] .headerNew {
+    display: none;
+  }
+}
+
+/* Très étroit : on masque le format et le statut pour garder le titre lisible */
+@container notes (max-width: 380px) {
+  .formatSelect,
+  .status {
+    display: none;
+  }
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.375rem 0.25rem 0.75rem;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+}
+
+.error span {
+  flex: 1;
+}
+
+.editorArea {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  height: 100%;
+  color: var(--color-text-muted);
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- Éditeurs ---------- */
+
+.codeEditor {
+  height: 100%;
+}
+
+.richEditor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toolbarButton {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.toolbarButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.toolbarButton[aria-pressed='true'] {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
+}
+
+.toolbarSeparator {
+  width: 1px;
+  height: 16px;
+  margin: 0 0.25rem;
+  background: var(--color-border);
+}
+
+.richContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.richContent :global(.ProseMirror) {
+  min-height: 100%;
+  padding: 0.75rem 1rem;
+  outline: none;
+}
+
+/* Texte indicatif de l'éditeur vide (extension Placeholder de TipTap) */
+.richContent :global(.ProseMirror p.is-editor-empty:first-child::before) {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.preview {
+  height: 100%;
+  padding: 0.75rem 1rem;
+  overflow-y: auto;
+}
+
+/* ---------- Typographie du texte riche et de l'aperçu Markdown ---------- */
+
+.prose {
+  line-height: 1.6;
+}
+
+.prose :global(:is(h1, h2, h3)) {
+  margin: 1em 0 0.4em;
+  line-height: 1.25;
+}
+
+.prose :global(h1) {
+  font-size: 1.6em;
+}
+
+.prose :global(h2) {
+  font-size: 1.3em;
+}
+
+.prose :global(h3) {
+  font-size: 1.1em;
+}
+
+.prose :global(:is(p, ul, ol, blockquote, pre)) {
+  margin: 0 0 0.75em;
+}
+
+.prose :global(:is(ul, ol)) {
+  padding-left: 1.5em;
+}
+
+.prose :global(blockquote) {
+  padding-left: 0.875em;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.prose :global(code) {
+  padding: 0.1em 0.35em;
+  background: var(--color-surface-hover);
+  border-radius: 4px;
+  font-family: Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.prose :global(pre) {
+  padding: 0.75em 1em;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+.prose :global(pre code) {
+  padding: 0;
+  background: none;
+}
+
+.prose :global(a) {
+  color: var(--color-accent);
+}
+
+.prose :global(hr) {
+  border: none;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Listes de tâches du texte riche */
+.prose :global(ul[data-type='taskList']) {
+  padding-left: 0.25em;
+  list-style: none;
+}
+
+/* Cases [ ] / [x] de l'aperçu Markdown : seule la ligne de la case perd sa puce */
+.prose :global(li:has(> input[type='checkbox'])) {
+  margin-left: -1.25em;
+  list-style: none;
+}
+
+.prose :global(ul[data-type='taskList'] li) {
+  display: flex;
+  gap: 0.5em;
+}
+
+.prose :global(ul[data-type='taskList'] li > label) {
+  flex-shrink: 0;
+  margin-top: 0.15em;
+}
+
+.prose :global(ul[data-type='taskList'] li > div > p) {
+  margin: 0;
+}
+
+.prose :global(input[type='checkbox']) {
+  accent-color: var(--color-accent);
+}
+
+.prose > :global(*:first-child),
+.prose :global(.ProseMirror > *:first-child) {
+  margin-top: 0;
+}

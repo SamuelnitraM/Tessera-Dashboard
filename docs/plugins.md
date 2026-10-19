@@ -60,6 +60,8 @@ Tout dossier contenant un `manifest.json` et un `index.tsx` est **découvert aut
 | `widgets[].icon`                | Nom d'une icône [Lucide](https://lucide.dev/icons) (ex. `clock`, `mail`, `music`). Une icône inconnue affiche une pièce de puzzle |
 | `defaultSize`, `minSize`        | En cases de la disposition large (24 colonnes de large, `h` en lignes). `minSize` ≤ `defaultSize`                                 |
 | `settings`                      | Réglages du widget (facultatif), voir ci-dessous                                                                                  |
+| `permissions`                   | Accès supplémentaires (facultatif) : `["files"]`, voir [Permissions](#permissions)                                                |
+| `files`                         | `{ "folder": "Notes" }` : dossier de fichiers de l'extension, obligatoire avec la permission `files`                              |
 
 Un manifeste invalide n'empêche pas l'app de démarrer : l'extension apparaît dans **Paramètres → Extensions** avec le champ fautif (ex. `widgets[0].minSize : ne peut pas dépasser defaultSize`).
 
@@ -77,6 +79,16 @@ Les réglages déclarés dans `settings` sont affichés **automatiquement** dans
 | `select`  | `default`, `options: [{ "value": "…", "label": { … } }]`         | Liste déroulante |
 
 Une valeur enregistrée invalide (mauvais type, hors limites, option supprimée) est automatiquement remplacée par la valeur par défaut.
+
+### Permissions
+
+Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peut demander des accès supplémentaires, qui sont affichés à l'utilisateur dans **Paramètres → Extensions** :
+
+| Permission | Accès                                                                                                                          | Déclaration                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `files`    | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>` | `"permissions": ["files"], "files": { "folder": "Notes" }` |
+
+Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés).
 
 ## Le code
 
@@ -121,17 +133,36 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 
 ### API du SDK (`@tessera/plugin-sdk`)
 
-| Élément                  | Rôle                                                                               |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `definePlugin(module)`   | Déclare le code de l'extension (vérifié par TypeScript)                            |
-| `WidgetProps<Config>`    | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`          |
-| `usePluginTranslation()` | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`) |
-| `useLanguage()`          | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`               |
-| `PLUGIN_API_VERSION`     | Version de l'API fournie par l'app                                                 |
+| Élément                                                                     | Rôle                                                                               |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                            |
+| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`          |
+| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`) |
+| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`               |
+| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                      |
+| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                            |
+| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                 |
 
 - **`config`** contient les réglages du manifeste (avec leurs valeurs par défaut) et toute autre donnée enregistrée par le widget. Elle est sauvegardée dans `dashboard.json` avec la page.
 - **`setConfig(patch)`** fusionne le patch avec la configuration existante et sauvegarde.
 - **`editing`** vaut `true` quand la page est en mode édition : le widget peut alors proposer une édition directe. Ajoute la classe `no-drag` aux éléments interactifs (champs, boutons) pour qu'un clic dessus ne déplace pas le widget.
+
+### Fichiers (`usePluginFiles`)
+
+Avec la permission `files`, `usePluginFiles()` donne accès au dossier de l'extension :
+
+| Méthode                | Effet                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| `list()`               | Fichiers du dossier : `{ name, size, modifiedAt }[]`                                                   |
+| `read(name)`           | Contenu texte (UTF-8)                                                                                  |
+| `write(name, content)` | Crée ou remplace un fichier (écriture atomique, 10 Mo maximum)                                         |
+| `rename(from, to)`     | Renomme ; refusé si `to` existe déjà                                                                   |
+| `trash(name)`          | Envoie à la Corbeille de Windows (récupérable)                                                         |
+| `openFolder()`         | Ouvre le dossier dans l'Explorateur                                                                    |
+| `getFolder()`          | Chemin complet du dossier                                                                              |
+| `onChange(callback)`   | Prévient quand le dossier change, même depuis un autre programme. Renvoie la fonction de désabonnement |
+
+Les noms de fichiers sont de simples noms (jamais de chemin), valides sous Windows, et ne commencent pas par un point. Une erreur porte un code lisible avec `getPluginFileErrorCode(error)` : `invalid-name`, `not-found`, `exists`, `permission` ou `io`. L'extension **Bloc-notes** (`plugins/tessera.notes`) est un exemple complet d'utilisation.
 
 ### Bonnes pratiques
 

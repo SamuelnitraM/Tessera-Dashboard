@@ -110,7 +110,8 @@ export const en: Translation = {
       invalid: 'Invalid extension',
       author: 'By {{author}}',
       widgets: 'Widgets: {{list}}',
-      toggle: 'Enable the {{name}} extension'
+      toggle: 'Enable the {{name}} extension',
+      filesPermission: 'File access: {{folder}}'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

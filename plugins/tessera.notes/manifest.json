@@ -1,0 +1,65 @@
+{
+  "id": "tessera.notes",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Bloc-notes", "en": "Notepad" },
+  "description": {
+    "fr": "Des notes en texte brut, Markdown ou texte riche, enregistrées comme fichiers sur ton PC.",
+    "en": "Notes in plain text, Markdown or rich text, saved as files on your PC."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["files"],
+  "files": { "folder": "Notes" },
+  "widgets": [
+    {
+      "type": "notes",
+      "name": { "fr": "Bloc-notes", "en": "Notepad" },
+      "description": {
+        "fr": "Plusieurs notes en texte brut, Markdown ou texte riche.",
+        "en": "Several notes in plain text, Markdown or rich text."
+      },
+      "icon": "notebook-pen",
+      "defaultSize": { "w": 10, "h": 6 },
+      "minSize": { "w": 5, "h": 4 },
+      "settings": [
+        {
+          "key": "autosave",
+          "type": "boolean",
+          "label": { "fr": "Enregistrement automatique", "en": "Autosave" },
+          "default": true
+        },
+        {
+          "key": "defaultFormat",
+          "type": "select",
+          "label": { "fr": "Format des nouvelles notes", "en": "Format of new notes" },
+          "default": "markdown",
+          "options": [
+            { "value": "plain", "label": { "fr": "Texte brut", "en": "Plain text" } },
+            { "value": "markdown", "label": { "fr": "Markdown", "en": "Markdown" } },
+            { "value": "rich", "label": { "fr": "Texte riche", "en": "Rich text" } }
+          ]
+        },
+        {
+          "key": "fontSize",
+          "type": "select",
+          "label": { "fr": "Taille du texte", "en": "Text size" },
+          "default": "medium",
+          "options": [
+            { "value": "small", "label": { "fr": "Petite", "en": "Small" } },
+            { "value": "medium", "label": { "fr": "Moyenne", "en": "Medium" } },
+            { "value": "large", "label": { "fr": "Grande", "en": "Large" } }
+          ]
+        },
+        {
+          "key": "showList",
+          "type": "boolean",
+          "label": {
+            "fr": "Afficher la liste des notes (si le widget est assez large)",
+            "en": "Show the list of notes (when the widget is wide enough)"
+          },
+          "default": true
+        }
+      ]
+    }
+  ]
+}

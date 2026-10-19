@@ -1,4 +1,5 @@
-import { TriangleAlert } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { FolderLock, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { localize } from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
@@ -20,6 +21,31 @@ export function ExtensionsSection(): React.JSX.Element {
         ))}
       </ul>
     </>
+  )
+}
+
+/** Dossier auquel l'extension a accès (permission « files »). */
+function FilesPermission({ pluginId }: { pluginId: string }): React.JSX.Element | null {
+  const { t } = useTranslation()
+  const [folder, setFolder] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    window.tessera.pluginFiles
+      .getFolder(pluginId)
+      .then((path) => active && setFolder(path))
+      .catch(() => {})
+    return () => {
+      active = false
+    }
+  }, [pluginId])
+
+  if (!folder) return null
+  return (
+    <p className={styles.extensionPermission}>
+      <FolderLock size={13} aria-hidden />
+      {t('settings.extensions.filesPermission', { folder })}
+    </p>
   )
 }
 
@@ -73,6 +99,7 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                   list: manifest.widgets.map((widget) => localize(widget.name, language)).join(', ')
                 })}
               </p>
+              {manifest.permissions.includes('files') && <FilesPermission pluginId={plugin.id} />}
             </>
           )
         )}

@@ -72,8 +72,23 @@ export interface PluginManifest {
   name: LocalizedText
   description: LocalizedText
   author: string
+  /** Accès supplémentaires demandés par l'extension (affichés dans Paramètres → Extensions). */
+  permissions: PluginPermission[]
+  /** Dossier de fichiers de l'extension (si elle demande la permission `files`). */
+  files: { folder: string } | null
   widgets: WidgetManifest[]
 }
+
+/**
+ * Permissions qu'une extension peut demander.
+ * - `files` : lire et écrire des fichiers, uniquement dans son dossier
+ *   `Documents\Tessera Dashboard\<files.folder>`.
+ */
+export const PLUGIN_PERMISSIONS = ['files'] as const
+export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number]
+
+/** Dossier racine des fichiers d'extensions, dans les Documents de l'utilisateur. */
+export const PLUGIN_FILES_ROOT = 'Tessera Dashboard'
 
 export type ManifestResult = { ok: true; manifest: PluginManifest } | { ok: false; error: string }
 
@@ -226,6 +241,30 @@ function widget(value: unknown, path: string): WidgetManifest {
   }
 }
 
+/** Nom de dossier lisible : lettres, chiffres, espaces, tirets et soulignés. */
+const FOLDER_NAME = /^[\p{L}\p{N}][\p{L}\p{N} _-]{0,59}$/u
+
+function permissionsAndFiles(raw: Raw): Pick<PluginManifest, 'permissions' | 'files'> {
+  const list = raw.permissions === undefined ? [] : raw.permissions
+  if (!Array.isArray(list)) fail('permissions', 'liste attendue')
+  const permissions = list.map((permission, index) => {
+    if (!PLUGIN_PERMISSIONS.includes(permission as PluginPermission)) {
+      fail(`permissions[${index}]`, `permission inconnue (« ${String(permission)} »)`)
+    }
+    return permission as PluginPermission
+  })
+
+  const wantsFiles = permissions.includes('files')
+  if (wantsFiles !== (raw.files !== undefined)) {
+    fail('files', 'à déclarer si, et seulement si, la permission « files » est demandée')
+  }
+  const files = wantsFiles
+    ? { folder: string(object(raw.files, 'files').folder, 'files.folder', FOLDER_NAME) }
+    : null
+
+  return { permissions: [...new Set(permissions)], files }
+}
+
 /** Valide un manifeste lu depuis un fichier `manifest.json`. */
 export function parseManifest(input: unknown): ManifestResult {
   try {
@@ -255,6 +294,7 @@ export function parseManifest(input: unknown): ManifestResult {
         name: localized(raw.name, 'name'),
         description: localized(raw.description, 'description'),
         author: string(raw.author, 'author'),
+        ...permissionsAndFiles(raw),
         widgets
       }
     }

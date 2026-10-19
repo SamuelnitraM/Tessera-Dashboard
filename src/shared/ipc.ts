@@ -12,6 +12,15 @@ export const IpcChannels = {
   settingsChanged: 'settings:changed',
   dashboardGet: 'dashboard:get',
   dashboardSave: 'dashboard:save',
+  pluginFilesList: 'plugin-files:list',
+  pluginFilesRead: 'plugin-files:read',
+  pluginFilesWrite: 'plugin-files:write',
+  pluginFilesRename: 'plugin-files:rename',
+  pluginFilesTrash: 'plugin-files:trash',
+  pluginFilesOpenFolder: 'plugin-files:open-folder',
+  pluginFilesGetFolder: 'plugin-files:get-folder',
+  /** Événement main -> renderer : le dossier d'une extension a changé (identifiant en argument). */
+  pluginFilesChanged: 'plugin-files:changed',
   systemGetPreferences: 'system:get-preferences',
   /** Événement main -> renderer : une préférence de Windows a changé (ex. couleur d'accent). */
   systemPreferencesChanged: 'system:preferences-changed'

@@ -114,7 +114,8 @@ export const fr = {
       invalid: 'Extension invalide',
       author: 'Par {{author}}',
       widgets: 'Widgets : {{list}}',
-      toggle: 'Activer l’extension {{name}}'
+      toggle: 'Activer l’extension {{name}}',
+      filesPermission: 'Accès aux fichiers : {{folder}}'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

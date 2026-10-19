@@ -4,6 +4,7 @@ import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
 import { registerIpcHandlers } from './ipc'
+import { setPluginFilesListener } from './plugins/files'
 import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
 import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshTrayMenu } from './tray'
@@ -44,6 +45,8 @@ if (!app.requestSingleInstanceLock()) {
       if (next.general.language !== previous.general.language) refreshTrayMenu()
       broadcast(IpcChannels.settingsChanged, next)
     })
+
+    setPluginFilesListener((pluginId) => broadcast(IpcChannels.pluginFilesChanged, pluginId))
 
     watchSystemPreferences((preferences) => {
       broadcast(IpcChannels.systemPreferencesChanged, preferences)

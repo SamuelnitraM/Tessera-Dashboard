@@ -6,6 +6,7 @@
  */
 import { useContext, useMemo, type ComponentType } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { PluginFileEntry } from '@shared/plugin-files'
 import type { Language } from '@shared/settings'
 import { PluginContext } from './context'
 
@@ -51,6 +52,68 @@ export function useLanguage(): Language {
   const { i18n } = useTranslation()
   return i18n.language === 'en' ? 'en' : 'fr'
 }
+
+// ---------------------------------------------------------------------------
+// Fichiers (permission `files`)
+// ---------------------------------------------------------------------------
+
+export type { PluginFileEntry, PluginFileErrorCode } from '@shared/plugin-files'
+export { getPluginFileErrorCode, isValidFileName } from '@shared/plugin-files'
+
+/**
+ * Fichiers de l'extension, dans son dossier `Documents\Tessera Dashboard\<files.folder>`.
+ * Nécessite `"permissions": ["files"]` et `"files": { "folder": "…" }` dans le manifeste.
+ * Les erreurs portent un code lisible avec `getPluginFileErrorCode(error)`.
+ */
+export interface PluginFiles {
+  list: () => Promise<PluginFileEntry[]>
+  read: (name: string) => Promise<string>
+  /** Crée ou remplace un fichier texte (UTF-8). */
+  write: (name: string, content: string) => Promise<PluginFileEntry>
+  /** Renomme un fichier (refusé si le nouveau nom existe déjà). */
+  rename: (from: string, to: string) => Promise<PluginFileEntry>
+  /** Envoie le fichier à la Corbeille de Windows. */
+  trash: (name: string) => Promise<void>
+  /** Ouvre le dossier dans l'Explorateur Windows. */
+  openFolder: () => Promise<void>
+  /** Chemin complet du dossier (pour l'afficher). */
+  getFolder: () => Promise<string>
+  /** Prévient quand le contenu du dossier change (même depuis un autre programme). */
+  onChange: (callback: () => void) => () => void
+}
+
+export function usePluginFiles(): PluginFiles {
+  const pluginId = useContext(PluginContext)
+  return useMemo(() => {
+    if (!pluginId) throw new Error('usePluginFiles doit être utilisé dans un widget.')
+    const api = window.tessera.pluginFiles
+    return {
+      list: () => api.list(pluginId),
+      read: (name) => api.read(pluginId, name),
+      write: (name, content) => api.write(pluginId, name, content),
+      rename: (from, to) => api.rename(pluginId, from, to),
+      trash: (name) => api.trash(pluginId, name),
+      openFolder: () => api.openFolder(pluginId),
+      getFolder: () => api.getFolder(pluginId),
+      onChange: (callback) => api.onChange((changed) => changed === pluginId && callback())
+    }
+  }, [pluginId])
+}
+
+// ---------------------------------------------------------------------------
+// Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera
+// ---------------------------------------------------------------------------
+
+export { Button } from '../components/ui/Button'
+export { ConfirmDialog, type ConfirmAction } from '../components/ui/ConfirmDialog'
+export { Dialog } from '../components/ui/Dialog'
+export { SegmentedControl } from '../components/ui/SegmentedControl'
+export { Select } from '../components/ui/Select'
+export { Switch } from '../components/ui/Switch'
+
+// ---------------------------------------------------------------------------
+// Traductions
+// ---------------------------------------------------------------------------
 
 type TranslateFunction = (key: string, values?: Record<string, unknown>) => string
 

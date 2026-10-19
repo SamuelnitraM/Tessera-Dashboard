@@ -62,11 +62,11 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 - **Discord** : onglet web, notifications récupérées dans le centre de notifications.
 - **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct).
 - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC ».
-- **Bloc-notes**
-  - Plusieurs notes, chacune en **texte brut**, **Markdown** ou **texte riche**.
-  - Stockage en fichiers locaux.
-  - Boutons **Sauvegarder** (Ctrl+S) et **Ouvrir le dossier**.
-  - Sauvegarde automatique désactivable.
+- **Bloc-notes** ✅
+  - Plusieurs notes, chacune en **texte brut** (`.txt`), **Markdown** (`.md`, avec aperçu) ou **texte riche** (`.html`, barre de mise en forme, listes de tâches).
+  - Fichiers dans `Documents\Tessera Dashboard\Notes`, modifiables aussi avec d'autres programmes (changements détectés en direct).
+  - Boutons **Enregistrer** (Ctrl+S), **Ouvrir le dossier**, renommage, changement de format (avec conversion), suppression vers la Corbeille.
+  - Enregistrement automatique désactivable (confirmation avant de quitter une note non enregistrée).
 - **Lanceur d'applications** : intégration de DevLauncher, GitSpread et ProspectSolution.
 
 ### Notifications
@@ -103,6 +103,7 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 | État de l'interface   | [Zustand](https://zustand.docs.pmnd.rs/)                                                               | Réglages et navigation partagés entre composants        |
 | Icônes                | [Lucide](https://lucide.dev/)                                                                          | Icônes de l'interface                                   |
 | Éditeurs de notes     | [TipTap](https://tiptap.dev/) (texte riche), [CodeMirror 6](https://codemirror.net/) (Markdown / brut) | Bloc-notes                                              |
+| Aperçu Markdown       | [marked](https://marked.js.org/) + [DOMPurify](https://github.com/cure53/DOMPurify)                    | Rendu Markdown nettoyé (aucun script exécuté)           |
 | Persistance           | Fichiers JSON (réglages, dispositions) + fichiers de notes                                             | Stockage local                                          |
 | Secrets               | `safeStorage` d'Electron (DPAPI Windows)                                                               | Chiffrement des jetons de connexion                     |
 | Distribution          | [electron-builder](https://www.electron.build/) + electron-updater                                     | Installeur Windows, mises à jour via GitHub Releases    |
@@ -145,7 +146,8 @@ src/
 │   ├── ipc.ts                #   Réponses aux demandes de l'interface
 │   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres
 │   ├── json-file.ts          #   Lecture / écriture atomique de fichiers JSON
-│   └── paths.ts              #   Chemins des ressources (dev / packagé)
+│   ├── paths.ts              #   Chemins des ressources (dev / packagé)
+│   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers
 ├── preload/                  # Pont sécurisé main <-> renderer (window.tessera)
 ├── renderer/                 # Interface React
 │   ├── index.html
@@ -164,13 +166,15 @@ src/
     ├── settings.ts           #   Schéma des réglages, valeurs par défaut, validation
     ├── dashboard.ts          #   Modèle des pages et de la grille, validation
     ├── plugins.ts            #   Format et validation des manifestes d'extension
+    ├── plugin-files.ts       #   Règles d'accès aux fichiers des extensions
     ├── ipc.ts                #   Noms des canaux IPC et types échangés
     ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
     └── app.ts                #   Constantes (nom, identifiant, dépôt)
 resources/                    # Icônes (app, zone de notification), sons
 plugins/                      # Extensions intégrées (une par dossier : manifest.json + index.tsx)
 ├── tessera.clock/            #   Horloge
-└── tessera.heading/          #   Titre de section
+├── tessera.heading/          #   Titre de section
+└── tessera.notes/            #   Bloc-notes (permission « files »)
 docs/
 └── plugins.md                # Guide de création d'une extension
 ```
@@ -259,7 +263,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 ### Phase 1 : widgets de base
 
-- [ ] **Étape 5 :** bloc-notes.
+- [x] **Étape 5 :** bloc-notes.
 - [ ] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
 - [ ] **Étape 7 :** widget web et onglets d'applications (Discord).
 - [ ] **Étape 8 :** système de notifications complet.
