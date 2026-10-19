@@ -1,0 +1,56 @@
+{
+  "id": "tessera.heading",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Titre", "en": "Heading" },
+  "description": {
+    "fr": "Des titres de section pour organiser tes pages.",
+    "en": "Section headings to organize your pages."
+  },
+  "author": "Tessera Dashboard",
+  "widgets": [
+    {
+      "type": "heading",
+      "name": { "fr": "Titre", "en": "Heading" },
+      "description": {
+        "fr": "Un titre de section pour organiser ta page.",
+        "en": "A section heading to organize your page."
+      },
+      "icon": "heading",
+      "defaultSize": { "w": 12, "h": 1 },
+      "minSize": { "w": 3, "h": 1 },
+      "settings": [
+        {
+          "key": "text",
+          "type": "text",
+          "label": { "fr": "Texte", "en": "Text" },
+          "default": "",
+          "maxLength": 80,
+          "placeholder": { "fr": "Titre de section", "en": "Section heading" }
+        },
+        {
+          "key": "size",
+          "type": "select",
+          "label": { "fr": "Taille du texte", "en": "Text size" },
+          "default": "medium",
+          "options": [
+            { "value": "small", "label": { "fr": "Petite", "en": "Small" } },
+            { "value": "medium", "label": { "fr": "Moyenne", "en": "Medium" } },
+            { "value": "large", "label": { "fr": "Grande", "en": "Large" } }
+          ]
+        },
+        {
+          "key": "align",
+          "type": "select",
+          "label": { "fr": "Alignement", "en": "Alignment" },
+          "default": "left",
+          "options": [
+            { "value": "left", "label": { "fr": "À gauche", "en": "Left" } },
+            { "value": "center", "label": { "fr": "Centré", "en": "Center" } },
+            { "value": "right", "label": { "fr": "À droite", "en": "Right" } }
+          ]
+        }
+      ]
+    }
+  ]
+}

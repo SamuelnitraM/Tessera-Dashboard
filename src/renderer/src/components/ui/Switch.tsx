@@ -3,6 +3,7 @@ import styles from './controls.module.css'
 interface SwitchProps {
   checked: boolean
   onChange: (checked: boolean) => void
+  'aria-label'?: string
   'aria-labelledby'?: string
   'aria-describedby'?: string
 }

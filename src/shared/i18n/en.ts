@@ -37,27 +37,26 @@ export const en: Translation = {
     resetCompact: 'Regenerate automatically',
     pageFull: 'No room left on this page. Free up some space, or switch the page to “Scroll”.'
   },
+  common: {
+    close: 'Close'
+  },
   widgets: {
     picker: {
       title: 'Add a widget',
-      close: 'Close'
+      empty: 'No widgets available: enable an extension in Settings → Extensions.'
     },
+    settings: 'Widget settings',
     remove: 'Remove widget',
     unknown: 'Widget unavailable ({{type}})',
-    clock: {
-      name: 'Clock',
-      description: 'The current time and date.'
-    },
-    heading: {
-      name: 'Heading',
-      description: 'A section heading to organize your page.',
-      placeholder: 'Section heading'
-    }
+    disabledPlugin: 'Extension disabled: {{name}}',
+    error: 'This widget ran into an error.',
+    retry: 'Try again'
   },
   settings: {
     title: 'Settings',
     sections: {
       general: 'General',
+      extensions: 'Extensions',
       appearance: 'Appearance',
       notifications: 'Notifications',
       applications: 'Apps',
@@ -103,6 +102,15 @@ export const en: Translation = {
         'Per-app toggles, custom sounds and Do Not Disturb will come with the notification system.',
       applications:
         'Adding and configuring your apps (websites, launchers, widgets) will live here.'
+    },
+    extensions: {
+      intro:
+        'Extensions add widgets to Tessera. A disabled extension disappears from the add list; its widgets already placed stay on hold on your pages.',
+      builtIn: 'Built-in',
+      invalid: 'Invalid extension',
+      author: 'By {{author}}',
+      widgets: 'Widgets: {{list}}',
+      toggle: 'Enable the {{name}} extension'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
-import { CircleAlert, X } from 'lucide-react'
+import { useState } from 'react'
+import { CircleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { LayoutMode } from '@shared/dashboard'
+import { localize } from '@shared/plugins'
+import { listAvailableWidgets } from '../../plugins/registry'
 import { useDashboardStore } from '../../stores/dashboard'
-import { WIDGETS } from '../../widgets/registry'
+import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
+import { PluginIcon } from '../PluginIcon'
+import { Dialog } from '../ui/Dialog'
 import styles from './WidgetPicker.module.css'
 
 interface WidgetPickerProps {
@@ -13,7 +17,7 @@ interface WidgetPickerProps {
   onClose: () => void
 }
 
-/** Fenêtre de choix d'un widget à ajouter sur la page. */
+/** Fenêtre de choix d'un widget à ajouter, parmi ceux des extensions activées. */
 export function WidgetPicker({
   pageId,
   mode,
@@ -21,51 +25,26 @@ export function WidgetPicker({
   onClose
 }: WidgetPickerProps): React.JSX.Element {
   const { t } = useTranslation()
+  const language = useResolvedLanguage()
+  const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
   const addWidget = useDashboardStore((state) => state.addWidget)
-  const dialogRef = useRef<HTMLDialogElement>(null)
   const [pageFull, setPageFull] = useState(false)
 
-  // <dialog> natif : gère le fond, le focus et la touche Échap
-  useEffect(() => {
-    const dialog = dialogRef.current
-    if (!dialog) return
-    if (open && !dialog.open) {
-      setPageFull(false)
-      dialog.showModal()
-    } else if (!open && dialog.open) {
-      dialog.close()
-    }
-  }, [open])
-
-  const handleAdd = (type: string): void => {
-    if (addWidget(pageId, type, mode) === 'page-full') {
-      setPageFull(true)
-    } else {
-      onClose()
-    }
+  // L'alerte « page pleine » est oubliée à la fermeture
+  const close = (): void => {
+    setPageFull(false)
+    onClose()
   }
 
-  return (
-    <dialog
-      ref={dialogRef}
-      className={styles.dialog}
-      aria-labelledby="widget-picker-title"
-      onClose={onClose}
-      // Clic sur le fond assombri = fermer
-      onClick={(event) => event.target === dialogRef.current && onClose()}
-    >
-      <header className={styles.header}>
-        <h2 id="widget-picker-title">{t('widgets.picker.title')}</h2>
-        <button
-          type="button"
-          className={styles.close}
-          aria-label={t('widgets.picker.close')}
-          onClick={onClose}
-        >
-          <X size={18} aria-hidden />
-        </button>
-      </header>
+  const handleAdd = (key: string): void => {
+    if (addWidget(pageId, key, mode) === 'page-full') setPageFull(true)
+    else close()
+  }
 
+  const widgets = listAvailableWidgets(disabledPlugins)
+
+  return (
+    <Dialog title={t('widgets.picker.title')} open={open} onClose={close}>
       {pageFull && (
         <p className={styles.alert} role="alert">
           <CircleAlert size={16} aria-hidden />
@@ -73,21 +52,27 @@ export function WidgetPicker({
         </p>
       )}
 
-      <ul className={styles.list}>
-        {WIDGETS.map(({ type, icon: Icon }) => (
-          <li key={type}>
-            <button type="button" className={styles.option} onClick={() => handleAdd(type)}>
-              <span className={styles.optionIcon}>
-                <Icon size={20} aria-hidden />
-              </span>
-              <span className={styles.optionText}>
-                <span className={styles.optionName}>{t(`widgets.${type}.name`)}</span>
-                <span className={styles.optionDescription}>{t(`widgets.${type}.description`)}</span>
-              </span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </dialog>
+      {widgets.length === 0 ? (
+        <p className={styles.empty}>{t('widgets.picker.empty')}</p>
+      ) : (
+        <ul className={styles.list}>
+          {widgets.map(({ key, manifest }) => (
+            <li key={key}>
+              <button type="button" className={styles.option} onClick={() => handleAdd(key)}>
+                <span className={styles.optionIcon}>
+                  <PluginIcon name={manifest.icon} />
+                </span>
+                <span className={styles.optionText}>
+                  <span className={styles.optionName}>{localize(manifest.name, language)}</span>
+                  <span className={styles.optionDescription}>
+                    {localize(manifest.description, language)}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Dialog>
   )
 }

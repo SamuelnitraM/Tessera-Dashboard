@@ -33,6 +33,10 @@ export interface Settings {
     /** Fermer la fenêtre la masque dans la zone de notification au lieu de quitter. */
     closeToTray: boolean
   }
+  plugins: {
+    /** Identifiants des extensions désactivées par l'utilisateur. */
+    disabled: string[]
+  }
 }
 
 type SettingsSections = Omit<Settings, 'schemaVersion'>
@@ -68,6 +72,9 @@ export const DEFAULT_SETTINGS: Settings = {
   window: {
     startupMode: 'maximized',
     closeToTray: true
+  },
+  plugins: {
+    disabled: []
   }
 }
 
@@ -89,6 +96,7 @@ export function sanitizeSettings(input: unknown): Settings {
   const general = asRecord(root.general)
   const appearance = asRecord(root.appearance)
   const window = asRecord(root.window)
+  const plugins = asRecord(root.plugins)
   const defaults = DEFAULT_SETTINGS
 
   return {
@@ -111,6 +119,11 @@ export function sanitizeSettings(input: unknown): Settings {
       startupMode: pick(window.startupMode, STARTUP_MODES, defaults.window.startupMode),
       closeToTray:
         typeof window.closeToTray === 'boolean' ? window.closeToTray : defaults.window.closeToTray
+    },
+    plugins: {
+      disabled: Array.isArray(plugins.disabled)
+        ? [...new Set(plugins.disabled.filter((id): id is string => typeof id === 'string'))]
+        : defaults.plugins.disabled
     }
   }
 }
@@ -121,7 +134,8 @@ export function applySettingsPatch(current: Settings, patch: SettingsPatch): Set
     ...current,
     general: { ...current.general, ...patch.general },
     appearance: { ...current.appearance, ...patch.appearance },
-    window: { ...current.window, ...patch.window }
+    window: { ...current.window, ...patch.window },
+    plugins: { ...current.plugins, ...patch.plugins }
   })
 }
 

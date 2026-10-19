@@ -12,7 +12,7 @@ import {
   toCompactMinSize
 } from '../../lib/grid'
 import { useDashboardStore } from '../../stores/dashboard'
-import { getDefaultSize, getMinSize } from '../../widgets/registry'
+import { getDefaultSize, getMinSize } from '../../plugins/registry'
 import { WidgetFrame } from './WidgetFrame'
 import styles from './DashboardGrid.module.css'
 

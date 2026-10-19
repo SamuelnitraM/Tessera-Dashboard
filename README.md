@@ -82,7 +82,7 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 - **Lancement au démarrage** de Windows (optionnel).
 - **Thèmes** : clair, sombre ou système (suit Windows), avec **couleur d'accent** personnalisable.
 - **Langues** : français et anglais.
-- **Système de plugins** : les widgets intégrés sont eux-mêmes des plugins, et des développeurs tiers pourront créer les leurs.
+- **Extensions (plugins)** : chaque widget est fourni par une extension, décrite par un manifeste. Ses réglages apparaissent automatiquement, et elle s'active ou se désactive dans Paramètres → Extensions. Les widgets intégrés sont eux-mêmes des extensions ; des développeurs tiers pourront créer les leurs ([guide](docs/plugins.md)).
 
 ### Plus tard
 
@@ -151,8 +151,9 @@ src/
 │   ├── index.html
 │   └── src/
 │       ├── components/       #   Barre latérale, en-têtes, contrôles (ui/)
-│       │   └── grid/         #     Grille, cadre des widgets, fenêtre d'ajout
-│       ├── widgets/          #   Types de widgets (horloge, titre) et leur registre
+│       │   └── grid/         #     Grille, cadre des widgets, fenêtres d'ajout et de réglages
+│       ├── plugin-sdk/       #   SDK des extensions (importé via @tessera/plugin-sdk)
+│       ├── plugins/          #   Découverte, validation et registre des extensions
 │       ├── views/            #   Vues : page de widgets, paramètres (et ses sections)
 │       ├── stores/           #   État global (réglages, tableau de bord, navigation) avec Zustand
 │       ├── hooks/            #   Hooks React (taille d'un élément, nom d'une page)
@@ -162,11 +163,16 @@ src/
 └── shared/                   # Partagé entre main et renderer
     ├── settings.ts           #   Schéma des réglages, valeurs par défaut, validation
     ├── dashboard.ts          #   Modèle des pages et de la grille, validation
+    ├── plugins.ts            #   Format et validation des manifestes d'extension
     ├── ipc.ts                #   Noms des canaux IPC et types échangés
     ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
     └── app.ts                #   Constantes (nom, identifiant, dépôt)
 resources/                    # Icônes (app, zone de notification), sons
-plugins/                      # (à venir) Widgets intégrés, écrits comme des plugins
+plugins/                      # Extensions intégrées (une par dossier : manifest.json + index.tsx)
+├── tessera.clock/            #   Horloge
+└── tessera.heading/          #   Titre de section
+docs/
+└── plugins.md                # Guide de création d'une extension
 ```
 
 **Réglages** : ils sont stockés dans `%APPDATA%\Tessera Dashboard\settings.json`. Le fichier est entièrement revalidé à chaque lecture : une valeur invalide reprend sa valeur par défaut, l'app ne peut donc pas être cassée par un fichier abîmé. Pour ajouter un réglage :
@@ -184,11 +190,13 @@ plugins/                      # (à venir) Widgets intégrés, écrits comme des
 
 La disposition compacte est générée à partir de la large (ordre de lecture conservé). Si l'utilisateur la modifie, elle est sauvegardée à part, et le bouton « Régénérer automatiquement » permet de revenir à la version générée.
 
-**Ajouter un type de widget** (en attendant le système de plugins de l'étape 4) :
+**Extensions** : chaque widget appartient à une extension du dossier `plugins/`, découverte automatiquement au build. Le cheminement est le suivant :
 
-1. créer son composant dans `src/renderer/src/widgets/<type>/` (il reçoit `widget`, `editing` et `updateConfig`) ;
-2. le déclarer dans `src/renderer/src/widgets/registry.ts` avec son icône, sa taille par défaut et sa taille minimale ;
-3. ajouter `widgets.<type>.name` et `widgets.<type>.description` dans les traductions.
+1. le **manifeste** est validé (`src/shared/plugins.ts`). S'il est invalide, l'extension est signalée dans Paramètres → Extensions sans bloquer l'app ;
+2. le **registre** (`src/renderer/src/plugins/registry.ts`) associe chaque widget du manifeste à son composant ;
+3. le **cadre** (`WidgetFrame`) fournit au composant sa configuration (réglages du manifeste + données du widget). Il génère la fenêtre de réglages et isole les erreurs du widget.
+
+Pour créer un widget, suis le **[guide des extensions](docs/plugins.md)**. Les types de widgets de la v1 (`clock`, `heading`) sont migrés automatiquement vers leur nouveau nom (`tessera.clock/clock`…).
 
 **Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
 
@@ -247,7 +255,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 - [x] **Étape 1 : initialisation.** Electron + electron-vite + React + TypeScript, ESLint/Prettier, fenêtre agrandie au lancement, instance unique, icône dans la barre des tâches.
 - [x] **Étape 2 : structure de l'interface.** Navigation (pages, onglets), thèmes et couleur d'accent, FR/EN, squelette des paramètres, sauvegarde des réglages.
 - [x] **Étape 3 : grille.** Pages multiples, mode édition, ajout, suppression et redimensionnement des widgets, gestion du redimensionnement de la fenêtre.
-- [ ] **Étape 4 : architecture des plugins.** Registre, manifeste, API interne des widgets.
+- [x] **Étape 4 : architecture des plugins.** Registre, manifeste, API interne des widgets.
 
 ### Phase 1 : widgets de base
 

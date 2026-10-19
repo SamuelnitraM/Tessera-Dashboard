@@ -40,27 +40,26 @@ export const fr = {
     pageFull:
       'Plus de place sur cette page. Libère de l’espace, ou passe la page en mode « Défiler ».'
   },
+  common: {
+    close: 'Fermer'
+  },
   widgets: {
     picker: {
       title: 'Ajouter un widget',
-      close: 'Fermer'
+      empty: 'Aucun widget disponible : active une extension dans Paramètres → Extensions.'
     },
+    settings: 'Réglages du widget',
     remove: 'Retirer le widget',
     unknown: 'Widget indisponible ({{type}})',
-    clock: {
-      name: 'Horloge',
-      description: 'L’heure et la date du jour.'
-    },
-    heading: {
-      name: 'Titre',
-      description: 'Un titre de section pour organiser ta page.',
-      placeholder: 'Titre de section'
-    }
+    disabledPlugin: 'Extension désactivée : {{name}}',
+    error: 'Ce widget a rencontré une erreur.',
+    retry: 'Réessayer'
   },
   settings: {
     title: 'Paramètres',
     sections: {
       general: 'Général',
+      extensions: 'Extensions',
       appearance: 'Apparence',
       notifications: 'Notifications',
       applications: 'Applications',
@@ -107,6 +106,15 @@ export const fr = {
         'Activation par application, sons personnalisés et mode Ne pas déranger arriveront avec le système de notifications.',
       applications:
         'L’ajout et la configuration de tes applications (sites, lanceurs, widgets) arriveront ici.'
+    },
+    extensions: {
+      intro:
+        'Les extensions ajoutent des widgets à Tessera. Une extension désactivée disparaît de la liste d’ajout ; ses widgets déjà placés restent en attente sur tes pages.',
+      builtIn: 'Intégrée',
+      invalid: 'Extension invalide',
+      author: 'Par {{author}}',
+      widgets: 'Widgets : {{list}}',
+      toggle: 'Activer l’extension {{name}}'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

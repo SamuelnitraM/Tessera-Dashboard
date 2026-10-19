@@ -1,0 +1,39 @@
+.fields {
+  display: flex;
+  flex-direction: column;
+  padding: 0 0.5rem 0.5rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.75rem 0;
+}
+
+.field + .field {
+  border-top: 1px solid var(--color-border);
+}
+
+.field[data-inline] {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field label,
+.field > span {
+  font-weight: 600;
+}
+
+.input {
+  padding: 0.4375rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}

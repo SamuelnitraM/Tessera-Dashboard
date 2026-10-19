@@ -18,8 +18,9 @@
     "paths": {
       "@renderer/*": ["./src/renderer/src/*"],
       "@shared/*": ["./src/shared/*"],
-      "@resources/*": ["./resources/*"]
+      "@resources/*": ["./resources/*"],
+      "@tessera/plugin-sdk": ["./src/renderer/src/plugin-sdk"]
     }
   },
-  "include": ["src/renderer/src/**/*", "src/preload/*.d.ts", "src/shared/**/*"]
+  "include": ["src/renderer/src/**/*", "src/preload/*.d.ts", "src/shared/**/*", "plugins/**/*"]
 }

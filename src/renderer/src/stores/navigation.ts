@@ -6,6 +6,7 @@ export const SETTINGS_SECTIONS = [
   'appearance',
   'notifications',
   'applications',
+  'extensions',
   'about'
 ] as const
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]

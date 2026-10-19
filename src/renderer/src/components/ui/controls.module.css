@@ -75,6 +75,7 @@
 
 .select {
   appearance: none;
+  width: 100%;
   min-width: 12rem;
   padding: 0.4375rem 2.25rem 0.4375rem 0.75rem;
   background: var(--color-bg);

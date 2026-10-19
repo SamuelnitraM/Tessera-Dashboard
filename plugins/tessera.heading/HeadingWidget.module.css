@@ -1,4 +1,5 @@
 .heading {
+  --heading-max: 2rem;
   container-type: size;
   display: flex;
   align-items: center;
@@ -6,15 +7,31 @@
   padding: 0 1rem;
 }
 
+.heading[data-size='small'] {
+  --heading-max: 1.25rem;
+}
+
+.heading[data-size='large'] {
+  --heading-max: 3rem;
+}
+
 .text,
 .input {
   width: 100%;
-  font-size: clamp(1rem, 45cqh, 2rem);
+  font-size: clamp(1rem, 45cqh, var(--heading-max));
   font-weight: 600;
   letter-spacing: -0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.heading[data-align='center'] :is(.text, .input) {
+  text-align: center;
+}
+
+.heading[data-align='right'] :is(.text, .input) {
+  text-align: right;
 }
 
 /* Titre pas encore renseigné : le texte indicatif est grisé */

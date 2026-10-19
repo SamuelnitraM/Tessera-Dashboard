@@ -28,7 +28,9 @@ export default defineConfig({
       alias: {
         '@renderer': resolve('src/renderer/src'),
         '@shared': resolve('src/shared'),
-        '@resources': resolve('resources')
+        '@resources': resolve('resources'),
+        // SDK importé par les extensions du dossier plugins/
+        '@tessera/plugin-sdk': resolve('src/renderer/src/plugin-sdk')
       }
     },
     plugins: [react()]

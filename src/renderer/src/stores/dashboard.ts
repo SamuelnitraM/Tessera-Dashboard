@@ -9,7 +9,7 @@ import {
   type PageFitMode
 } from '@shared/dashboard'
 import { findFreeSpot, layoutBottom, resolveLayout, toCompactSize } from '../lib/grid'
-import { getDefaultSize, getMinSize } from '../widgets/registry'
+import { getDefaultSize, getMinSize } from '../plugins/registry'
 
 export type AddWidgetResult = 'added' | 'page-full'
 

@@ -56,21 +56,28 @@ export interface DashboardPage {
 }
 
 export interface Dashboard {
-  schemaVersion: 1
+  /** v2 : types de widgets préfixés par leur extension (`tessera.clock/clock`). */
+  schemaVersion: 2
   pages: DashboardPage[]
 }
 
 export const MAIN_PAGE_ID = 'home'
 
+/** Types de widgets de la v1 (avant le système d'extensions) et leur nouveau nom. */
+const LEGACY_WIDGET_TYPES: Record<string, string> = {
+  clock: 'tessera.clock/clock',
+  heading: 'tessera.heading/heading'
+}
+
 export const DEFAULT_DASHBOARD: Dashboard = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   pages: [
     {
       id: MAIN_PAGE_ID,
       name: '',
       isMain: true,
       fitMode: 'fit',
-      widgets: [{ id: 'welcome-clock', type: 'clock', config: {} }],
+      widgets: [{ id: 'welcome-clock', type: 'tessera.clock/clock', config: {} }],
       layouts: {
         wide: [{ i: 'welcome-clock', x: 0, y: 0, w: 6, h: 3 }],
         compact: null
@@ -128,7 +135,8 @@ function sanitizePage(input: unknown, usedIds: Set<string>): DashboardPage | nul
   for (const raw of Array.isArray(page.widgets) ? page.widgets : []) {
     const widget = asRecord(raw)
     const widgetId = asString(widget.id)
-    const type = asString(widget.type)
+    const rawType = asString(widget.type)
+    const type = LEGACY_WIDGET_TYPES[rawType] ?? rawType
     if (!widgetId || !type || widgetIds.has(widgetId)) continue
     widgetIds.add(widgetId)
     widgets.push({ id: widgetId, type, config: asRecord(widget.config) })
@@ -170,5 +178,5 @@ export function sanitizeDashboard(input: unknown): Dashboard {
   pages.forEach((page, index) => (page.isMain = index === mainIndex))
   const [main] = pages.splice(mainIndex, 1)
 
-  return { schemaVersion: 1, pages: [main, ...pages] }
+  return { schemaVersion: 2, pages: [main, ...pages] }
 }

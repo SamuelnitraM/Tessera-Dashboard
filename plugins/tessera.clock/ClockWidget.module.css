@@ -18,6 +18,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Avec les secondes, le texte est plus long : on le réduit un peu */
+.clock[data-seconds='true'] .time {
+  font-size: min(42cqh, 17cqw);
+}
+
 .date {
   margin-top: 0.4em;
   font-size: clamp(0.75rem, min(11cqh, 6cqw), 1.5rem);
