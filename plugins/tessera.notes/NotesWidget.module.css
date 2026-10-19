@@ -11,14 +11,6 @@
   font-size: var(--notes-font-size);
 }
 
-.notes[data-font='small'] {
-  --notes-font-size: 0.8125rem;
-}
-
-.notes[data-font='large'] {
-  --notes-font-size: 1.125rem;
-}
-
 /* ---------- Liste des notes ---------- */
 
 .sidebar {
@@ -49,6 +41,55 @@
   padding: 0 0.375rem 0.375rem;
   overflow-y: auto;
   list-style: none;
+}
+
+.groupLabel {
+  padding: 0.625rem 0.5rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.groupLabel:first-child {
+  padding-top: 0;
+}
+
+.noteRow {
+  position: relative;
+}
+
+/* Bouton de suppression visible au survol de la note */
+.noteDelete {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  display: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--color-surface);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.noteRow:hover .noteDelete,
+.noteDelete:focus-visible {
+  display: grid;
+}
+
+.noteDelete:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.emptyActions {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .noteItem {

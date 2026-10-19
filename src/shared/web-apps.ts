@@ -10,7 +10,15 @@ export interface WebApp {
   url: string
   /** Icône du site (image `data:`), récupérée à la première ouverture. */
   icon: string | null
+  /**
+   * `tessera` : onglet intégré à Tessera. Sinon, identifiant d'un navigateur installé
+   * (`brave`, `chrome`…) qui ouvre l'application dans sa propre fenêtre.
+   */
+  openWith: string
 }
+
+/** Ouverture dans un onglet de Tessera (par défaut). */
+export const OPEN_IN_TESSERA = 'tessera'
 
 /** Applications proposées en un clic dans Paramètres → Applications. */
 export const WEB_APP_PRESETS: { name: string; url: string }[] = [
@@ -108,7 +116,11 @@ export function sanitizeWebApps(input: unknown): WebApp[] {
           ? app.name.trim().slice(0, 40)
           : new URL(url).hostname,
       url,
-      icon
+      icon,
+      openWith:
+        typeof app.openWith === 'string' && /^[a-z0-9-]{1,32}$/.test(app.openWith)
+          ? app.openWith
+          : OPEN_IN_TESSERA
     })
   }
   return apps

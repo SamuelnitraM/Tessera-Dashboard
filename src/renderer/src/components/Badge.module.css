@@ -1,0 +1,21 @@
+.badge {
+  flex-shrink: 0;
+  min-width: 18px;
+  height: 18px;
+  margin-left: auto;
+  padding: 0 0.3125rem;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.badge[data-dot='true'] {
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+}

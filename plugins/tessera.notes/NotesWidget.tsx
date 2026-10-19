@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import {
   Eye,
+  FilePlus,
+  FileUp,
   FileText,
   FolderOpen,
   Hash,
@@ -18,6 +20,7 @@ import {
   ConfirmDialog,
   getPluginFileErrorCode,
   isValidFileName,
+  openContextMenu,
   useLanguage,
   useLatest,
   usePluginFiles,
@@ -33,6 +36,7 @@ import {
   noteFileName,
   toFileContent,
   uniqueTitle,
+  type Note,
   type NoteFormat
 } from './formats'
 import { MarkdownPreview } from './MarkdownPreview'
@@ -44,7 +48,8 @@ import styles from './NotesWidget.module.css'
 interface NotesConfig {
   autosave: boolean
   defaultFormat: NoteFormat
-  fontSize: 'small' | 'medium' | 'large'
+  /** Taille du texte des notes, en pixels. */
+  fontSize: number
   showList: boolean
   /** Fichier de la note ouverte. */
   selected?: string
@@ -64,7 +69,7 @@ interface OpenNote {
 
 type PendingAction =
   | { kind: 'switch'; target: string | undefined }
-  | { kind: 'delete' }
+  | { kind: 'delete'; name: string; title: string }
   | { kind: 'convert'; format: NoteFormat }
 
 /** Délai entre la dernière frappe et l'enregistrement automatique. */
@@ -245,18 +250,35 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
     }
   }
 
-  const deleteNote = async (): Promise<void> => {
-    const note = openNoteRef.current
-    if (!note) return
+  const deleteNote = async (name: string): Promise<void> => {
     try {
-      await files.trash(note.name)
-      drafts.delete(note.name)
-      setOpenNote(null)
+      await files.trash(name)
+      drafts.delete(name)
+      if (openNoteRef.current?.name === name) setOpenNote(null)
       await refresh()
     } catch (cause) {
       showError(cause)
     }
   }
+
+  /** Importe des notes existantes (.md, .txt, .html) : elles sont copiées dans le dossier Notes. */
+  const importNotes = async (): Promise<void> => {
+    try {
+      const imported = await files.importFiles(['md', 'txt', 'html'])
+      if (imported.length === 0) return
+      await refresh()
+      await selectNote(imported[0].name)
+    } catch (cause) {
+      showError(cause)
+    }
+  }
+
+  /** Menu du bouton « + » : nouvelle note, ou import. */
+  const addMenu = (event: React.MouseEvent): void =>
+    openContextMenu([
+      { label: t('newNote'), icon: FilePlus, onSelect: () => void createNote() },
+      { label: t('importNotes'), icon: FileUp, onSelect: () => void importNotes() }
+    ])(event)
 
   /** Change le format : nouveau fichier converti, l'ancien part à la Corbeille. */
   const convertTo = async (format: NoteFormat): Promise<void> => {
@@ -303,7 +325,7 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
   return (
     <div
       className={styles.notes}
-      data-font={config.fontSize}
+      style={{ '--notes-font-size': `${config.fontSize}px` } as React.CSSProperties}
       data-list={config.showList}
       onKeyDown={handleKeyDown}
     >
@@ -311,26 +333,43 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
         <aside className={styles.sidebar} aria-label={t('notes')}>
           <div className={styles.sidebarHeader}>
             <span>{t('notes')}</span>
-            <IconButton icon={Plus} label={t('newNote')} onClick={() => void createNote()} />
+            <IconButton icon={Plus} label={t('addNote')} onClick={addMenu} />
           </div>
           <ul className={styles.noteList}>
-            {notes?.map((note) => (
-              <li key={note.name}>
-                <button
-                  type="button"
-                  className={styles.noteItem}
-                  aria-current={note.name === config.selected}
-                  onClick={() => void selectNote(note.name)}
-                >
-                  <NoteIcon format={note.format} />
-                  <span className={styles.noteItemText}>
-                    <span className={styles.noteItemTitle}>{note.title}</span>
-                    <span className={styles.noteItemDate}>
-                      {formatDate(note.modifiedAt, language)}
-                    </span>
-                  </span>
-                </button>
-              </li>
+            {groupByDate(notes ?? []).map((group) => (
+              <Fragment key={group.key}>
+                <li className={styles.groupLabel}>{t(`groups.${group.key}`)}</li>
+                {group.notes.map((note) => (
+                  <li key={note.name} className={styles.noteRow}>
+                    <button
+                      type="button"
+                      className={styles.noteItem}
+                      aria-current={note.name === config.selected}
+                      onClick={() => void selectNote(note.name)}
+                    >
+                      <NoteIcon format={note.format} />
+                      <span className={styles.noteItemText}>
+                        <span className={styles.noteItemTitle}>{note.title}</span>
+                        <span className={styles.noteItemDate}>
+                          {formatDate(note.modifiedAt, language)}
+                        </span>
+                      </span>
+                    </button>
+                    {/* Suppression rapide au survol */}
+                    <button
+                      type="button"
+                      className={styles.noteDelete}
+                      title={t('delete')}
+                      aria-label={`${t('delete')} : ${note.title}`}
+                      onClick={() =>
+                        setPending({ kind: 'delete', name: note.name, title: note.title })
+                      }
+                    >
+                      <Trash2 size={13} aria-hidden />
+                    </button>
+                  </li>
+                ))}
+              </Fragment>
             ))}
           </ul>
         </aside>
@@ -410,9 +449,9 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
             )}
             <IconButton
               icon={Plus}
-              label={t('newNote')}
+              label={t('addNote')}
               className={styles.headerNew}
-              onClick={() => void createNote()}
+              onClick={addMenu}
             />
             <IconButton
               icon={FolderOpen}
@@ -424,7 +463,9 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
                 icon={Trash2}
                 label={t('delete')}
                 danger
-                onClick={() => setPending({ kind: 'delete' })}
+                onClick={() =>
+                  setPending({ kind: 'delete', name: current.name, title: current.title })
+                }
               />
             )}
           </div>
@@ -445,9 +486,14 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
           ) : !current ? (
             <div className={styles.centered}>
               <p>{t('empty')}</p>
-              <Button variant="primary" icon={Plus} onClick={() => void createNote()}>
-                {t('createFirst')}
-              </Button>
+              <div className={styles.emptyActions}>
+                <Button variant="primary" icon={Plus} onClick={() => void createNote()}>
+                  {t('createFirst')}
+                </Button>
+                <Button icon={FileUp} onClick={() => void importNotes()}>
+                  {t('importNotes')}
+                </Button>
+              </div>
             </div>
           ) : current.format === 'rich' ? (
             <RichEditor
@@ -480,7 +526,7 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
           if (!saveFirst && current) drafts.delete(current.name)
           setConfig({ selected: target })
         }}
-        onDelete={() => void deleteNote()}
+        onDelete={(name) => void deleteNote(name)}
         onConvert={(format) => void convertTo(format)}
       />
     </div>
@@ -497,7 +543,7 @@ interface PendingDialogProps {
   formatLabel: (format: NoteFormat) => string
   onClose: () => void
   onSwitch: (target: string | undefined, saveFirst: boolean) => Promise<void>
-  onDelete: () => void
+  onDelete: (name: string) => void
   onConvert: (format: NoteFormat) => void
 }
 
@@ -540,8 +586,15 @@ function PendingDialog({
   } else if (pending?.kind === 'delete') {
     dialog = {
       title: t('confirm.deleteTitle'),
-      message: t('confirm.deleteMessage', { title }),
-      actions: [cancel, { label: t('confirm.delete'), variant: 'danger', onClick: then(onDelete) }]
+      message: t('confirm.deleteMessage', { title: pending.title }),
+      actions: [
+        cancel,
+        {
+          label: t('confirm.delete'),
+          variant: 'danger',
+          onClick: then(() => onDelete(pending.name))
+        }
+      ]
     }
   } else if (pending?.kind === 'convert') {
     dialog = {
@@ -564,7 +617,7 @@ function PendingDialog({
 interface IconButtonProps {
   icon: LucideIcon
   label: string
-  onClick: () => void
+  onClick: (event: React.MouseEvent) => void
   disabled?: boolean
   pressed?: boolean
   danger?: boolean
@@ -599,6 +652,31 @@ function IconButton({
 function NoteIcon({ format }: { format: NoteFormat }): React.JSX.Element {
   const Icon = FORMAT_ICONS[format]
   return <Icon className={styles.noteIcon} size={15} aria-hidden />
+}
+
+type DateGroup = 'today' | 'yesterday' | 'week' | 'month' | 'older'
+
+/** Notes regroupées par ancienneté (la liste est déjà triée de la plus récente à la plus ancienne). */
+function groupByDate(notes: readonly Note[]): { key: DateGroup; notes: Note[] }[] {
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const day = 24 * 60 * 60 * 1000
+  const groupOf = (timestamp: number): DateGroup => {
+    if (timestamp >= startOfToday.getTime()) return 'today'
+    if (timestamp >= startOfToday.getTime() - day) return 'yesterday'
+    if (timestamp >= startOfToday.getTime() - 7 * day) return 'week'
+    if (timestamp >= startOfToday.getTime() - 30 * day) return 'month'
+    return 'older'
+  }
+
+  const groups: { key: DateGroup; notes: Note[] }[] = []
+  for (const note of notes) {
+    const key = groupOf(note.modifiedAt)
+    const last = groups.at(-1)
+    if (last?.key === key) last.notes.push(note)
+    else groups.push({ key, notes: [note] })
+  }
+  return groups
 }
 
 /** « 14:32 » pour aujourd'hui, sinon la date courte (« 19/10/2026 »). */

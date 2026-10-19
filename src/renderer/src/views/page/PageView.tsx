@@ -75,7 +75,7 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
             <h2 className={styles.emptyTitle}>{t('pages.emptyTitle')}</h2>
             <p className={styles.emptyText}>{t('pages.emptyText')}</p>
             <Button variant="primary" icon={Plus} onClick={openPicker}>
-              {t('pages.addWidget')}
+              {t('pages.addBlock')}
             </Button>
           </div>
         ) : (

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FolderLock, SquareTerminal, TriangleAlert } from 'lucide-react'
+import { FolderLock, Globe, SquareTerminal, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { localize } from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
@@ -80,9 +80,9 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
         <div className={styles.extensionHeader}>
           <span className={styles.rowLabel}>{name}</span>
           {manifest && <span className={styles.extensionMeta}>v{manifest.version}</span>}
-          {plugin.builtIn && (
-            <span className={styles.badge}>{t('settings.extensions.builtIn')}</span>
-          )}
+          <span className={styles.badge}>
+            {plugin.builtIn ? t('settings.extensions.builtIn') : t('settings.extensions.module')}
+          </span>
         </div>
 
         {plugin.error ? (
@@ -104,6 +104,12 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                 <p className={styles.extensionPermission}>
                   <SquareTerminal size={13} aria-hidden />
                   {t('settings.extensions.processesPermission')}
+                </p>
+              )}
+              {manifest.permissions.includes('web') && (
+                <p className={styles.extensionPermission}>
+                  <Globe size={13} aria-hidden />
+                  {t('settings.extensions.webPermission')}
                 </p>
               )}
             </>

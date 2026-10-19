@@ -79,7 +79,7 @@ export function PageToolbar({ page, editing, onAddWidget }: PageToolbarProps): R
         ]}
       />
       <Button icon={Plus} onClick={onAddWidget}>
-        {t('pages.addWidget')}
+        {t('pages.addBlock')}
       </Button>
       {!page.isMain && (
         <Button variant="danger" icon={Trash2} onClick={handleDelete}>

@@ -48,10 +48,10 @@ function WidgetError({ message, onRetry }: { message: string; onRetry: () => voi
   return (
     <div className={styles.placeholder} role="alert">
       <TriangleAlert size={20} aria-hidden />
-      <span>{t('widgets.error')}</span>
+      <span>{t('blocks.error')}</span>
       <span className={styles.errorDetail}>{message}</span>
       <Button variant="ghost" className="no-drag" onClick={onRetry}>
-        {t('widgets.retry')}
+        {t('blocks.retry')}
       </Button>
     </div>
   )

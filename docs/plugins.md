@@ -1,8 +1,12 @@
-# Créer une extension
+# Créer un module
 
-Une extension ajoute un ou plusieurs **widgets** à Tessera Dashboard. Les widgets fournis avec l'app (Horloge, Titre) sont eux-mêmes des extensions : ils servent d'exemples complets.
+Un **module** ajoute un ou plusieurs **blocs** à Tessera Dashboard. Techniquement, c'est un plugin, comme les widgets fournis avec l'app (Horloge, Bloc-notes, Lanceur, Application web) : ces derniers servent d'exemples complets.
 
-> **État actuel (API v1)** : les extensions sont placées dans le dossier `plugins/` du projet et compilées avec l'app. Le chargement d'extensions tierces installées par l'utilisateur, avec permissions et isolation, arrivera à l'étape 12 de la feuille de route.
+**Collection** : un même module peut fournir plusieurs widgets (tableau `widgets` du manifeste). Un éditeur peut ainsi proposer, en un seul téléchargement, une « collection » complète : par exemple Messenger, fil d'actualité et liste d'amis.
+
+> **État actuel (API v1)** : les plugins sont placés dans le dossier `plugins/` du projet et compilés avec l'app. L'installation de modules par l'utilisateur, avec isolation, ainsi qu'un projet de départ pour les développeurs, arriveront à l'étape 12 de la feuille de route.
+
+Dans ce guide, « extension » et « plugin » désignent le paquet (dossier `plugins/<id>`), qu'il s'agisse d'un widget intégré ou d'un module.
 
 ## Structure
 
@@ -135,18 +139,19 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 
 ### API du SDK (`@tessera/plugin-sdk`)
 
-| Élément                                                                     | Rôle                                                                                       |
-| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                                    |
-| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`                  |
-| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`)         |
-| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`                       |
-| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                              |
-| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                       |
-| `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous |
-| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                 |
-| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                    |
-| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                         |
+| Élément                                                                     | Rôle                                                                                           |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                                        |
+| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`                      |
+| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`)             |
+| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`                           |
+| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                                  |
+| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                           |
+| `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous     |
+| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
+| `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
+| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                        |
+| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                             |
 
 - **`config`** contient les réglages du manifeste (avec leurs valeurs par défaut) et toute autre donnée enregistrée par le widget. Elle est sauvegardée dans `dashboard.json` avec la page.
 - **`setConfig(patch)`** fusionne le patch avec la configuration existante et sauvegarde.
@@ -156,16 +161,17 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 
 Avec la permission `files`, `usePluginFiles()` donne accès au dossier de l'extension :
 
-| Méthode                | Effet                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------ |
-| `list()`               | Fichiers du dossier : `{ name, size, modifiedAt }[]`                                                   |
-| `read(name)`           | Contenu texte (UTF-8)                                                                                  |
-| `write(name, content)` | Crée ou remplace un fichier (écriture atomique, 10 Mo maximum)                                         |
-| `rename(from, to)`     | Renomme ; refusé si `to` existe déjà                                                                   |
-| `trash(name)`          | Envoie à la Corbeille de Windows (récupérable)                                                         |
-| `openFolder()`         | Ouvre le dossier dans l'Explorateur                                                                    |
-| `getFolder()`          | Chemin complet du dossier                                                                              |
-| `onChange(callback)`   | Prévient quand le dossier change, même depuis un autre programme. Renvoie la fonction de désabonnement |
+| Méthode                   | Effet                                                                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list()`                  | Fichiers du dossier : `{ name, size, modifiedAt }[]`                                                                                               |
+| `read(name)`              | Contenu texte (UTF-8)                                                                                                                              |
+| `write(name, content)`    | Crée ou remplace un fichier (écriture atomique, 10 Mo maximum)                                                                                     |
+| `rename(from, to)`        | Renomme ; refusé si `to` existe déjà                                                                                                               |
+| `trash(name)`             | Envoie à la Corbeille de Windows (récupérable)                                                                                                     |
+| `openFolder()`            | Ouvre le dossier dans l'Explorateur                                                                                                                |
+| `importFiles(extensions)` | Fenêtre de sélection de Windows, puis copie des fichiers choisis dans le dossier (ex. `['md', 'txt']`). Un nom déjà pris reçoit un suffixe « (2) » |
+| `getFolder()`             | Chemin complet du dossier                                                                                                                          |
+| `onChange(callback)`      | Prévient quand le dossier change, même depuis un autre programme. Renvoie la fonction de désabonnement                                             |
 
 Les noms de fichiers sont de simples noms (jamais de chemin), valides sous Windows, et ne commencent pas par un point. Une erreur porte un code lisible avec `getPluginFileErrorCode(error)` : `invalid-name`, `not-found`, `exists`, `permission` ou `io`. L'extension **Bloc-notes** (`plugins/tessera.notes`) est un exemple complet d'utilisation.
 

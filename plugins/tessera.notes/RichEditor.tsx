@@ -33,7 +33,6 @@ export function RichEditor({ value, onChange, placeholder }: RichEditorProps): R
   const editor = useEditor({
     extensions: richExtensions(placeholder),
     content: value,
-    autofocus: 'end',
     onUpdate: ({ editor }) => onChangeRef.current(editor.getHTML())
   })
 

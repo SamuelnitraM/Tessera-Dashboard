@@ -46,6 +46,21 @@
   padding: 0 0.75rem 0.75rem;
 }
 
+/* Champ de saisie d'une fenêtre (ex. renommer) */
+.input {
+  width: calc(100% - 1rem);
+  margin: 0 0.5rem 1rem;
+  padding: 0.4375rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
 /* Fenêtre de confirmation */
 .message {
   padding: 0 0.5rem 1rem;

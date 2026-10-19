@@ -1,50 +1,50 @@
-import { Globe, House, PanelsTopLeft, Plus, Settings } from 'lucide-react'
+import { House, PanelLeftClose, PanelsTopLeft, Plus, Settings, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { DashboardPage } from '@shared/dashboard'
-import logo from '@resources/icon.png'
+import { useAddPage } from '../hooks/useAddPage'
+import { useNavActions } from '../hooks/useNavActions'
 import { usePageName } from '../hooks/usePageName'
+import { openContextMenu } from '../stores/contextMenu'
 import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
+import { usePageDialogsStore } from '../stores/pageDialogs'
 import { useSettingsStore } from '../stores/settings'
 import { useWebAppsStore } from '../stores/webApps'
+import { AppIcon } from './AppIcon'
+import { Badge } from './Badge'
+import { Logo } from './Logo'
 import styles from './Sidebar.module.css'
 
-/** Pastille de messages non lus (nombre, ou simple point). */
-function Badge({ value }: { value: number | '•' | null }): React.JSX.Element | null {
-  if (value === null || value === 0) return null
-  return (
-    <span className={styles.badge} data-dot={value === '•'}>
-      {value === '•' ? '' : value > 99 ? '99+' : value}
-    </span>
-  )
-}
-
+/** Menu latéral déplié : pages, applications et paramètres. */
 export function Sidebar(): React.JSX.Element {
   const { t } = useTranslation()
   const pages = useDashboardStore((state) => state.dashboard.pages)
-  const addPage = useDashboardStore((state) => state.addPage)
+  const apps = useSettingsStore((state) => state.settings.apps.items)
+  const updateSettings = useSettingsStore((state) => state.update)
   const view = useNavigationStore((state) => state.view)
   const navigate = useNavigationStore((state) => state.navigate)
-  const setEditing = useNavigationStore((state) => state.setEditing)
   const openedApps = useNavigationStore((state) => state.openedApps)
-  const apps = useSettingsStore((state) => state.settings.apps.items)
   const badges = useWebAppsStore((state) => state.badges)
-
-  /** Crée une page et l'ouvre directement en mode édition. */
-  const handleAddPage = (): void => {
-    const pageId = addPage(t('pages.defaultName', { n: pages.length + 1 }))
-    navigate({ type: 'page', pageId })
-    setEditing(true)
-  }
+  const { openApp, pageMenu, appMenu } = useNavActions()
+  const addPage = useAddPage()
 
   return (
-    <nav className={styles.sidebar} aria-label="Navigation">
+    <nav className={styles.sidebar} aria-label={t('nav.pages')}>
       <div className={styles.brand}>
-        <img className={styles.logo} src={logo} alt="" />
+        <Logo />
         <span className={styles.brandName}>
           Tessera <span className={styles.brandSuffix}>Dashboard</span>
         </span>
+        <button
+          type="button"
+          className={styles.groupAction}
+          title={t('nav.collapse')}
+          aria-label={t('nav.collapse')}
+          onClick={() => void updateSettings({ appearance: { sidebar: 'collapsed' } })}
+        >
+          <PanelLeftClose size={16} aria-hidden />
+        </button>
       </div>
 
       <div className={styles.group}>
@@ -55,7 +55,7 @@ export function Sidebar(): React.JSX.Element {
             className={styles.groupAction}
             title={t('nav.newPage')}
             aria-label={t('nav.newPage')}
-            onClick={handleAddPage}
+            onClick={addPage}
           >
             <Plus size={16} aria-hidden />
           </button>
@@ -66,6 +66,7 @@ export function Sidebar(): React.JSX.Element {
             page={page}
             active={view.type === 'page' && view.pageId === page.id}
             onClick={() => navigate({ type: 'page', pageId: page.id })}
+            onContextMenu={openContextMenu(() => pageMenu(page))}
           />
         ))}
       </div>
@@ -92,15 +93,12 @@ export function Sidebar(): React.JSX.Element {
             data-active={view.type === 'app' && view.appId === app.id}
             data-open={openedApps.includes(app.id)}
             aria-current={view.type === 'app' && view.appId === app.id ? 'page' : undefined}
-            onClick={() => navigate({ type: 'app', appId: app.id })}
+            onClick={() => openApp(app)}
+            onContextMenu={openContextMenu(() => appMenu(app))}
           >
-            {app.icon ? (
-              <img className={styles.appIcon} src={app.icon} alt="" />
-            ) : (
-              <Globe size={18} strokeWidth={1.75} aria-hidden />
-            )}
+            <AppIcon app={app} />
             <span className={styles.itemLabel}>{app.name}</span>
-            <Badge value={badges[app.id] ?? null} />
+            <Badge value={badges[app.id]} />
           </button>
         ))}
       </div>
@@ -121,17 +119,40 @@ interface PageItemProps {
   page: DashboardPage
   active: boolean
   onClick: () => void
+  onContextMenu: (event: React.MouseEvent) => void
 }
 
-function PageItem({ page, active, onClick }: PageItemProps): React.JSX.Element {
+function PageItem({ page, active, onClick, onContextMenu }: PageItemProps): React.JSX.Element {
+  const { t } = useTranslation()
   const name = usePageName(page)
+  const openDelete = usePageDialogsStore((state) => state.openDelete)
+  const Icon = page.isMain ? House : PanelsTopLeft
+
   return (
-    <NavItem
-      icon={page.isMain ? House : PanelsTopLeft}
-      label={name}
-      active={active}
-      onClick={onClick}
-    />
+    <div className={styles.pageRow} data-active={active} onContextMenu={onContextMenu}>
+      <button
+        type="button"
+        className={styles.item}
+        data-active={active}
+        aria-current={active ? 'page' : undefined}
+        onClick={onClick}
+      >
+        <Icon size={18} strokeWidth={1.75} aria-hidden />
+        <span className={styles.itemLabel}>{name}</span>
+      </button>
+      {/* Suppression rapide au survol (jamais pour la page principale) */}
+      {!page.isMain && (
+        <button
+          type="button"
+          className={styles.rowAction}
+          title={t('nav.pageMenu.delete')}
+          aria-label={`${t('pages.delete')} : ${name}`}
+          onClick={() => openDelete(page.id)}
+        >
+          <X size={14} aria-hidden />
+        </button>
+      )}
+    </div>
   )
 }
 

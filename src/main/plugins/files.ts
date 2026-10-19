@@ -1,7 +1,8 @@
 import { watch, type FSWatcher } from 'node:fs'
-import { mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
-import { join, resolve, sep } from 'node:path'
-import { app, shell } from 'electron'
+import { constants } from 'node:fs'
+import { copyFile, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises'
+import { basename, extname, join, resolve, sep } from 'node:path'
+import { app, dialog, shell, type BrowserWindow } from 'electron'
 import {
   isValidFileName,
   MAX_PLUGIN_FILE_SIZE,
@@ -9,6 +10,7 @@ import {
   type PluginFileErrorCode
 } from '@shared/plugin-files'
 import { PLUGIN_FILES_ROOT } from '@shared/plugins'
+import { getTranslation } from '../i18n'
 import { getPluginManifest } from './manifests'
 
 /**
@@ -121,6 +123,65 @@ export function renamePluginFile(
 /** Envoie un fichier à la Corbeille de Windows (récupérable). */
 export function trashPluginFile(pluginId: string, name: string): Promise<void> {
   return guard(async () => shell.trashItem(await resolveFile(pluginId, name)))
+}
+
+/**
+ * Importe des fichiers choisis par l'utilisateur (fenêtre de sélection de Windows) : ils sont
+ * copiés dans le dossier de l'extension. Un nom déjà pris reçoit un suffixe « (2) », « (3) »…
+ */
+export function importPluginFiles(
+  pluginId: string,
+  window: BrowserWindow | null,
+  extensions: unknown
+): Promise<PluginFileEntry[]> {
+  return guard(async () => {
+    const folder = await ensureFolder(pluginId)
+    const accepted = Array.isArray(extensions)
+      ? extensions.filter(
+          (ext): ext is string => typeof ext === 'string' && /^[a-z0-9]{1,10}$/i.test(ext)
+        )
+      : []
+    if (accepted.length === 0)
+      throw fileError('invalid-name', 'Aucune extension de fichier acceptée.')
+
+    const text = getTranslation().dialogs
+    const options: Electron.OpenDialogOptions = {
+      title: text.importFiles,
+      properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
+      filters: [{ name: text.acceptedFiles, extensions: accepted }]
+    }
+    const result = window
+      ? await dialog.showOpenDialog(window, options)
+      : await dialog.showOpenDialog(options)
+    if (result.canceled) return []
+
+    const imported: PluginFileEntry[] = []
+    for (const source of result.filePaths) {
+      const extension = extname(source).slice(1).toLowerCase()
+      if (!accepted.some((ext) => ext.toLowerCase() === extension)) continue
+      if ((await stat(source)).size > MAX_PLUGIN_FILE_SIZE) continue
+
+      const name = await freeName(folder, basename(source))
+      if (!name) continue
+      const target = join(folder, name)
+      // COPYFILE_EXCL : ne remplace jamais un fichier existant
+      await copyFile(source, target, constants.COPYFILE_EXCL)
+      imported.push(await toEntry(target, name))
+    }
+    return imported
+  })
+}
+
+/** Premier nom libre dans le dossier : « Note.md », sinon « Note (2).md »… */
+async function freeName(folder: string, name: string): Promise<string | null> {
+  if (!isValidFileName(name)) return null
+  const extension = extname(name)
+  const stem = name.slice(0, name.length - extension.length)
+  for (let index = 1; index < 1000; index++) {
+    const candidate = index === 1 ? name : `${stem} (${index})${extension}`
+    if (!(await exists(join(folder, candidate)))) return candidate
+  }
+  return null
 }
 
 /** Ouvre le dossier de l'extension dans l'Explorateur Windows. */

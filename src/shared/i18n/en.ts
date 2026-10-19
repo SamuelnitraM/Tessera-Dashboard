@@ -10,7 +10,9 @@ export const en: Translation = {
   },
   dialogs: {
     pickProgram: 'Choose a program',
-    programFilter: 'Programs (.exe, .bat, .cmd, .lnk)'
+    programFilter: 'Programs (.exe, .bat, .cmd, .lnk)',
+    importFiles: 'Import files',
+    acceptedFiles: 'Accepted files'
   },
   web: {
     contextMenu: {
@@ -46,7 +48,26 @@ export const en: Translation = {
     apps: 'Apps',
     noApps: 'Add Discord, WhatsApp… to open them here.',
     addApp: 'Add an app',
-    settings: 'Settings'
+    settings: 'Settings',
+    collapse: 'Collapse the side menu (Ctrl+B)',
+    expand: 'Expand the side menu (Ctrl+B)',
+    pageMenu: {
+      open: 'Open',
+      edit: 'Edit page',
+      rename: 'Rename…',
+      delete: 'Delete page…'
+    },
+    appMenu: {
+      open: 'Open',
+      openIn: 'Open in {{browser}}',
+      closeTab: 'Close tab',
+      settings: 'App settings'
+    },
+    renamePage: 'Rename page',
+    rename: 'Rename',
+    cancel: 'Cancel',
+    deletePageTitle: 'Delete “{{name}}”?',
+    deletePageMessage: 'The page and all its blocks will be deleted.'
   },
   apps: {
     back: 'Back',
@@ -63,7 +84,7 @@ export const en: Translation = {
     name: 'Page name',
     edit: 'Edit',
     done: 'Done',
-    addWidget: 'Add widget',
+    addBlock: 'Add block',
     delete: 'Delete page',
     confirmDelete: 'Confirm deletion',
     fitMode: {
@@ -72,7 +93,8 @@ export const en: Translation = {
       scroll: 'Scroll'
     },
     emptyTitle: 'This page is empty',
-    emptyText: 'Add your first widgets, then move and resize them however you like.',
+    emptyText:
+      'Add your first blocks (widgets, web apps, modules), then move and resize them however you like.',
     compactNotice:
       'Narrow window: you are editing the compact layout, separate from the full-size one.',
     resetCompact: 'Regenerate automatically',
@@ -81,23 +103,29 @@ export const en: Translation = {
   common: {
     close: 'Close'
   },
-  widgets: {
+  blocks: {
     picker: {
-      title: 'Add a widget',
-      empty: 'No widgets available: enable an extension in Settings → Extensions.'
+      title: 'Add a block',
+      widgets: 'Widgets',
+      webApps: 'Web apps',
+      modules: 'Modules',
+      noWidgets: 'No widget enabled (Settings → Widgets and modules).',
+      noModules: 'No module installed yet.',
+      otherSite: 'Other website…',
+      otherSiteDescription: 'Any address you like'
     },
-    settings: 'Widget settings',
-    remove: 'Remove widget',
-    unknown: 'Widget unavailable ({{type}})',
-    disabledPlugin: 'Extension disabled: {{name}}',
-    error: 'This widget ran into an error.',
+    settings: 'Block settings',
+    remove: 'Remove block',
+    unknown: 'Block unavailable ({{type}})',
+    disabledPlugin: 'Disabled: {{name}}',
+    error: 'This block ran into an error.',
     retry: 'Try again'
   },
   settings: {
     title: 'Settings',
     sections: {
       general: 'General',
-      extensions: 'Extensions',
+      extensions: 'Widgets and modules',
       appearance: 'Appearance',
       notifications: 'Notifications',
       applications: 'Apps',
@@ -137,6 +165,17 @@ export const en: Translation = {
       custom: 'Custom color',
       preset: 'Color {{color}}'
     },
+    accentIcon: {
+      label: 'Icon in the accent color',
+      description:
+        'The logo, the taskbar icon and the notification area icon use your accent color.'
+    },
+    sidebar: {
+      label: 'Side menu',
+      description: 'When collapsed, it makes room for tabs at the top of the window (Ctrl+B).',
+      expanded: 'Expanded',
+      collapsed: 'Collapsed'
+    },
     comingSoon: {
       title: 'Coming soon',
       notifications:
@@ -144,7 +183,11 @@ export const en: Translation = {
     },
     applications: {
       intro:
-        'Web apps open in a Tessera tab, each with its own sign-in, kept between launches. Once opened, they stay loaded in the background.',
+        'Web apps open in a Tessera tab or in a block, each with its own sign-in, kept between launches. Once opened, they stay loaded in the background.',
+      openWith: 'Open with',
+      tessera: 'Tessera (built-in tab)',
+      browserHint:
+        'In a browser, the app uses your sign-ins, password manager and extensions, but opens in a separate window (no unread badge).',
       name: 'Name',
       url: 'Address',
       namePlaceholder: 'Name (optional)',
@@ -164,14 +207,16 @@ export const en: Translation = {
     },
     extensions: {
       intro:
-        'Extensions add widgets to Tessera. A disabled extension disappears from the add list; its widgets already placed stay on hold on your pages.',
-      builtIn: 'Built-in',
-      invalid: 'Invalid extension',
+        'Widgets come with Tessera; modules are made by others and add their own blocks. When disabled, a widget or module disappears from the add list; its blocks already placed stay on hold on your pages.',
+      builtIn: 'Built-in widget',
+      module: 'Module',
+      invalid: 'Invalid module',
       author: 'By {{author}}',
-      widgets: 'Widgets: {{list}}',
-      toggle: 'Enable the {{name}} extension',
+      widgets: 'Blocks: {{list}}',
+      toggle: 'Enable “{{name}}”',
       filesPermission: 'File access: {{folder}}',
-      processesPermission: 'Can start and stop the programs you choose yourself'
+      processesPermission: 'Can start and stop the programs you choose yourself',
+      webPermission: 'Can show web pages'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

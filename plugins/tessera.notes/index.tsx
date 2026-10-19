@@ -9,6 +9,15 @@ export default definePlugin({
     fr: {
       newNoteTitle: 'Nouvelle note',
       newNote: 'Nouvelle note',
+      addNote: 'Nouvelle note ou import',
+      importNotes: 'Importer des notes…',
+      groups: {
+        today: 'Aujourd’hui',
+        yesterday: 'Hier',
+        week: '7 derniers jours',
+        month: '30 derniers jours',
+        older: 'Plus ancien'
+      },
       notes: 'Notes',
       chooseNote: 'Choisir une note',
       empty: 'Aucune note pour le moment.',
@@ -62,6 +71,15 @@ export default definePlugin({
     en: {
       newNoteTitle: 'New note',
       newNote: 'New note',
+      addNote: 'New note or import',
+      importNotes: 'Import notes…',
+      groups: {
+        today: 'Today',
+        yesterday: 'Yesterday',
+        week: 'Previous 7 days',
+        month: 'Previous 30 days',
+        older: 'Older'
+      },
       notes: 'Notes',
       chooseNote: 'Choose a note',
       empty: 'No notes yet.',

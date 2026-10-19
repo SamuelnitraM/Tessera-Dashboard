@@ -16,8 +16,28 @@
 }
 
 .empty {
-  padding: 1rem 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.5rem;
   color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.category + .category {
+  margin-top: 0.75rem;
+}
+
+.categoryTitle {
+  padding: 0 0.5rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.optionIcon img {
+  border-radius: 4px;
+  object-fit: contain;
 }
 
 .list {

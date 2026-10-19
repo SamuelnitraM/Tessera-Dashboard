@@ -35,7 +35,12 @@ export interface RegisteredWidget {
   component: WidgetComponent
   /** Identité et permissions de l'extension, fournies au widget par le SDK. */
   context: PluginContextValue
+  /** Widget intégré à Tessera (sinon : module d'un développeur tiers). */
+  builtIn: boolean
 }
+
+/** Bloc « application web » (extension intégrée tessera.web), configuré par `{ url, appId }`. */
+export const WEB_APP_WIDGET = 'tessera.web/web'
 
 const manifestFiles = import.meta.glob<unknown>('../../../../plugins/*/manifest.json', {
   eager: true,
@@ -98,7 +103,8 @@ function loadPlugin(
       pluginId: manifest.id,
       manifest: widget,
       component: module.widgets[widget.type],
-      context
+      context,
+      builtIn: true
     })
   }
   return { id: manifest.id, manifest, error: null, builtIn: true }

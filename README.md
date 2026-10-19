@@ -12,6 +12,7 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 
 ## Sommaire
 
+- [Vocabulaire](#vocabulaire)
 - [Fonctionnalités](#fonctionnalités)
 - [Stack technique](#stack-technique)
 - [Architecture](#architecture)
@@ -23,77 +24,93 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 
 ---
 
+## Vocabulaire
+
+| Terme               | Définition                                                                                                                                           |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Bloc**            | Case de la grille, déplaçable et redimensionnable, sur la page d'accueil ou une autre page. Il contient un widget, une application web ou un module. |
+| **Widget**          | Petite application fournie avec Tessera : horloge, bloc-notes, lanceur…                                                                              |
+| **Application web** | Une page web : dans un bloc, ou dans un onglet du menu latéral (Discord, WhatsApp…).                                                                 |
+| **Module**          | Widget externe, développé par quelqu'un d'autre pour ajouter son application au dashboard.                                                           |
+| **Menu latéral**    | Menu de gauche : pages, applications et bouton Paramètres. Il peut être rabattu en onglets en haut de la fenêtre.                                    |
+
+> Dans le code, widgets intégrés et modules sont tous deux des **plugins** (dossier `plugins/`, SDK `@tessera/plugin-sdk`).
+
 ## Fonctionnalités
 
-### Grille et pages
+### Grille, blocs et pages
 
-- Grille de tuiles **déplaçables et redimensionnables**.
+- Grille de blocs **déplaçables et redimensionnables**.
 - **Mode édition** : la grille est verrouillée par défaut. Le bouton « Modifier » la déverrouille ; « Terminé » ou Échap la reverrouille.
-- **Plusieurs pages** (ex. « Travail », « Détente »), renommables. La **page principale** ne peut pas être supprimée.
+- **Ajouter un bloc** : fenêtre en trois catégories, Widgets, Applications web (celles de Paramètres → Applications, ou un autre site) et Modules.
+- **Clic droit sur un bloc** : réglages du bloc, retirer le bloc, modifier la page. Disponible même hors du mode édition.
+- **Plusieurs pages** (ex. « Travail », « Détente »). La **page principale** ne peut pas être supprimée.
+  - Clic droit sur une page : ouvrir, modifier, renommer, supprimer.
+  - Bouton ✕ au survol pour supprimer une page, avec confirmation.
 - La fenêtre s'ouvre **agrandie au maximum** sur l'écran courant. Option : reprendre la dernière taille.
 - **Gestion du redimensionnement** :
   - positions stockées en cases de grille (24 colonnes), jamais en pixels ;
-  - taille minimale propre à chaque type de widget ;
+  - taille minimale propre à chaque type de bloc ;
   - disposition **compacte** (12 colonnes) générée automatiquement quand la fenêtre est étroite (zone de grille < 1040 px, soit une fenêtre de ~1280 px), modifiable séparément ;
   - option par page : « Ajuster » (la page tient toujours dans la fenêtre) ou « Défiler » (cases carrées, la page s'allonge).
 
-### Intégration des applications
+### Menu latéral
 
-Deux modes d'intégration :
+- **Pages** et **applications** web, chacune avec son icône et sa pastille de **non-lus**.
+- **Rabattable** (bouton ou Ctrl+B) : les pages deviennent des onglets en haut de la fenêtre, suivies des applications ; le bouton Paramètres passe à droite.
+- **Clic droit sur une application** : l'ouvrir dans Tessera ou dans un navigateur installé, fermer son onglet, accéder à ses paramètres.
 
-| Mode                              | Usage                                           | Exemples              |
-| --------------------------------- | ----------------------------------------------- | --------------------- |
-| **Widget** (tuile dans la grille) | Données récupérées via API, ou mini-site web    | Mails, YouTube, notes |
-| **Onglet** (vue plein écran)      | Applications sans API, affichées telles quelles | Discord               |
+### Applications web ✅
 
-Types d'applications génériques, à ajouter depuis les paramètres :
+À ajouter dans Paramètres → Applications : catalogue (Discord, WhatsApp, Slack…) ou n'importe quelle adresse.
 
-- **Application web** ✅ (Paramètres → Applications) : Discord, WhatsApp, Slack… ou n'importe quelle adresse.
-  - Ouverte dans un **onglet** de la barre latérale, avec sa propre connexion, conservée entre deux lancements.
+- **Dans un onglet** de Tessera, avec sa propre connexion, conservée entre deux lancements.
   - Une fois ouverte, elle reste chargée en arrière-plan : pas de rechargement en changeant de page.
-  - **Non-lus** affichés en pastille, d'après le titre de la page (« (3) Discord »).
+  - **Non-lus** d'après le titre de la page (« (3) Discord »).
   - Barre de navigation : précédent, suivant, actualiser, accueil, ouvrir dans le navigateur, fermer l'onglet.
   - Micro, caméra et position demandés à l'utilisateur (choix mémorisé, réinitialisable). Notifications autorisées.
-- **Page web** ✅ (widget) : un site ou une application web dans une case de la grille. Il peut réutiliser la connexion d'une application (Discord dans une case), avec zoom et actualisation automatique.
-- **Lanceur** : `.exe`, `.bat`, raccourcis. Démarrage et arrêt, état, journaux.
-- **Flux RSS**.
-- **Widgets officiels** : mails, YouTube, Twitch…
+- **Ou dans ton navigateur** (« Ouvrir avec » : Brave, Chrome, Edge, Firefox, Vivaldi, Opera, détectés automatiquement).
+  - L'application s'ouvre en mode application, et profite de tes connexions, de ton gestionnaire de mots de passe et de tes extensions.
+  - Elle s'ouvre dans une fenêtre à part, sans pastille de non-lus dans Tessera.
+- **Dans un bloc** : une application (même connexion que son onglet) ou n'importe quel site, avec zoom et actualisation automatique.
 
-### Widgets prévus
+### Widgets
 
-- **Mails**
-  - Outlook (Microsoft Graph).
-  - Gmail (API Google, avec un identifiant de connexion fourni par l'utilisateur).
-  - Autres fournisseurs via IMAP.
-- **Discord** ✅ : onglet web (voir ci-dessus). Notifications récupérées dans le centre de notifications à l'étape 8.
-- **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct).
-- **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC ».
+- **Horloge** ✅ et **Titre** ✅.
 - **Bloc-notes** ✅
   - Plusieurs notes, chacune en **texte brut** (`.txt`), **Markdown** (`.md`, avec aperçu) ou **texte riche** (`.html`, barre de mise en forme, listes de tâches).
   - Fichiers dans `Documents\Tessera Dashboard\Notes`, modifiables aussi avec d'autres programmes (changements détectés en direct).
+  - Liste des notes **regroupée par date** (aujourd'hui, hier, 7 jours, 30 jours, plus ancien), avec **suppression au survol**.
+  - Bouton **+** : nouvelle note, ou **import** de notes existantes (`.md`, `.txt`, `.html`).
   - Boutons **Enregistrer** (Ctrl+S), **Ouvrir le dossier**, renommage, changement de format (avec conversion), suppression vers la Corbeille.
-  - Enregistrement automatique désactivable (confirmation avant de quitter une note non enregistrée).
+  - Enregistrement automatique désactivable, taille du texte réglable en pixels (clic droit → Réglages du bloc).
 - **Lanceur** ✅
   - Lance un `.exe`, un `.bat` / `.cmd` ou un raccourci `.lnk` choisi dans la fenêtre de sélection de Windows, avec arguments et dossier de travail.
   - Boutons Lancer, Arrêter (programme et sous-programmes), Relancer, Afficher dans l'Explorateur.
   - Statut en direct : en cours (depuis quand), arrêté, terminé, terminé avec erreur, ou « déjà ouvert hors de Tessera ».
-  - **Journaux** de la console dans le widget, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
-  - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des widgets dédiés viendront à l'étape 13.
+  - **Journaux** de la console dans le bloc, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
+  - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des modules dédiés viendront à l'étape 13.
+- **Prévus** :
+  - **Mails** : Outlook (Microsoft Graph), Gmail (API Google, avec un identifiant de connexion fourni par l'utilisateur), autres fournisseurs via IMAP ;
+  - **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct) ;
+  - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC » ;
+  - **Flux RSS**.
 
-### Notifications
+### Notifications (étape 8)
 
-- **Centre de notifications** dans l'app et **notifications natives Windows**.
+- **Centre de notifications** dans l'app et **notifications natives Windows**, y compris celles de Discord.
 - Activation, son et priorité **réglables par application**.
 - **Sons personnalisés** importés par l'utilisateur.
 - Mode **Ne pas déranger**.
 
 ### Système
 
-- **Arrière-plan** : icône dans la barre des tâches, l'app continue de tourner quand on ferme la fenêtre.
+- **Arrière-plan** : icône dans la zone de notification, l'app continue de tourner quand on ferme la fenêtre.
 - **Lancement au démarrage** de Windows (optionnel).
 - **Thèmes** : clair, sombre ou système (suit Windows), avec **couleur d'accent** personnalisable.
+- **Icônes aux couleurs de l'accent** (optionnel) : logo, barre des tâches et zone de notification.
 - **Langues** : français et anglais.
-- **Extensions (plugins)** : chaque widget est fourni par une extension, décrite par un manifeste. Ses réglages apparaissent automatiquement, et elle s'active ou se désactive dans Paramètres → Extensions. Les widgets intégrés sont eux-mêmes des extensions ; des développeurs tiers pourront créer les leurs ([guide](docs/plugins.md)).
+- **Widgets et modules** : chaque bloc est fourni par un plugin, décrit par un manifeste. Ses réglages apparaissent automatiquement, et il s'active ou se désactive dans Paramètres → Widgets et modules. Des développeurs pourront créer leurs propres modules ([guide](docs/plugins.md)).
 
 ### Plus tard
 
@@ -165,6 +182,8 @@ src/
 │   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres
 │   ├── json-file.ts          #   Lecture / écriture atomique de fichiers JSON
 │   ├── paths.ts              #   Chemins des ressources (dev / packagé)
+│   ├── browsers.ts           #   Navigateurs installés (Brave, Chrome…) et ouverture d'applications
+│   ├── app-icon.ts           #   Icônes de la fenêtre et de la zone de notification aux couleurs de l'accent
 │   ├── web.ts                #   Pages web : verrouillage des <webview>, sessions, permissions, clic droit
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
@@ -173,7 +192,7 @@ src/
 ├── renderer/                 # Interface React
 │   ├── index.html
 │   └── src/
-│       ├── components/       #   Barre latérale, en-têtes, contrôles (ui/)
+│       ├── components/       #   Menu latéral, barre d'onglets, logo, en-têtes, contrôles (ui/), clic droit
 │       │   └── grid/         #     Grille, cadre des widgets, fenêtres d'ajout et de réglages
 │       ├── plugin-sdk/       #   SDK des extensions (importé via @tessera/plugin-sdk)
 │       ├── plugins/          #   Découverte, validation et registre des extensions
@@ -226,7 +245,7 @@ La disposition compacte est générée à partir de la large (ordre de lecture c
 2. le **registre** (`src/renderer/src/plugins/registry.ts`) associe chaque widget du manifeste à son composant ;
 3. le **cadre** (`WidgetFrame`) fournit au composant sa configuration (réglages du manifeste + données du widget). Il génère la fenêtre de réglages et isole les erreurs du widget.
 
-Pour créer un widget, suis le **[guide des extensions](docs/plugins.md)**. Les types de widgets de la v1 (`clock`, `heading`) sont migrés automatiquement vers leur nouveau nom (`tessera.clock/clock`…).
+Pour créer un widget, suis le **[guide des modules](docs/plugins.md)**. Les types de widgets de la v1 (`clock`, `heading`) sont migrés automatiquement vers leur nouveau nom (`tessera.clock/clock`…).
 
 **Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
 
@@ -292,6 +311,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 - [x] **Étape 5 :** bloc-notes.
 - [x] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
 - [x] **Étape 7 :** widget web et onglets d'applications (Discord).
+- [x] **Étape 7.5 : retouches.** Nomenclature (bloc, widget, application web, module), menu latéral rabattable, clic droit sur les pages, applications et blocs, icônes aux couleurs de l'accent, ouverture des applications dans un navigateur installé, Bloc-notes (import, suppression rapide, regroupement par date, police en pixels).
 - [ ] **Étape 8 :** système de notifications complet.
 
 ### Phase 2 : intégrations API
@@ -302,7 +322,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 ### Phase 3 : plugins
 
-- [ ] **Étape 12 :** chargement de plugins tiers (isolation, permissions, documentation, plugin d'exemple).
+- [ ] **Étape 12 :** modules tiers : installation, isolation, permissions, **modèle de module** pour les développeurs (projet de départ + guide) et **collections** (un module peut regrouper plusieurs widgets, ex. une « collection Facebook » : Messenger, fil d'actualité…).
 - [ ] **Étape 13 :** plugins dédiés [DevLauncher](https://github.com/SamuelnitraM/DevLauncher), [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) et [ProspectSolution](https://github.com/SamuelnitraM/ProspectSolution).
 
 ### Phase 4 : distribution

@@ -13,7 +13,7 @@ import {
 } from './plugins/processes'
 import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
 import { applyTheme, watchSystemPreferences } from './system'
-import { createTray, refreshTrayMenu } from './tray'
+import { createTray, refreshAppIcons, refreshTrayMenu } from './tray'
 import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web'
 import { createMainWindow, markAppAsQuitting, showMainWindow } from './window'
 
@@ -56,6 +56,12 @@ if (!app.requestSingleInstanceLock()) {
     onSettingsChange((next, previous) => {
       if (next.appearance.theme !== previous.appearance.theme) applyTheme(next.appearance.theme)
       if (next.general.language !== previous.general.language) refreshTrayMenu()
+      if (
+        next.appearance.accentColor !== previous.appearance.accentColor ||
+        next.appearance.accentIcon !== previous.appearance.accentIcon
+      ) {
+        refreshAppIcons()
+      }
       broadcast(IpcChannels.settingsChanged, next)
     })
 
@@ -67,6 +73,8 @@ if (!app.requestSingleInstanceLock()) {
     })
 
     watchSystemPreferences((preferences) => {
+      // La couleur d'accent de Windows a changé : icônes à redessiner si elles la suivent
+      if (getSettings().appearance.accentColor === 'system') refreshAppIcons()
       broadcast(IpcChannels.systemPreferencesChanged, preferences)
     })
   })

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
+import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type { PluginFileEntry } from '@shared/plugin-files'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
@@ -47,6 +48,8 @@ const api = {
       ipcRenderer.invoke(IpcChannels.pluginFilesTrash, pluginId, name),
     openFolder: (pluginId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.pluginFilesOpenFolder, pluginId),
+    importFiles: (pluginId: string, extensions: string[]): Promise<PluginFileEntry[]> =>
+      ipcRenderer.invoke(IpcChannels.pluginFilesImport, pluginId, extensions),
     getFolder: (pluginId: string): Promise<string> =>
       ipcRenderer.invoke(IpcChannels.pluginFilesGetFolder, pluginId),
     onChange: (callback: (pluginId: string) => void) =>
@@ -97,6 +100,12 @@ const api = {
       ipcRenderer.invoke(IpcChannels.webClearAppData, appId),
     resetPermissions: (appId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.webResetPermissions, appId)
+  },
+  /** Navigateurs installés sur le PC. */
+  browsers: {
+    list: (): Promise<InstalledBrowser[]> => ipcRenderer.invoke(IpcChannels.browsersList),
+    open: (browserId: string, url: string): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.browsersOpen, browserId, url)
   },
   system: {
     getPreferences: (): Promise<SystemPreferences> =>

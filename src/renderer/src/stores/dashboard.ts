@@ -21,7 +21,13 @@ interface DashboardState {
   setFitMode: (pageId: string, fitMode: PageFitMode) => void
   /** La page principale ne peut pas être supprimée. */
   deletePage: (pageId: string) => void
-  addWidget: (pageId: string, type: string, mode: LayoutMode) => AddWidgetResult
+  /** Ajoute un bloc ; `config` = configuration de départ (ex. application web choisie). */
+  addWidget: (
+    pageId: string,
+    type: string,
+    mode: LayoutMode,
+    config?: Record<string, unknown>
+  ) => AddWidgetResult
   removeWidget: (pageId: string, widgetId: string) => void
   updateWidgetConfig: (pageId: string, widgetId: string, config: Record<string, unknown>) => void
   setLayout: (pageId: string, mode: LayoutMode, layout: GridItem[]) => void
@@ -76,7 +82,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
       })
     },
 
-    addWidget: (pageId, type, mode) => {
+    addWidget: (pageId, type, mode, config = {}) => {
       const page = get().dashboard.pages.find((candidate) => candidate.id === pageId)
       if (!page) return 'page-full'
 
@@ -114,7 +120,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
 
         return {
           ...current,
-          widgets: [...current.widgets, { id, type, config: {} }],
+          widgets: [...current.widgets, { id, type, config }],
           layouts
         }
       })

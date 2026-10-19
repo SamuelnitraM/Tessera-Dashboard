@@ -1,6 +1,7 @@
-import { Monitor, Moon, Sun } from 'lucide-react'
+import { Monitor, Moon, PanelLeft, PanelTop, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { SegmentedControl } from '../../../components/ui/SegmentedControl'
+import { Switch } from '../../../components/ui/Switch'
 import { useSettingsStore } from '../../../stores/settings'
 import { SettingRow, SettingsCard } from '../SettingRow'
 import { AccentPicker } from './AccentPicker'
@@ -37,6 +38,37 @@ export function AppearanceSection(): React.JSX.Element {
             aria-labelledby={labelId}
             value={appearance.accentColor}
             onChange={(accentColor) => void update({ appearance: { accentColor } })}
+          />
+        )}
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.accentIcon.label')}
+        description={t('settings.accentIcon.description')}
+      >
+        {({ labelId, descriptionId }) => (
+          <Switch
+            aria-labelledby={labelId}
+            aria-describedby={descriptionId}
+            checked={appearance.accentIcon}
+            onChange={(accentIcon) => void update({ appearance: { accentIcon } })}
+          />
+        )}
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.sidebar.label')}
+        description={t('settings.sidebar.description')}
+      >
+        {({ labelId }) => (
+          <SegmentedControl
+            aria-labelledby={labelId}
+            value={appearance.sidebar}
+            onChange={(sidebar) => void update({ appearance: { sidebar } })}
+            options={[
+              { value: 'expanded', label: t('settings.sidebar.expanded'), icon: PanelLeft },
+              { value: 'collapsed', label: t('settings.sidebar.collapsed'), icon: PanelTop }
+            ]}
           />
         )}
       </SettingRow>

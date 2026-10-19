@@ -2,39 +2,102 @@
   "id": "tessera.web",
   "version": "1.0.0",
   "apiVersion": 1,
-  "name": { "fr": "Page web", "en": "Web page" },
+  "name": {
+    "fr": "Application web",
+    "en": "Web app"
+  },
   "description": {
-    "fr": "Affiche un site web ou une de tes applications (Discord…) dans une case de la grille.",
-    "en": "Shows a website or one of your apps (Discord…) in a grid tile."
+    "fr": "Affiche une de tes applications web (Discord…) ou n’importe quel site dans un bloc.",
+    "en": "Shows one of your web apps (Discord…) or any website in a block."
   },
   "author": "Tessera Dashboard",
   "permissions": ["web"],
   "widgets": [
     {
       "type": "web",
-      "name": { "fr": "Page web", "en": "Web page" },
+      "name": {
+        "fr": "Application web",
+        "en": "Web app"
+      },
       "description": {
-        "fr": "Un site ou une application web dans une case.",
-        "en": "A website or web app in a tile."
+        "fr": "Une application web ou un site dans un bloc.",
+        "en": "A web app or website in a block."
       },
       "icon": "globe",
-      "defaultSize": { "w": 8, "h": 6 },
-      "minSize": { "w": 3, "h": 2 },
+      "defaultSize": {
+        "w": 8,
+        "h": 6
+      },
+      "minSize": {
+        "w": 3,
+        "h": 2
+      },
       "settings": [
         {
           "key": "zoom",
           "type": "select",
-          "label": { "fr": "Zoom", "en": "Zoom" },
+          "label": {
+            "fr": "Zoom",
+            "en": "Zoom"
+          },
           "default": "100",
           "options": [
-            { "value": "50", "label": { "fr": "50 %", "en": "50%" } },
-            { "value": "67", "label": { "fr": "67 %", "en": "67%" } },
-            { "value": "80", "label": { "fr": "80 %", "en": "80%" } },
-            { "value": "90", "label": { "fr": "90 %", "en": "90%" } },
-            { "value": "100", "label": { "fr": "100 %", "en": "100%" } },
-            { "value": "110", "label": { "fr": "110 %", "en": "110%" } },
-            { "value": "125", "label": { "fr": "125 %", "en": "125%" } },
-            { "value": "150", "label": { "fr": "150 %", "en": "150%" } }
+            {
+              "value": "50",
+              "label": {
+                "fr": "50 %",
+                "en": "50%"
+              }
+            },
+            {
+              "value": "67",
+              "label": {
+                "fr": "67 %",
+                "en": "67%"
+              }
+            },
+            {
+              "value": "80",
+              "label": {
+                "fr": "80 %",
+                "en": "80%"
+              }
+            },
+            {
+              "value": "90",
+              "label": {
+                "fr": "90 %",
+                "en": "90%"
+              }
+            },
+            {
+              "value": "100",
+              "label": {
+                "fr": "100 %",
+                "en": "100%"
+              }
+            },
+            {
+              "value": "110",
+              "label": {
+                "fr": "110 %",
+                "en": "110%"
+              }
+            },
+            {
+              "value": "125",
+              "label": {
+                "fr": "125 %",
+                "en": "125%"
+              }
+            },
+            {
+              "value": "150",
+              "label": {
+                "fr": "150 %",
+                "en": "150%"
+              }
+            }
           ]
         },
         {
@@ -52,7 +115,10 @@
         {
           "key": "showToolbar",
           "type": "boolean",
-          "label": { "fr": "Afficher la barre de navigation", "en": "Show the navigation bar" },
+          "label": {
+            "fr": "Afficher la barre de navigation",
+            "en": "Show the navigation bar"
+          },
           "default": true
         }
       ]

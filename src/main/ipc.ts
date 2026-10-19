@@ -3,9 +3,11 @@ import { APP_NAME } from '@shared/app'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type { LaunchOptions } from '@shared/plugin-processes'
 import type { SettingsPatch } from '@shared/settings'
+import { listBrowsers, openInBrowser } from './browsers'
 import { getDashboard, saveDashboard } from './dashboard-store'
 import {
   getPluginFolder,
+  importPluginFiles,
   listFiles,
   openPluginFolder,
   readPluginFile,
@@ -76,6 +78,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.pluginFilesOpenFolder, (_event, pluginId: string) =>
     openPluginFolder(pluginId)
   )
+  ipcMain.handle(IpcChannels.pluginFilesImport, (event, pluginId: string, extensions: unknown) =>
+    importPluginFiles(pluginId, BrowserWindow.fromWebContents(event.sender), extensions)
+  )
   ipcMain.handle(IpcChannels.pluginFilesGetFolder, (_event, pluginId: string) =>
     getPluginFolder(pluginId)
   )
@@ -114,6 +119,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.webClearAppData, (_event, appId: string) => clearAppData(appId))
   ipcMain.handle(IpcChannels.webResetPermissions, (_event, appId: string) =>
     resetAppPermissions(appId)
+  )
+
+  // Navigateurs installés (ouverture d'applications web hors de Tessera)
+  ipcMain.handle(IpcChannels.browsersList, () => listBrowsers())
+  ipcMain.handle(IpcChannels.browsersOpen, (_event, browserId: string, url: string) =>
+    openInBrowser(browserId, url)
   )
 
   ipcMain.handle(IpcChannels.systemGetPreferences, () => getSystemPreferences())

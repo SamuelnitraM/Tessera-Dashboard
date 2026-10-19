@@ -17,6 +17,9 @@ export type HexColor = `#${string}`
 /** `system` = couleur d'accent de Windows. */
 export type AccentSetting = 'system' | HexColor
 
+export const SIDEBAR_MODES = ['expanded', 'collapsed'] as const
+export type SidebarMode = (typeof SIDEBAR_MODES)[number]
+
 export const STARTUP_MODES = ['maximized', 'last'] as const
 export type StartupMode = (typeof STARTUP_MODES)[number]
 
@@ -28,6 +31,10 @@ export interface Settings {
   appearance: {
     theme: ThemeSetting
     accentColor: AccentSetting
+    /** Logo et icônes (barre des tâches, zone de notification) aux couleurs de l'accent. */
+    accentIcon: boolean
+    /** Menu latéral déplié, ou rabattu (onglets en haut de la fenêtre). */
+    sidebar: SidebarMode
   }
   window: {
     /** `maximized` : toujours agrandie au lancement. `last` : reprend la dernière taille. */
@@ -73,7 +80,9 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   appearance: {
     theme: 'system',
-    accentColor: 'system'
+    accentColor: 'system',
+    accentIcon: true,
+    sidebar: 'expanded'
   },
   window: {
     startupMode: 'maximized',
@@ -122,7 +131,12 @@ export function sanitizeSettings(input: unknown): Settings {
       accentColor:
         appearance.accentColor === 'system' || isHexColor(appearance.accentColor)
           ? (appearance.accentColor.toLowerCase() as AccentSetting)
-          : defaults.appearance.accentColor
+          : defaults.appearance.accentColor,
+      accentIcon:
+        typeof appearance.accentIcon === 'boolean'
+          ? appearance.accentIcon
+          : defaults.appearance.accentIcon,
+      sidebar: pick(appearance.sidebar, SIDEBAR_MODES, defaults.appearance.sidebar)
     },
     window: {
       startupMode: pick(window.startupMode, STARTUP_MODES, defaults.window.startupMode),

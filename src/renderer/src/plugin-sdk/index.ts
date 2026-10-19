@@ -97,6 +97,11 @@ export interface PluginFiles {
   trash: (name: string) => Promise<void>
   /** Ouvre le dossier dans l'Explorateur Windows. */
   openFolder: () => Promise<void>
+  /**
+   * Importe des fichiers choisis par l'utilisateur (ex. `['md', 'txt']`) : ils sont copiés
+   * dans le dossier de l'extension. Renvoie les fichiers importés ([] si annulé).
+   */
+  importFiles: (extensions: string[]) => Promise<PluginFileEntry[]>
   /** Chemin complet du dossier (pour l'afficher). */
   getFolder: () => Promise<string>
   /** Prévient quand le contenu du dossier change (même depuis un autre programme). */
@@ -115,6 +120,7 @@ export function usePluginFiles(): PluginFiles {
       rename: (from, to) => api.rename(pluginId, from, to),
       trash: (name) => api.trash(pluginId, name),
       openFolder: () => api.openFolder(pluginId),
+      importFiles: (extensions) => api.importFiles(pluginId, extensions),
       getFolder: () => api.getFolder(pluginId),
       onChange: (callback) => api.onChange((changed) => changed === pluginId && callback())
     }
@@ -200,6 +206,8 @@ export { normalizeWebUrl } from '@shared/web-apps'
 // ---------------------------------------------------------------------------
 
 export { Button } from '../components/ui/Button'
+/** Menu du clic droit de Tessera : `onContextMenu={openContextMenu([...])}`. */
+export { openContextMenu, type MenuItem, type MenuAction } from '../stores/contextMenu'
 export { ConfirmDialog, type ConfirmAction } from '../components/ui/ConfirmDialog'
 export { Dialog } from '../components/ui/Dialog'
 export { SegmentedControl } from '../components/ui/SegmentedControl'

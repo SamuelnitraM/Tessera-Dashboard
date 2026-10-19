@@ -4,6 +4,12 @@
   height: 100%;
 }
 
+/* Menu latéral rabattu : barre d'onglets en haut, contenu sur toute la largeur */
+.shell[data-sidebar='collapsed'] {
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
+}
+
 .content {
   position: relative;
   min-width: 0;

@@ -9,9 +9,10 @@ import {
   Trash2
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { normalizeWebUrl, WEB_APP_PRESETS, type WebApp } from '@shared/web-apps'
+import { normalizeWebUrl, OPEN_IN_TESSERA, WEB_APP_PRESETS, type WebApp } from '@shared/web-apps'
 import { Button } from '../../../components/ui/Button'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
+import { useBrowsers } from '../../../hooks/useBrowsers'
 import { useNavigationStore } from '../../../stores/navigation'
 import { useSettingsStore } from '../../../stores/settings'
 import styles from '../settings.module.css'
@@ -25,11 +26,18 @@ export function ApplicationsSection(): React.JSX.Element {
   const navigate = useNavigationStore((state) => state.navigate)
   const closeApp = useNavigationStore((state) => state.closeApp)
   const [toDelete, setToDelete] = useState<WebApp | null>(null)
+  const browsers = useBrowsers()
 
   const save = (items: WebApp[]): void => void update({ apps: { items } })
 
   const addApp = (name: string, url: string): void => {
-    const app: WebApp = { id: crypto.randomUUID(), name, url, icon: null }
+    const app: WebApp = {
+      id: crypto.randomUUID(),
+      name,
+      url,
+      icon: null,
+      openWith: OPEN_IN_TESSERA
+    }
     save([...apps, app])
   }
 
@@ -53,6 +61,9 @@ export function ApplicationsSection(): React.JSX.Element {
   return (
     <>
       <p className={styles.sectionIntro}>{t('settings.applications.intro')}</p>
+      {browsers.length > 0 && (
+        <p className={styles.sectionIntro}>{t('settings.applications.browserHint')}</p>
+      )}
 
       {apps.length > 0 && (
         <ul className={styles.appList}>
@@ -81,6 +92,25 @@ export function ApplicationsSection(): React.JSX.Element {
                   value={app.url}
                   onCommit={(url) => url !== app.url && patchApp(app.id, { url, icon: null })}
                 />
+                {/* Onglet de Tessera, ou fenêtre d'un navigateur installé (Brave…) */}
+                <select
+                  className={styles.input}
+                  value={
+                    browsers.some((browser) => browser.id === app.openWith)
+                      ? app.openWith
+                      : OPEN_IN_TESSERA
+                  }
+                  aria-label={t('settings.applications.openWith')}
+                  title={t('settings.applications.openWith')}
+                  onChange={(event) => patchApp(app.id, { openWith: event.target.value })}
+                >
+                  <option value={OPEN_IN_TESSERA}>{t('settings.applications.tessera')}</option>
+                  {browsers.map((browser) => (
+                    <option key={browser.id} value={browser.id}>
+                      {browser.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className={styles.appActions}>
                 <IconButton

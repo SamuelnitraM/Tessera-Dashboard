@@ -19,6 +19,7 @@ export const IpcChannels = {
   pluginFilesTrash: 'plugin-files:trash',
   pluginFilesOpenFolder: 'plugin-files:open-folder',
   pluginFilesGetFolder: 'plugin-files:get-folder',
+  pluginFilesImport: 'plugin-files:import',
   /** Événement main -> renderer : le dossier d'une extension a changé (identifiant en argument). */
   pluginFilesChanged: 'plugin-files:changed',
   processesPick: 'processes:pick',
@@ -37,6 +38,8 @@ export const IpcChannels = {
   webFetchIcon: 'web:fetch-icon',
   webClearAppData: 'web:clear-app-data',
   webResetPermissions: 'web:reset-permissions',
+  browsersList: 'browsers:list',
+  browsersOpen: 'browsers:open',
   systemGetPreferences: 'system:get-preferences',
   /** Événement main -> renderer : une préférence de Windows a changé (ex. couleur d'accent). */
   systemPreferencesChanged: 'system:preferences-changed'

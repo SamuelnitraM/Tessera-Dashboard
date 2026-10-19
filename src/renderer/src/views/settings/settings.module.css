@@ -319,7 +319,7 @@
   flex: 1;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(6rem, 1fr) 2fr;
+  grid-template-columns: minmax(6rem, 1fr) 2fr minmax(7rem, 1fr);
   gap: 0.5rem;
 }
 

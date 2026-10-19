@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
-import { CircleAlert, GripVertical, PlugZap, Settings2, X } from 'lucide-react'
+import { CircleAlert, GripVertical, PlugZap, Settings2, SquarePen, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { WidgetInstance } from '@shared/dashboard'
 import { localize, resolveWidgetConfig } from '@shared/plugins'
 import { PluginContext } from '../../plugin-sdk/context'
 import { getWidget } from '../../plugins/registry'
+import { openContextMenu, type MenuItem } from '../../stores/contextMenu'
 import { useDashboardStore } from '../../stores/dashboard'
+import { useNavigationStore } from '../../stores/navigation'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
 import { WidgetErrorBoundary } from './WidgetErrorBoundary'
 import { WidgetSettingsDialog } from './WidgetSettingsDialog'
@@ -27,13 +29,14 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
   const removeWidget = useDashboardStore((state) => state.removeWidget)
   const updateWidgetConfig = useDashboardStore((state) => state.updateWidgetConfig)
+  const setEditing = useNavigationStore((state) => state.setEditing)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   const registered = getWidget(widget.type)
   const disabled = registered !== undefined && disabledPlugins.includes(registered.pluginId)
   const name = registered
     ? localize(registered.manifest.name, language)
-    : t('widgets.unknown', { type: widget.type })
+    : t('blocks.unknown', { type: widget.type })
 
   // Réglages du manifeste (avec leurs valeurs par défaut) + données propres au widget
   const config = useMemo(
@@ -46,8 +49,28 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
   const hasSettings = !disabled && (registered?.manifest.settings.length ?? 0) > 0
   const Component = registered?.component
 
+  // Clic droit sur le bloc : réglages et retrait, sans passer par le mode édition
+  const contextMenu: MenuItem[] = [
+    ...(hasSettings
+      ? [{ label: t('blocks.settings'), icon: Settings2, onSelect: () => setSettingsOpen(true) }]
+      : []),
+    { label: t('nav.pageMenu.edit'), icon: SquarePen, onSelect: () => setEditing(true) },
+    'separator',
+    {
+      label: t('blocks.remove'),
+      icon: Trash2,
+      danger: true,
+      onSelect: () => removeWidget(pageId, widget.id)
+    }
+  ]
+
   return (
-    <article className={styles.frame} data-editing={editing} aria-label={name}>
+    <article
+      className={styles.frame}
+      data-editing={editing}
+      aria-label={name}
+      onContextMenu={openContextMenu(contextMenu)}
+    >
       {editing && (
         <header className={styles.toolbar}>
           <GripVertical size={14} aria-hidden />
@@ -56,8 +79,8 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
             <button
               type="button"
               className={`${styles.toolbarButton} no-drag`}
-              title={t('widgets.settings')}
-              aria-label={`${t('widgets.settings')} : ${name}`}
+              title={t('blocks.settings')}
+              aria-label={`${t('blocks.settings')} : ${name}`}
               onClick={() => setSettingsOpen(true)}
             >
               <Settings2 size={14} aria-hidden />
@@ -66,8 +89,8 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
           <button
             type="button"
             className={`${styles.toolbarButton} ${styles.remove} no-drag`}
-            title={t('widgets.remove')}
-            aria-label={`${t('widgets.remove')} : ${name}`}
+            title={t('blocks.remove')}
+            aria-label={`${t('blocks.remove')} : ${name}`}
             onClick={() => removeWidget(pageId, widget.id)}
           >
             <X size={14} aria-hidden />
@@ -79,7 +102,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
         {!Component ? (
           <Placeholder icon={CircleAlert} text={name} />
         ) : disabled ? (
-          <Placeholder icon={PlugZap} text={t('widgets.disabledPlugin', { name })} />
+          <Placeholder icon={PlugZap} text={t('blocks.disabledPlugin', { name })} />
         ) : (
           // Une erreur dans le widget n'affecte ni la page ni les autres widgets
           <WidgetErrorBoundary>
@@ -97,7 +120,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
 
       {hasSettings && registered && (
         <WidgetSettingsDialog
-          title={`${t('widgets.settings')} : ${name}`}
+          title={`${t('blocks.settings')} : ${name}`}
           fields={registered.manifest.settings}
           config={config}
           onChange={setConfig}

@@ -74,7 +74,6 @@ export function CodeEditor({
         ]
       })
     })
-    view.focus()
     return () => view.destroy()
     // Valeur initiale uniquement : les frappes ne doivent pas recréer l'éditeur
     // eslint-disable-next-line react-hooks/exhaustive-deps

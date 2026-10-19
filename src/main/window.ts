@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { APP_NAME } from '@shared/app'
-import { getResourcePath } from './paths'
+import { getAppIcons } from './app-icon'
 import { getSettings } from './settings-store'
 import { getWindowBackground } from './system'
 import { secureWebviews } from './web'
@@ -26,7 +26,7 @@ export function createMainWindow(): BrowserWindow {
 
   mainWindow = new BrowserWindow({
     title: APP_NAME,
-    icon: getResourcePath('icon.png'),
+    icon: getAppIcons().window,
     width: 1280,
     height: 800,
     ...savedState?.bounds,
