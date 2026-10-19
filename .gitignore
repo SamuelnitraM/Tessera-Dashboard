@@ -1,0 +1,26 @@
+# Dépendances
+node_modules/
+
+# Builds
+out/
+dist/
+
+# Logs et caches
+*.log
+npm-debug.log*
+.eslintcache
+
+# Système
+.DS_Store
+Thumbs.db
+
+# Éditeurs (on garde les recommandations partagées)
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+
+# Variables d'environnement locales
+.env
+.env.*
+!.env.example

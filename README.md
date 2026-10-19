@@ -2,7 +2,7 @@
 
 > Un tableau de bord Windows qui regroupe toutes tes applications dans une seule fenêtre, sous forme de tuiles redimensionnables.
 
-![Statut](https://img.shields.io/badge/statut-en%20conception-orange)
+![Statut](https://img.shields.io/badge/statut-en%20d%C3%A9veloppement-orange)
 ![Plateforme](https://img.shields.io/badge/plateforme-Windows-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
@@ -26,6 +26,7 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 ## Fonctionnalités
 
 ### Grille et pages
+
 - Grille de tuiles **déplaçables et redimensionnables**.
 - **Mode édition** : la grille est verrouillée par défaut, on la déverrouille pour la modifier.
 - **Plusieurs pages** (ex. « Travail », « Détente »). La **page principale** ne peut pas être supprimée.
@@ -37,20 +38,23 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
   - option par page : « Ajuster à l'écran » ou « Défilement libre ».
 
 ### Intégration des applications
+
 Deux modes d'intégration :
 
-| Mode | Usage | Exemples |
-|---|---|---|
-| **Widget** (tuile dans la grille) | Données récupérées via API, ou mini-site web | Mails, YouTube, notes |
-| **Onglet** (vue plein écran) | Applications sans API, affichées telles quelles | Discord |
+| Mode                              | Usage                                           | Exemples              |
+| --------------------------------- | ----------------------------------------------- | --------------------- |
+| **Widget** (tuile dans la grille) | Données récupérées via API, ou mini-site web    | Mails, YouTube, notes |
+| **Onglet** (vue plein écran)      | Applications sans API, affichées telles quelles | Discord               |
 
 Types d'applications génériques, à ajouter depuis les paramètres :
+
 - **Site web** : affiché dans une vue intégrée, connexion conservée.
 - **Lanceur** : `.exe`, `.bat`, raccourcis. Démarrage et arrêt, état, journaux.
 - **Flux RSS**.
 - **Widgets officiels** : mails, YouTube, Twitch…
 
 ### Widgets prévus
+
 - **Mails**
   - Outlook (Microsoft Graph).
   - Gmail (API Google, avec un identifiant de connexion fourni par l'utilisateur).
@@ -66,12 +70,14 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 - **Lanceur d'applications** : intégration de DevLauncher, GitSpread et ProspectSolution.
 
 ### Notifications
+
 - **Centre de notifications** dans l'app et **notifications natives Windows**.
 - Activation, son et priorité **réglables par application**.
 - **Sons personnalisés** importés par l'utilisateur.
 - Mode **Ne pas déranger**.
 
 ### Système
+
 - **Arrière-plan** : icône dans la barre des tâches, l'app continue de tourner quand on ferme la fenêtre.
 - **Lancement au démarrage** de Windows (optionnel).
 - **Thèmes** : clair, sombre ou système (suit Windows), avec **couleur d'accent** personnalisable.
@@ -79,6 +85,7 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 - **Système de plugins** : les widgets intégrés sont eux-mêmes des plugins, et des développeurs tiers pourront créer les leurs.
 
 ### Plus tard
+
 - Application **Android** compagnon : lecture des SMS et des notifications du téléphone via le réseau local, appairage par QR code.
 - Intégration **expérimentale** de fenêtres d'applications externes (VLC, .exe).
 
@@ -86,18 +93,18 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 
 ## Stack technique
 
-| Domaine | Technologie | Rôle |
-|---|---|---|
-| Application de bureau | [Electron](https://www.electronjs.org/) | Fenêtre, accès au système, vues web intégrées |
-| Outillage | [electron-vite](https://electron-vite.org/) | Build et rechargement à chaud (main, preload, renderer) |
-| Interface | [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) | Interface utilisateur |
-| Grille | [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout) | Tuiles déplaçables et redimensionnables |
-| Internationalisation | [i18next](https://www.i18next.com/) / react-i18next | Français et anglais |
-| Éditeurs de notes | [TipTap](https://tiptap.dev/) (texte riche), [CodeMirror 6](https://codemirror.net/) (Markdown / brut) | Bloc-notes |
-| Persistance | Fichiers JSON (réglages, dispositions) + fichiers de notes | Stockage local |
-| Secrets | `safeStorage` d'Electron (DPAPI Windows) | Chiffrement des jetons de connexion |
-| Distribution | [electron-builder](https://www.electron.build/) + electron-updater | Installeur Windows, mises à jour via GitHub Releases |
-| Qualité | ESLint, Prettier, Vitest | Lint, formatage, tests |
+| Domaine               | Technologie                                                                                            | Rôle                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| Application de bureau | [Electron](https://www.electronjs.org/)                                                                | Fenêtre, accès au système, vues web intégrées           |
+| Outillage             | [electron-vite](https://electron-vite.org/)                                                            | Build et rechargement à chaud (main, preload, renderer) |
+| Interface             | [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)                            | Interface utilisateur                                   |
+| Grille                | [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)                            | Tuiles déplaçables et redimensionnables                 |
+| Internationalisation  | [i18next](https://www.i18next.com/) / react-i18next                                                    | Français et anglais                                     |
+| Éditeurs de notes     | [TipTap](https://tiptap.dev/) (texte riche), [CodeMirror 6](https://codemirror.net/) (Markdown / brut) | Bloc-notes                                              |
+| Persistance           | Fichiers JSON (réglages, dispositions) + fichiers de notes                                             | Stockage local                                          |
+| Secrets               | `safeStorage` d'Electron (DPAPI Windows)                                                               | Chiffrement des jetons de connexion                     |
+| Distribution          | [electron-builder](https://www.electron.build/) + electron-updater                                     | Installeur Windows, mises à jour via GitHub Releases    |
+| Qualité               | ESLint, Prettier, Vitest                                                                               | Lint, formatage, tests                                  |
 
 > Les bibliothèques autres qu'Electron, React et TypeScript seront confirmées à l'étape où elles sont introduites.
 
@@ -119,39 +126,67 @@ Une application Electron fait tourner deux types de processus qui communiquent p
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-Arborescence prévue (sera ajustée à l'étape 1) :
+Arborescence :
 
 ```
 src/
-├── main/        # Processus principal : fenêtres, IPC, système, services
-├── preload/     # Pont sécurisé entre main et renderer (contextBridge)
-├── renderer/    # Interface React : grille, widgets, paramètres
-└── shared/      # Types et constantes partagés
-plugins/         # Widgets intégrés, écrits comme des plugins
-resources/       # Icônes, sons par défaut
+├── main/                 # Processus principal (Node.js)
+│   ├── index.ts          #   Point d'entrée : instance unique, démarrage
+│   ├── window.ts         #   Fenêtre principale, sécurité de navigation
+│   ├── tray.ts           #   Icône de la zone de notification
+│   ├── ipc.ts            #   Réponses aux demandes de l'interface
+│   └── paths.ts          #   Chemins des ressources (dev / packagé)
+├── preload/              # Pont sécurisé main <-> renderer (window.tessera)
+├── renderer/             # Interface React
+│   ├── index.html
+│   └── src/
+└── shared/               # Constantes et types partagés (noms des canaux IPC…)
+resources/                # Icônes (app, zone de notification), sons
+plugins/                  # (à venir) Widgets intégrés, écrits comme des plugins
 ```
+
+**Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
+
+1. déclarer le canal et ses types dans `src/shared/ipc.ts` ;
+2. le gérer côté système dans `src/main/ipc.ts` (`ipcMain.handle`) ;
+3. l'exposer dans `src/preload/index.ts` ;
+4. l'appeler depuis React via `window.tessera…`.
 
 ---
 
 ## Prérequis
 
-| Outil | Version | Vérification |
-|---|---|---|
-| Windows | 10 ou 11 (64 bits) | — |
-| [Node.js](https://nodejs.org/) | 24 LTS (npm inclus) | `node -v` et `npm -v` |
-| [Git](https://git-scm.com/) | récent | `git --version` |
-| Éditeur conseillé | [VS Code](https://code.visualstudio.com/) + extensions ESLint et Prettier | — |
+| Outil                          | Version                                                                   | Vérification          |
+| ------------------------------ | ------------------------------------------------------------------------- | --------------------- |
+| Windows                        | 10 ou 11 (64 bits)                                                        | —                     |
+| [Node.js](https://nodejs.org/) | 24 LTS (npm inclus)                                                       | `node -v` et `npm -v` |
+| [Git](https://git-scm.com/)    | récent                                                                    | `git --version`       |
+| Éditeur conseillé              | [VS Code](https://code.visualstudio.com/) + extensions ESLint et Prettier | —                     |
 
 ---
 
 ## Installation et lancement
 
-> Disponible à partir de l'étape 1.
-
 ```bash
+git clone https://github.com/SamuelnitraM/Tessera-Dashboard.git
+cd Tessera-Dashboard
 npm install
 npm run dev
 ```
+
+> Au premier lancement, Electron télécharge son exécutable (~100 Mo) : quelques secondes d'attente sont normales.
+
+| Commande               | Rôle                                                    |
+| ---------------------- | ------------------------------------------------------- |
+| `npm run dev`          | Lance l'app en développement avec rechargement à chaud  |
+| `npm run build`        | Vérifie les types puis compile l'app dans `out/`        |
+| `npm start`            | Lance la version compilée (`out/`)                      |
+| `npm run typecheck`    | Vérifie les types TypeScript (main/preload et renderer) |
+| `npm run lint`         | Analyse le code avec ESLint                             |
+| `npm run format`       | Formate tout le code avec Prettier                      |
+| `npm run format:check` | Vérifie le formatage sans modifier les fichiers         |
+
+**Comportement de la fenêtre** : l'app s'ouvre agrandie. Fermer la fenêtre la **masque** dans la zone de notification (à côté de l'horloge) : clic sur l'icône pour la réafficher, clic droit → **Quitter** pour fermer vraiment l'app.
 
 ---
 
@@ -160,30 +195,36 @@ npm run dev
 Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mesure.
 
 ### Phase 0 : fondations
-- [ ] **Étape 1 : initialisation.** Electron + electron-vite + React + TypeScript, ESLint/Prettier, fenêtre agrandie au lancement, instance unique, icône dans la barre des tâches.
+
+- [x] **Étape 1 : initialisation.** Electron + electron-vite + React + TypeScript, ESLint/Prettier, fenêtre agrandie au lancement, instance unique, icône dans la barre des tâches.
 - [ ] **Étape 2 : structure de l'interface.** Navigation (pages, onglets), thèmes et couleur d'accent, FR/EN, squelette des paramètres, sauvegarde des réglages.
 - [ ] **Étape 3 : grille.** Pages multiples, mode édition, ajout, suppression et redimensionnement des widgets, gestion du redimensionnement de la fenêtre.
 - [ ] **Étape 4 : architecture des plugins.** Registre, manifeste, API interne des widgets.
 
 ### Phase 1 : widgets de base
+
 - [ ] **Étape 5 :** bloc-notes.
 - [ ] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
 - [ ] **Étape 7 :** widget web et onglets d'applications (Discord).
 - [ ] **Étape 8 :** système de notifications complet.
 
 ### Phase 2 : intégrations API
+
 - [ ] **Étape 9 :** mails (Outlook, Gmail, IMAP).
 - [ ] **Étape 10 :** YouTube et Twitch (lecteurs et connexion au compte).
 - [ ] **Étape 11 :** lecteur vidéo local.
 
 ### Phase 3 : plugins
+
 - [ ] **Étape 12 :** chargement de plugins tiers (isolation, permissions, documentation, plugin d'exemple).
 - [ ] **Étape 13 :** plugins dédiés [DevLauncher](https://github.com/SamuelnitraM/DevLauncher), [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) et [ProspectSolution](https://github.com/SamuelnitraM/ProspectSolution).
 
 ### Phase 4 : distribution
+
 - [ ] **Étape 14 :** installeur, mises à jour automatiques, lancement au démarrage, intégration continue (GitHub Actions).
 
 ### Plus tard
+
 - [ ] Application Android compagnon (SMS et notifications).
 - [ ] Intégration expérimentale de fenêtres externes.
 
@@ -199,7 +240,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 ## Licence
 
-Distribué sous licence **MIT**. Le fichier `LICENSE` sera ajouté à l'étape 1.
+Distribué sous licence **MIT**. Voir le fichier [LICENSE](LICENSE).
 
 ---
 
