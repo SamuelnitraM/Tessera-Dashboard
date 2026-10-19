@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
+import type { Dashboard } from '@shared/dashboard'
 import type { Settings, SettingsPatch } from '@shared/settings'
 
 /** S'abonne à un événement envoyé par le processus principal. Renvoie la fonction de désabonnement. */
@@ -24,6 +25,11 @@ const api = {
       ipcRenderer.invoke(IpcChannels.settingsUpdate, patch),
     onChange: (callback: (settings: Settings) => void) =>
       subscribe(IpcChannels.settingsChanged, callback)
+  },
+  dashboard: {
+    get: (): Promise<Dashboard> => ipcRenderer.invoke(IpcChannels.dashboardGet),
+    save: (dashboard: Dashboard): Promise<Dashboard> =>
+      ipcRenderer.invoke(IpcChannels.dashboardSave, dashboard)
   },
   system: {
     getPreferences: (): Promise<SystemPreferences> =>

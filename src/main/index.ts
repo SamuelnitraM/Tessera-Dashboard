@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { APP_ID } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
+import { flushDashboard, loadDashboard } from './dashboard-store'
 import { registerIpcHandlers } from './ipc'
 import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
 import { applyTheme, watchSystemPreferences } from './system'
@@ -17,6 +18,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on('before-quit', () => {
     markAppAsQuitting()
     flushSettings()
+    flushDashboard()
   })
 
   // Avec l'arrière-plan activé, la fenêtre est seulement masquée (window.ts) : cet événement
@@ -31,6 +33,7 @@ if (!app.requestSingleInstanceLock()) {
     // Les réglages sont chargés avant la fenêtre : thème et taille sont connus dès l'ouverture
     const settings = loadSettings()
     applyTheme(settings.appearance.theme)
+    loadDashboard()
 
     registerIpcHandlers()
     createMainWindow()

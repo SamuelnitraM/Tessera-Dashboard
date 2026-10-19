@@ -11,6 +11,7 @@ interface SegmentedControlProps<T extends string> {
   value: T
   options: SegmentedOption<T>[]
   onChange: (value: T) => void
+  'aria-label'?: string
   'aria-labelledby'?: string
 }
 

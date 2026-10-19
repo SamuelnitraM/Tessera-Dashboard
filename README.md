@@ -28,14 +28,14 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 ### Grille et pages
 
 - Grille de tuiles **déplaçables et redimensionnables**.
-- **Mode édition** : la grille est verrouillée par défaut, on la déverrouille pour la modifier.
-- **Plusieurs pages** (ex. « Travail », « Détente »). La **page principale** ne peut pas être supprimée.
+- **Mode édition** : la grille est verrouillée par défaut. Le bouton « Modifier » la déverrouille ; « Terminé » ou Échap la reverrouille.
+- **Plusieurs pages** (ex. « Travail », « Détente »), renommables. La **page principale** ne peut pas être supprimée.
 - La fenêtre s'ouvre **agrandie au maximum** sur l'écran courant. Option : reprendre la dernière taille.
 - **Gestion du redimensionnement** :
-  - positions stockées en unités de grille (24 colonnes), hauteur des lignes proportionnelle à la fenêtre ;
-  - taille minimale en pixels pour chaque widget ;
-  - disposition **compacte** générée automatiquement sous ~1280 px de large, modifiable séparément ;
-  - option par page : « Ajuster à l'écran » ou « Défilement libre ».
+  - positions stockées en cases de grille (24 colonnes), jamais en pixels ;
+  - taille minimale propre à chaque type de widget ;
+  - disposition **compacte** (12 colonnes) générée automatiquement quand la fenêtre est étroite (zone de grille < 1040 px, soit une fenêtre de ~1280 px), modifiable séparément ;
+  - option par page : « Ajuster » (la page tient toujours dans la fenêtre) ou « Défiler » (cases carrées, la page s'allonge).
 
 ### Intégration des applications
 
@@ -137,7 +137,9 @@ src/
 │   ├── window.ts             #   Fenêtre principale, fermeture, sécurité de navigation
 │   ├── window-state.ts       #   Mémorisation de la position et de la taille
 │   ├── tray.ts               #   Icône et menu de la zone de notification
-│   ├── settings-store.ts     #   Lecture, modification et sauvegarde des réglages
+│   ├── json-store.ts         #   Fichier JSON validé, sauvegardé en différé (réutilisable)
+│   ├── settings-store.ts     #   Réglages (settings.json)
+│   ├── dashboard-store.ts    #   Pages, widgets et dispositions (dashboard.json)
 │   ├── system.ts             #   Thème natif, couleur d'accent et langues de Windows
 │   ├── i18n.ts               #   Traductions côté système (menus natifs)
 │   ├── ipc.ts                #   Réponses aux demandes de l'interface
@@ -149,13 +151,17 @@ src/
 │   ├── index.html
 │   └── src/
 │       ├── components/       #   Barre latérale, en-têtes, contrôles (ui/)
-│       ├── views/            #   Vues : accueil, paramètres (et ses sections)
-│       ├── stores/           #   État global (réglages, navigation) avec Zustand
+│       │   └── grid/         #     Grille, cadre des widgets, fenêtre d'ajout
+│       ├── widgets/          #   Types de widgets (horloge, titre) et leur registre
+│       ├── views/            #   Vues : page de widgets, paramètres (et ses sections)
+│       ├── stores/           #   État global (réglages, tableau de bord, navigation) avec Zustand
+│       ├── hooks/            #   Hooks React (taille d'un élément, nom d'une page)
 │       ├── i18n/             #   Initialisation d'i18next
-│       ├── lib/              #   Utilitaires (couleur d'accent…)
+│       ├── lib/              #   Utilitaires (placement sur la grille, couleur d'accent)
 │       └── styles/           #   Jetons de design (couleurs, rayons…)
 └── shared/                   # Partagé entre main et renderer
     ├── settings.ts           #   Schéma des réglages, valeurs par défaut, validation
+    ├── dashboard.ts          #   Modèle des pages et de la grille, validation
     ├── ipc.ts                #   Noms des canaux IPC et types échangés
     ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
     └── app.ts                #   Constantes (nom, identifiant, dépôt)
@@ -168,6 +174,21 @@ plugins/                      # (à venir) Widgets intégrés, écrits comme des
 1. l'ajouter au type `Settings`, à `DEFAULT_SETTINGS` et à `sanitizeSettings` dans `src/shared/settings.ts` ;
 2. ajouter ses textes dans `src/shared/i18n/fr.ts` puis `en.ts` ;
 3. afficher son contrôle dans la section voulue de `src/renderer/src/views/settings/sections/`.
+
+**Tableau de bord** : pages, widgets et dispositions sont stockés dans `%APPDATA%\Tessera Dashboard\dashboard.json`, revalidé de la même façon. Chaque page garde deux dispositions :
+
+| Disposition | Quand                                      | Colonnes | Lignes                                                                       |
+| ----------- | ------------------------------------------ | -------- | ---------------------------------------------------------------------------- |
+| Large       | Zone de grille ≥ 1040 px                   | 24       | « Ajuster » : 12 lignes étirées sur la hauteur ; « Défiler » : cases carrées |
+| Compacte    | Zone de grille < 1040 px (fenêtre étroite) | 12       | Cases carrées, défilement vertical                                           |
+
+La disposition compacte est générée à partir de la large (ordre de lecture conservé). Si l'utilisateur la modifie, elle est sauvegardée à part, et le bouton « Régénérer automatiquement » permet de revenir à la version générée.
+
+**Ajouter un type de widget** (en attendant le système de plugins de l'étape 4) :
+
+1. créer son composant dans `src/renderer/src/widgets/<type>/` (il reçoit `widget`, `editing` et `updateConfig`) ;
+2. le déclarer dans `src/renderer/src/widgets/registry.ts` avec son icône, sa taille par défaut et sa taille minimale ;
+3. ajouter `widgets.<type>.name` et `widgets.<type>.description` dans les traductions.
 
 **Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
 
@@ -225,7 +246,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 - [x] **Étape 1 : initialisation.** Electron + electron-vite + React + TypeScript, ESLint/Prettier, fenêtre agrandie au lancement, instance unique, icône dans la barre des tâches.
 - [x] **Étape 2 : structure de l'interface.** Navigation (pages, onglets), thèmes et couleur d'accent, FR/EN, squelette des paramètres, sauvegarde des réglages.
-- [ ] **Étape 3 : grille.** Pages multiples, mode édition, ajout, suppression et redimensionnement des widgets, gestion du redimensionnement de la fenêtre.
+- [x] **Étape 3 : grille.** Pages multiples, mode édition, ajout, suppression et redimensionnement des widgets, gestion du redimensionnement de la fenêtre.
 - [ ] **Étape 4 : architecture des plugins.** Registre, manifeste, API interne des widgets.
 
 ### Phase 1 : widgets de base

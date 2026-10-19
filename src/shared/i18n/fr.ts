@@ -13,14 +13,49 @@ export const fr = {
   nav: {
     pages: 'Pages',
     home: 'Accueil',
+    newPage: 'Nouvelle page',
     apps: 'Applications',
     noApps: 'Les applications ajoutées apparaîtront ici.',
     settings: 'Paramètres'
   },
-  home: {
-    emptyTitle: 'Ta grille arrive bientôt',
-    emptyText:
-      'C’est ici que tu composeras ta page avec tes widgets : mails, notes, vidéos, lanceurs…'
+  pages: {
+    defaultName: 'Page {{n}}',
+    untitled: 'Page sans titre',
+    name: 'Nom de la page',
+    edit: 'Modifier',
+    done: 'Terminé',
+    addWidget: 'Ajouter un widget',
+    delete: 'Supprimer la page',
+    confirmDelete: 'Confirmer la suppression',
+    fitMode: {
+      label: 'Affichage de la page',
+      fit: 'Ajuster',
+      scroll: 'Défiler'
+    },
+    emptyTitle: 'Cette page est vide',
+    emptyText: 'Ajoute tes premiers widgets, puis déplace-les et redimensionne-les à ta guise.',
+    compactNotice:
+      'Fenêtre étroite : tu modifies la disposition compacte, indépendante de celle en grand écran.',
+    resetCompact: 'Régénérer automatiquement',
+    pageFull:
+      'Plus de place sur cette page. Libère de l’espace, ou passe la page en mode « Défiler ».'
+  },
+  widgets: {
+    picker: {
+      title: 'Ajouter un widget',
+      close: 'Fermer'
+    },
+    remove: 'Retirer le widget',
+    unknown: 'Widget indisponible ({{type}})',
+    clock: {
+      name: 'Horloge',
+      description: 'L’heure et la date du jour.'
+    },
+    heading: {
+      name: 'Titre',
+      description: 'Un titre de section pour organiser ta page.',
+      placeholder: 'Titre de section'
+    }
   },
   settings: {
     title: 'Paramètres',

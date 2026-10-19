@@ -1,14 +1,27 @@
-import { House, Settings } from 'lucide-react'
+import { House, PanelsTopLeft, Plus, Settings } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { DashboardPage } from '@shared/dashboard'
 import logo from '@resources/icon.png'
-import { HOME_PAGE_ID, useNavigationStore } from '../stores/navigation'
+import { usePageName } from '../hooks/usePageName'
+import { useDashboardStore } from '../stores/dashboard'
+import { useNavigationStore } from '../stores/navigation'
 import styles from './Sidebar.module.css'
 
 export function Sidebar(): React.JSX.Element {
   const { t } = useTranslation()
+  const pages = useDashboardStore((state) => state.dashboard.pages)
+  const addPage = useDashboardStore((state) => state.addPage)
   const view = useNavigationStore((state) => state.view)
   const navigate = useNavigationStore((state) => state.navigate)
+  const setEditing = useNavigationStore((state) => state.setEditing)
+
+  /** Crée une page et l'ouvre directement en mode édition. */
+  const handleAddPage = (): void => {
+    const pageId = addPage(t('pages.defaultName', { n: pages.length + 1 }))
+    navigate({ type: 'page', pageId })
+    setEditing(true)
+  }
 
   return (
     <nav className={styles.sidebar} aria-label="Navigation">
@@ -20,13 +33,26 @@ export function Sidebar(): React.JSX.Element {
       </div>
 
       <div className={styles.group}>
-        <h2 className={styles.groupTitle}>{t('nav.pages')}</h2>
-        <NavItem
-          icon={House}
-          label={t('nav.home')}
-          active={view.type === 'page' && view.pageId === HOME_PAGE_ID}
-          onClick={() => navigate({ type: 'page', pageId: HOME_PAGE_ID })}
-        />
+        <div className={styles.groupHeader}>
+          <h2 className={styles.groupTitle}>{t('nav.pages')}</h2>
+          <button
+            type="button"
+            className={styles.groupAction}
+            title={t('nav.newPage')}
+            aria-label={t('nav.newPage')}
+            onClick={handleAddPage}
+          >
+            <Plus size={16} aria-hidden />
+          </button>
+        </div>
+        {pages.map((page) => (
+          <PageItem
+            key={page.id}
+            page={page}
+            active={view.type === 'page' && view.pageId === page.id}
+            onClick={() => navigate({ type: 'page', pageId: page.id })}
+          />
+        ))}
       </div>
 
       <div className={styles.group}>
@@ -43,6 +69,24 @@ export function Sidebar(): React.JSX.Element {
         />
       </div>
     </nav>
+  )
+}
+
+interface PageItemProps {
+  page: DashboardPage
+  active: boolean
+  onClick: () => void
+}
+
+function PageItem({ page, active, onClick }: PageItemProps): React.JSX.Element {
+  const name = usePageName(page)
+  return (
+    <NavItem
+      icon={page.isMain ? House : PanelsTopLeft}
+      label={name}
+      active={active}
+      onClick={onClick}
+    />
   )
 }
 
@@ -63,7 +107,7 @@ function NavItem({ icon: Icon, label, active, onClick }: NavItemProps): React.JS
       onClick={onClick}
     >
       <Icon size={18} strokeWidth={1.75} aria-hidden />
-      <span>{label}</span>
+      <span className={styles.itemLabel}>{label}</span>
     </button>
   )
 }

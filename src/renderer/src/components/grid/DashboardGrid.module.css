@@ -1,0 +1,44 @@
+.grid {
+  position: relative;
+}
+
+/* Cases de la grille, visibles en mode édition */
+.background {
+  position: absolute;
+  inset: 0 auto auto 0;
+  pointer-events: none;
+}
+
+.background rect {
+  fill: var(--color-grid-cell);
+}
+
+/* ---------- Surcharges des styles de react-grid-layout ---------- */
+
+/* Emplacement où le widget va se poser pendant un déplacement */
+.grid :global(.react-grid-item.react-grid-placeholder) {
+  background: var(--color-accent);
+  opacity: 0.18;
+  border-radius: var(--radius-lg);
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle) {
+  z-index: 2;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle::after) {
+  border-color: var(--color-accent);
+}
+
+/* Poignée de coin toujours visible en mode édition */
+.grid[data-editing='true'] :global(.react-grid-item > .react-resizable-handle-se) {
+  opacity: 1;
+}
+
+.grid[data-editing='true'] :global(.react-grid-item) {
+  cursor: grab;
+}
+
+.grid[data-editing='true'] :global(.react-grid-item.react-draggable-dragging) {
+  cursor: grabbing;
+}

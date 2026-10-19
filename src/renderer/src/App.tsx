@@ -4,7 +4,7 @@ import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
 import { useNavigationStore } from './stores/navigation'
 import { useResolvedAccentColor, useResolvedLanguage } from './stores/settings'
-import { HomeView } from './views/HomeView'
+import { PageView } from './views/page/PageView'
 import { SettingsView } from './views/settings/SettingsView'
 import styles from './App.module.css'
 
@@ -21,7 +21,11 @@ export function App(): React.JSX.Element {
     <div className={styles.shell}>
       <Sidebar />
       <main className={styles.content}>
-        {view.type === 'settings' ? <SettingsView section={view.section} /> : <HomeView />}
+        {view.type === 'settings' ? (
+          <SettingsView section={view.section} />
+        ) : (
+          <PageView pageId={view.pageId} />
+        )}
       </main>
     </div>
   )

@@ -14,6 +14,9 @@
   --color-text: #1b1d27;
   --color-text-muted: #5d6175;
   --color-border: #dfe1ea;
+  --color-danger: #dc2626;
+  --color-danger-soft: color-mix(in oklab, var(--color-danger) 12%, transparent);
+  --color-grid-cell: color-mix(in oklab, var(--color-text) 5%, transparent);
 
   --color-accent: #4f46e5;
   --color-on-accent: #ffffff;
@@ -41,6 +44,7 @@
     --color-text: #e8e9f0;
     --color-text-muted: #9a9eb3;
     --color-border: #2a2e3b;
+    --color-danger: #f87171;
 
     --color-accent-hover: color-mix(in oklab, var(--color-accent), white 12%);
     --color-accent-soft: color-mix(in oklab, var(--color-accent) 22%, transparent);

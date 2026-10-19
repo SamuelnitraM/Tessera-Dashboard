@@ -10,6 +10,8 @@ export const IpcChannels = {
   settingsUpdate: 'settings:update',
   /** Événement main -> renderer : les réglages ont changé. */
   settingsChanged: 'settings:changed',
+  dashboardGet: 'dashboard:get',
+  dashboardSave: 'dashboard:save',
   systemGetPreferences: 'system:get-preferences',
   /** Événement main -> renderer : une préférence de Windows a changé (ex. couleur d'accent). */
   systemPreferencesChanged: 'system:preferences-changed'

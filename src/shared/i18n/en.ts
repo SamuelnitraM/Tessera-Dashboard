@@ -11,14 +11,48 @@ export const en: Translation = {
   nav: {
     pages: 'Pages',
     home: 'Home',
+    newPage: 'New page',
     apps: 'Apps',
     noApps: 'Apps you add will show up here.',
     settings: 'Settings'
   },
-  home: {
-    emptyTitle: 'Your grid is coming soon',
-    emptyText:
-      'This is where you will build your page with widgets: mail, notes, videos, launchers…'
+  pages: {
+    defaultName: 'Page {{n}}',
+    untitled: 'Untitled page',
+    name: 'Page name',
+    edit: 'Edit',
+    done: 'Done',
+    addWidget: 'Add widget',
+    delete: 'Delete page',
+    confirmDelete: 'Confirm deletion',
+    fitMode: {
+      label: 'Page display',
+      fit: 'Fit',
+      scroll: 'Scroll'
+    },
+    emptyTitle: 'This page is empty',
+    emptyText: 'Add your first widgets, then move and resize them however you like.',
+    compactNotice:
+      'Narrow window: you are editing the compact layout, separate from the full-size one.',
+    resetCompact: 'Regenerate automatically',
+    pageFull: 'No room left on this page. Free up some space, or switch the page to “Scroll”.'
+  },
+  widgets: {
+    picker: {
+      title: 'Add a widget',
+      close: 'Close'
+    },
+    remove: 'Remove widget',
+    unknown: 'Widget unavailable ({{type}})',
+    clock: {
+      name: 'Clock',
+      description: 'The current time and date.'
+    },
+    heading: {
+      name: 'Heading',
+      description: 'A section heading to organize your page.',
+      placeholder: 'Section heading'
+    }
   },
   settings: {
     title: 'Settings',
