@@ -5,6 +5,12 @@ import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
 import { registerIpcHandlers } from './ipc'
 import { setPluginFilesListener } from './plugins/files'
+import {
+  flushProcessApprovals,
+  loadProcessApprovals,
+  setProcessListeners,
+  stopCapturedProcesses
+} from './plugins/processes'
 import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
 import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshTrayMenu } from './tray'
@@ -20,6 +26,8 @@ if (!app.requestSingleInstanceLock()) {
     markAppAsQuitting()
     flushSettings()
     flushDashboard()
+    flushProcessApprovals()
+    stopCapturedProcesses()
   })
 
   // Avec l'arrière-plan activé, la fenêtre est seulement masquée (window.ts) : cet événement
@@ -35,6 +43,7 @@ if (!app.requestSingleInstanceLock()) {
     const settings = loadSettings()
     applyTheme(settings.appearance.theme)
     loadDashboard()
+    loadProcessApprovals()
 
     registerIpcHandlers()
     createMainWindow()
@@ -47,6 +56,11 @@ if (!app.requestSingleInstanceLock()) {
     })
 
     setPluginFilesListener((pluginId) => broadcast(IpcChannels.pluginFilesChanged, pluginId))
+    setProcessListeners({
+      changed: (pluginId, run) => broadcast(IpcChannels.processesChanged, pluginId, run),
+      output: (pluginId, runId, text) =>
+        broadcast(IpcChannels.processesOutput, pluginId, runId, text)
+    })
 
     watchSystemPreferences((preferences) => {
       broadcast(IpcChannels.systemPreferencesChanged, preferences)

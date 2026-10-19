@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { Dashboard } from '@shared/dashboard'
 import type { PluginFileEntry } from '@shared/plugin-files'
+import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Settings, SettingsPatch } from '@shared/settings'
 
 /** S'abonne à un événement envoyé par le processus principal. Renvoie la fonction de désabonnement. */
@@ -50,6 +51,43 @@ const api = {
       ipcRenderer.invoke(IpcChannels.pluginFilesGetFolder, pluginId),
     onChange: (callback: (pluginId: string) => void) =>
       subscribe(IpcChannels.pluginFilesChanged, callback)
+  },
+  /** Programmes lancés par les extensions (le processus principal vérifie leurs permissions). */
+  processes: {
+    pick: (pluginId: string): Promise<PickedTarget | null> =>
+      ipcRenderer.invoke(IpcChannels.processesPick, pluginId),
+    start: (pluginId: string, owner: string, options: LaunchOptions): Promise<ProcessRun> =>
+      ipcRenderer.invoke(IpcChannels.processesStart, pluginId, owner, options),
+    stop: (pluginId: string, runId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.processesStop, pluginId, runId),
+    list: (pluginId: string): Promise<ProcessRun[]> =>
+      ipcRenderer.invoke(IpcChannels.processesList, pluginId),
+    getOutput: (pluginId: string, runId: string): Promise<string> =>
+      ipcRenderer.invoke(IpcChannels.processesGetOutput, pluginId, runId),
+    clearOutput: (pluginId: string, runId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.processesClearOutput, pluginId, runId),
+    getIcon: (pluginId: string, path: string): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannels.processesGetIcon, pluginId, path),
+    showInFolder: (pluginId: string, path: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.processesShowInFolder, pluginId, path),
+    isRunning: (pluginId: string, path: string): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.processesIsRunning, pluginId, path),
+    onChange: (callback: (pluginId: string, run: ProcessRun) => void) => {
+      const listener = (_event: IpcRendererEvent, pluginId: string, run: ProcessRun): void =>
+        callback(pluginId, run)
+      ipcRenderer.on(IpcChannels.processesChanged, listener)
+      return () => ipcRenderer.removeListener(IpcChannels.processesChanged, listener)
+    },
+    onOutput: (callback: (pluginId: string, runId: string, text: string) => void) => {
+      const listener = (
+        _event: IpcRendererEvent,
+        pluginId: string,
+        runId: string,
+        text: string
+      ): void => callback(pluginId, runId, text)
+      ipcRenderer.on(IpcChannels.processesOutput, listener)
+      return () => ipcRenderer.removeListener(IpcChannels.processesOutput, listener)
+    }
   },
   system: {
     getPreferences: (): Promise<SystemPreferences> =>

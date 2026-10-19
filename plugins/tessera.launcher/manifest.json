@@ -1,0 +1,83 @@
+{
+  "id": "tessera.launcher",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Lanceur", "en": "Launcher" },
+  "description": {
+    "fr": "Lance tes programmes (.exe, .bat, raccourcis), suit leur état et affiche leurs journaux.",
+    "en": "Launches your programs (.exe, .bat, shortcuts), tracks their state and shows their logs."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["processes"],
+  "widgets": [
+    {
+      "type": "launcher",
+      "name": { "fr": "Lanceur", "en": "Launcher" },
+      "description": {
+        "fr": "Un programme à lancer et arrêter d'un clic, avec ses journaux.",
+        "en": "A program to start and stop in one click, with its logs."
+      },
+      "icon": "rocket",
+      "defaultSize": { "w": 6, "h": 2 },
+      "minSize": { "w": 3, "h": 1 },
+      "settings": [
+        {
+          "key": "label",
+          "type": "text",
+          "label": { "fr": "Nom affiché", "en": "Display name" },
+          "default": "",
+          "maxLength": 60,
+          "placeholder": { "fr": "Nom du programme", "en": "Program name" }
+        },
+        {
+          "key": "args",
+          "type": "text",
+          "label": { "fr": "Arguments", "en": "Arguments" },
+          "default": "",
+          "maxLength": 500,
+          "placeholder": {
+            "fr": "ex. --port 8080 \"C:\\Mon dossier\"",
+            "en": "e.g. --port 8080 \"C:\\My folder\""
+          }
+        },
+        {
+          "key": "cwd",
+          "type": "text",
+          "label": { "fr": "Dossier de travail", "en": "Working folder" },
+          "default": "",
+          "maxLength": 260,
+          "placeholder": {
+            "fr": "Par défaut : dossier du programme",
+            "en": "Default: the program's folder"
+          }
+        },
+        {
+          "key": "consoleMode",
+          "type": "select",
+          "label": { "fr": "Affichage", "en": "Display" },
+          "default": "auto",
+          "options": [
+            {
+              "value": "auto",
+              "label": {
+                "fr": "Automatique (journaux pour les .bat)",
+                "en": "Automatic (logs for .bat)"
+              }
+            },
+            {
+              "value": "captured",
+              "label": {
+                "fr": "Journaux dans le widget (console cachée)",
+                "en": "Logs in the widget (hidden console)"
+              }
+            },
+            {
+              "value": "window",
+              "label": { "fr": "Fenêtre du programme", "en": "Program's own window" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

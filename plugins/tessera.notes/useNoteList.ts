@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { PluginFileEntry, PluginFiles } from '@tessera/plugin-sdk'
+import { useLatest, type PluginFileEntry, type PluginFiles } from '@tessera/plugin-sdk'
 import { toNote, type Note } from './formats'
-import { useLatest } from './useLatest'
 
 function toNotes(entries: PluginFileEntry[]): Note[] {
   return entries

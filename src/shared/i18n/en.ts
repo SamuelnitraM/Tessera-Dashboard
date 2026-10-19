@@ -8,6 +8,10 @@ export const en: Translation = {
     open: 'Open {{appName}}',
     quit: 'Quit'
   },
+  dialogs: {
+    pickProgram: 'Choose a program',
+    programFilter: 'Programs (.exe, .bat, .cmd, .lnk)'
+  },
   nav: {
     pages: 'Pages',
     home: 'Home',
@@ -111,7 +115,8 @@ export const en: Translation = {
       author: 'By {{author}}',
       widgets: 'Widgets: {{list}}',
       toggle: 'Enable the {{name}} extension',
-      filesPermission: 'File access: {{folder}}'
+      filesPermission: 'File access: {{folder}}',
+      processesPermission: 'Can start and stop the programs you choose yourself'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

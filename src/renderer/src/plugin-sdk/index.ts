@@ -4,9 +4,17 @@
  * C'est le seul module qu'une extension doit importer depuis l'app : tout ce qui n'est pas
  * exporté ici est interne et peut changer sans prévenir.
  */
-import { useContext, useMemo, type ComponentType } from 'react'
+import {
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  type ComponentType,
+  type RefObject
+} from 'react'
 import { useTranslation } from 'react-i18next'
 import type { PluginFileEntry } from '@shared/plugin-files'
+import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Language } from '@shared/settings'
 import { PluginContext } from './context'
 
@@ -45,6 +53,19 @@ export interface PluginModule {
 /** Déclare le code d'une extension (n'ajoute rien, mais vérifie sa forme à la compilation). */
 export function definePlugin(plugin: PluginModule): PluginModule {
   return plugin
+}
+
+/**
+ * Référence toujours à jour vers une valeur, lisible depuis des fonctions asynchrones,
+ * des écouteurs ou un nettoyage d'effet, sans les recréer à chaque rendu.
+ * (Mise à jour juste après le rendu, comme le recommande React.)
+ */
+export function useLatest<T>(value: T): RefObject<T> {
+  const ref = useRef(value)
+  useLayoutEffect(() => {
+    ref.current = value
+  })
+  return ref
 }
 
 /** Langue actuelle de l'interface, pour formater dates et nombres (`Intl`). */
@@ -96,6 +117,71 @@ export function usePluginFiles(): PluginFiles {
       openFolder: () => api.openFolder(pluginId),
       getFolder: () => api.getFolder(pluginId),
       onChange: (callback) => api.onChange((changed) => changed === pluginId && callback())
+    }
+  }, [pluginId])
+}
+
+// ---------------------------------------------------------------------------
+// Programmes (permission `processes`)
+// ---------------------------------------------------------------------------
+
+export type {
+  ConsoleMode,
+  LaunchableKind,
+  LaunchOptions,
+  PickedTarget,
+  ProcessErrorCode,
+  ProcessRun
+} from '@shared/plugin-processes'
+export {
+  defaultConsoleMode,
+  getLaunchableKind,
+  getProcessErrorCode,
+  targetName
+} from '@shared/plugin-processes'
+
+/**
+ * Lancement de programmes. Nécessite `"permissions": ["processes"]` dans le manifeste.
+ * Seuls les programmes choisis par l'utilisateur avec `pick()` peuvent être lancés.
+ */
+export interface PluginProcesses {
+  /** Ouvre la fenêtre de sélection de Windows ; `null` si l'utilisateur annule. */
+  pick: () => Promise<PickedTarget | null>
+  /** Lance le programme. `owner` identifie le widget (en général son `instanceId`). */
+  start: (owner: string, options: LaunchOptions) => Promise<ProcessRun>
+  /** Demande la fermeture, puis force l'arrêt (programme et sous-programmes). */
+  stop: (runId: string) => Promise<void>
+  /** Exécutions en cours ou récentes de l'extension. */
+  list: () => Promise<ProcessRun[]>
+  getOutput: (runId: string) => Promise<string>
+  clearOutput: (runId: string) => Promise<void>
+  /** Icône du programme (image `data:`), ou `null`. */
+  getIcon: (path: string) => Promise<string | null>
+  showInFolder: (path: string) => Promise<void>
+  /** Le programme tourne-t-il, même lancé en dehors de Tessera ? (exécutables uniquement) */
+  isRunning: (path: string) => Promise<boolean>
+  onChange: (callback: (run: ProcessRun) => void) => () => void
+  onOutput: (callback: (runId: string, text: string) => void) => () => void
+}
+
+export function useProcesses(): PluginProcesses {
+  const pluginId = useContext(PluginContext)
+  return useMemo(() => {
+    if (!pluginId) throw new Error('useProcesses doit être utilisé dans un widget.')
+    const api = window.tessera.processes
+    return {
+      pick: () => api.pick(pluginId),
+      start: (owner, options) => api.start(pluginId, owner, options),
+      stop: (runId) => api.stop(pluginId, runId),
+      list: () => api.list(pluginId),
+      getOutput: (runId) => api.getOutput(pluginId, runId),
+      clearOutput: (runId) => api.clearOutput(pluginId, runId),
+      getIcon: (path) => api.getIcon(pluginId, path),
+      showInFolder: (path) => api.showInFolder(pluginId, path),
+      isRunning: (path) => api.isRunning(pluginId, path),
+      onChange: (callback) => api.onChange((id, run) => id === pluginId && callback(run)),
+      onOutput: (callback) =>
+        api.onOutput((id, runId, text) => id === pluginId && callback(runId, text))
     }
   }, [pluginId])
 }

@@ -1,4 +1,4 @@
-import { parseManifest, type PluginManifest } from '@shared/plugins'
+import { parseManifest, type PluginManifest, type PluginPermission } from '@shared/plugins'
 
 /**
  * Manifestes des extensions intégrées, relus côté processus principal.
@@ -18,4 +18,8 @@ for (const raw of Object.values(files)) {
 
 export function getPluginManifest(pluginId: string): PluginManifest | undefined {
   return manifests.get(pluginId)
+}
+
+export function hasPermission(pluginId: string, permission: PluginPermission): boolean {
+  return manifests.get(pluginId)?.permissions.includes(permission) ?? false
 }

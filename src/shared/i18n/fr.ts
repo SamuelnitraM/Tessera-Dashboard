@@ -10,6 +10,10 @@ export const fr = {
     open: 'Ouvrir {{appName}}',
     quit: 'Quitter'
   },
+  dialogs: {
+    pickProgram: 'Choisir un programme',
+    programFilter: 'Programmes (.exe, .bat, .cmd, .lnk)'
+  },
   nav: {
     pages: 'Pages',
     home: 'Accueil',
@@ -115,7 +119,8 @@ export const fr = {
       author: 'Par {{author}}',
       widgets: 'Widgets : {{list}}',
       toggle: 'Activer l’extension {{name}}',
-      filesPermission: 'Accès aux fichiers : {{folder}}'
+      filesPermission: 'Accès aux fichiers : {{folder}}',
+      processesPermission: 'Peut lancer et arrêter les programmes que tu choisis toi-même'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

@@ -84,11 +84,12 @@ Une valeur enregistrée invalide (mauvais type, hors limites, option supprimée)
 
 Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peut demander des accès supplémentaires, qui sont affichés à l'utilisateur dans **Paramètres → Extensions** :
 
-| Permission | Accès                                                                                                                          | Déclaration                                                |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `files`    | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>` | `"permissions": ["files"], "files": { "folder": "Notes" }` |
+| Permission  | Accès                                                                                                                                                               | Déclaration                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `files`     | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>`                                      | `"permissions": ["files"], "files": { "folder": "Notes" }` |
+| `processes` | Lancer et arrêter des programmes (`.exe`, `.bat`, `.cmd`, `.lnk`), **uniquement** ceux que l'utilisateur a choisis lui-même dans la fenêtre de sélection de Windows | `"permissions": ["processes"]`                             |
 
-Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés).
+Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
 ## Le code
 
@@ -140,6 +141,8 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`) |
 | `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`               |
 | `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                      |
+| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                               |
+| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs         |
 | `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                            |
 | `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                 |
 
@@ -163,6 +166,31 @@ Avec la permission `files`, `usePluginFiles()` donne accès au dossier de l'exte
 | `onChange(callback)`   | Prévient quand le dossier change, même depuis un autre programme. Renvoie la fonction de désabonnement |
 
 Les noms de fichiers sont de simples noms (jamais de chemin), valides sous Windows, et ne commencent pas par un point. Une erreur porte un code lisible avec `getPluginFileErrorCode(error)` : `invalid-name`, `not-found`, `exists`, `permission` ou `io`. L'extension **Bloc-notes** (`plugins/tessera.notes`) est un exemple complet d'utilisation.
+
+### Programmes (`useProcesses`)
+
+Avec la permission `processes`, `useProcesses()` permet de lancer des programmes choisis par l'utilisateur :
+
+| Méthode                                  | Effet                                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `pick()`                                 | Ouvre la fenêtre de sélection de Windows ; renvoie `{ path, name, kind }` ou `null`                          |
+| `start(owner, options)`                  | Lance le programme. `owner` = identifiant du widget (`instanceId`) ; `options` = `{ path, args, cwd, mode }` |
+| `stop(runId)`                            | Demande la fermeture, puis force l'arrêt du programme et de ceux qu'il a lancés                              |
+| `list()`                                 | Exécutions en cours ou récentes (pour retrouver la sienne après un changement de page)                       |
+| `getOutput(runId)`, `clearOutput(runId)` | Journaux de la console (mode `captured`)                                                                     |
+| `getIcon(path)`                          | Icône du programme (image `data:`)                                                                           |
+| `showInFolder(path)`                     | Affiche le programme dans l'Explorateur                                                                      |
+| `isRunning(path)`                        | Le programme tourne-t-il, même lancé hors de Tessera ? (`.exe` uniquement)                                   |
+| `onChange(cb)`, `onOutput(cb)`           | Changements d'état et nouvelles lignes de journal, en direct                                                 |
+
+Deux modes d'affichage :
+
+- **`captured`** : console cachée, sortie récupérée en UTF-8 (`chcp 65001` pour les `.bat`, `PYTHONUNBUFFERED` et `PYTHONIOENCODING` pour les scripts Python) et envoyée en direct. Ces programmes sont **arrêtés à la fermeture de Tessera**, puisqu'ils n'ont aucune fenêtre pour être arrêtés autrement.
+- **`window`** : le programme a sa propre fenêtre ou console, et continue de tourner si Tessera se ferme.
+
+> Un `.bat` doit avoir des fins de ligne Windows (CRLF), ce qui est le cas par défaut. Avec des fins de ligne Unix (LF), `cmd.exe` peut mal lire ses lignes en UTF-8.
+
+L'extension **Lanceur** (`plugins/tessera.launcher`) est un exemple complet d'utilisation.
 
 ### Bonnes pratiques
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FolderLock, TriangleAlert } from 'lucide-react'
+import { FolderLock, SquareTerminal, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { localize } from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
@@ -100,6 +100,12 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                 })}
               </p>
               {manifest.permissions.includes('files') && <FilesPermission pluginId={plugin.id} />}
+              {manifest.permissions.includes('processes') && (
+                <p className={styles.extensionPermission}>
+                  <SquareTerminal size={13} aria-hidden />
+                  {t('settings.extensions.processesPermission')}
+                </p>
+              )}
             </>
           )
         )}

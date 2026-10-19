@@ -15,9 +15,8 @@ import {
   Undo2,
   type LucideIcon
 } from 'lucide-react'
-import { usePluginTranslation } from '@tessera/plugin-sdk'
+import { useLatest, usePluginTranslation } from '@tessera/plugin-sdk'
 import { richExtensions } from './richExtensions'
-import { useLatest } from './useLatest'
 import styles from './NotesWidget.module.css'
 
 interface RichEditorProps {

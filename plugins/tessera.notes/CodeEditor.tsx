@@ -5,7 +5,7 @@ import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { EditorState } from '@codemirror/state'
 import { drawSelection, EditorView, keymap, placeholder as placeholderText } from '@codemirror/view'
 import { tags } from '@lezer/highlight'
-import { useLatest } from './useLatest'
+import { useLatest } from '@tessera/plugin-sdk'
 import styles from './NotesWidget.module.css'
 
 interface CodeEditorProps {

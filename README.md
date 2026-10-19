@@ -67,7 +67,12 @@ Types d'applications génériques, à ajouter depuis les paramètres :
   - Fichiers dans `Documents\Tessera Dashboard\Notes`, modifiables aussi avec d'autres programmes (changements détectés en direct).
   - Boutons **Enregistrer** (Ctrl+S), **Ouvrir le dossier**, renommage, changement de format (avec conversion), suppression vers la Corbeille.
   - Enregistrement automatique désactivable (confirmation avant de quitter une note non enregistrée).
-- **Lanceur d'applications** : intégration de DevLauncher, GitSpread et ProspectSolution.
+- **Lanceur** ✅
+  - Lance un `.exe`, un `.bat` / `.cmd` ou un raccourci `.lnk` choisi dans la fenêtre de sélection de Windows, avec arguments et dossier de travail.
+  - Boutons Lancer, Arrêter (programme et sous-programmes), Relancer, Afficher dans l'Explorateur.
+  - Statut en direct : en cours (depuis quand), arrêté, terminé, terminé avec erreur, ou « déjà ouvert hors de Tessera ».
+  - **Journaux** de la console dans le widget, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
+  - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des widgets dédiés viendront à l'étape 13.
 
 ### Notifications
 
@@ -147,7 +152,7 @@ src/
 │   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres
 │   ├── json-file.ts          #   Lecture / écriture atomique de fichiers JSON
 │   ├── paths.ts              #   Chemins des ressources (dev / packagé)
-│   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers
+│   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/                  # Pont sécurisé main <-> renderer (window.tessera)
 ├── renderer/                 # Interface React
 │   ├── index.html
@@ -174,7 +179,8 @@ resources/                    # Icônes (app, zone de notification), sons
 plugins/                      # Extensions intégrées (une par dossier : manifest.json + index.tsx)
 ├── tessera.clock/            #   Horloge
 ├── tessera.heading/          #   Titre de section
-└── tessera.notes/            #   Bloc-notes (permission « files »)
+├── tessera.notes/            #   Bloc-notes (permission « files »)
+└── tessera.launcher/         #   Lanceur de programmes (permission « processes »)
 docs/
 └── plugins.md                # Guide de création d'une extension
 ```
@@ -264,7 +270,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 ### Phase 1 : widgets de base
 
 - [x] **Étape 5 :** bloc-notes.
-- [ ] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
+- [x] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
 - [ ] **Étape 7 :** widget web et onglets d'applications (Discord).
 - [ ] **Étape 8 :** système de notifications complet.
 

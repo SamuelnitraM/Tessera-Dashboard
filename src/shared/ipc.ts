@@ -21,6 +21,19 @@ export const IpcChannels = {
   pluginFilesGetFolder: 'plugin-files:get-folder',
   /** Événement main -> renderer : le dossier d'une extension a changé (identifiant en argument). */
   pluginFilesChanged: 'plugin-files:changed',
+  processesPick: 'processes:pick',
+  processesStart: 'processes:start',
+  processesStop: 'processes:stop',
+  processesList: 'processes:list',
+  processesGetOutput: 'processes:get-output',
+  processesClearOutput: 'processes:clear-output',
+  processesGetIcon: 'processes:get-icon',
+  processesShowInFolder: 'processes:show-in-folder',
+  processesIsRunning: 'processes:is-running',
+  /** Événement main -> renderer : une exécution a changé d'état (extension, exécution). */
+  processesChanged: 'processes:changed',
+  /** Événement main -> renderer : nouvelle sortie console (extension, exécution, texte). */
+  processesOutput: 'processes:output',
   systemGetPreferences: 'system:get-preferences',
   /** Événement main -> renderer : une préférence de Windows a changé (ex. couleur d'accent). */
   systemPreferencesChanged: 'system:preferences-changed'

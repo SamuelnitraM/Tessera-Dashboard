@@ -19,6 +19,7 @@ import {
   getPluginFileErrorCode,
   isValidFileName,
   useLanguage,
+  useLatest,
   usePluginFiles,
   usePluginTranslation,
   type ConfirmAction,
@@ -36,7 +37,6 @@ import {
 } from './formats'
 import { MarkdownPreview } from './MarkdownPreview'
 import { RichEditor } from './RichEditor'
-import { useLatest } from './useLatest'
 import { useNoteList } from './useNoteList'
 import styles from './NotesWidget.module.css'
 
