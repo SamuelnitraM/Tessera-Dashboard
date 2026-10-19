@@ -23,7 +23,7 @@ export interface LoadedPlugin {
   manifest: PluginManifest | null
   /** Message d'erreur si l'extension n'a pas pu être chargée. */
   error: string | null
-  /** Fournie avec l'app (les extensions tierces arriveront à l'étape 12). */
+  /** Fournie avec l'app (les extensions tierces arriveront à l'étape 13). */
   builtIn: boolean
 }
 

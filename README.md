@@ -6,7 +6,7 @@
 ![Plateforme](https://img.shields.io/badge/plateforme-Windows-blue)
 ![Licence](https://img.shields.io/badge/licence-MIT-green)
 
-Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mails, notes, vidéos, lanceurs d'applications…) disposés sur une grille libre, et d'ouvrir en **onglets** les applications qui n'ont pas d'API (Discord…). L'objectif : ne plus jongler entre dix fenêtres.
+Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mails, notes, vidéos, lanceurs d'applications…) disposés sur une grille libre, et d'y afficher tes applications : sites web (Discord, Gmail…) ou **programmes déjà installés** sur le PC (Discord, Obsidian…), dont la vraie fenêtre vient se loger dans un bloc ou un onglet. L'objectif : ne plus jongler entre dix fenêtres.
 
 ---
 
@@ -26,13 +26,14 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 
 ## Vocabulaire
 
-| Terme               | Définition                                                                                                                                           |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Bloc**            | Case de la grille, déplaçable et redimensionnable, sur la page d'accueil ou une autre page. Il contient un widget, une application web ou un module. |
-| **Widget**          | Petite application fournie avec Tessera : horloge, bloc-notes, lanceur…                                                                              |
-| **Application web** | Une page web : dans un bloc, ou dans un onglet du menu latéral (Discord, WhatsApp…).                                                                 |
-| **Module**          | Widget externe, développé par quelqu'un d'autre pour ajouter son application au dashboard.                                                           |
-| **Menu latéral**    | Menu de gauche : pages, applications et bouton Paramètres. Il peut être rabattu en onglets en haut de la fenêtre.                                    |
+| Terme                     | Définition                                                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Bloc**                  | Case de la grille, déplaçable et redimensionnable, sur la page d'accueil ou une autre page. Il contient un widget, une application ou un module. |
+| **Widget**                | Petite application fournie avec Tessera : horloge, bloc-notes, lanceur…                                                                          |
+| **Application web**       | Une page web : dans un bloc, ou dans un onglet du menu latéral (Discord, WhatsApp…).                                                             |
+| **Application installée** | Un programme du PC (Discord, Obsidian, GitSpread…) : sa vraie fenêtre s'affiche dans un bloc ou dans un onglet du menu latéral.                  |
+| **Module**                | Widget externe, développé par quelqu'un d'autre pour ajouter son application au dashboard.                                                       |
+| **Menu latéral**          | Menu de gauche : pages, applications et bouton Paramètres. Il peut être rabattu en onglets en haut de la fenêtre.                                |
 
 > Dans le code, widgets intégrés et modules sont tous deux des **plugins** (dossier `plugins/`, SDK `@tessera/plugin-sdk`).
 
@@ -42,7 +43,7 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 
 - Grille de blocs **déplaçables et redimensionnables**.
 - **Mode édition** : la grille est verrouillée par défaut. Le bouton « Modifier » la déverrouille ; « Terminé » ou Échap la reverrouille.
-- **Ajouter un bloc** : fenêtre en trois catégories, Widgets, Applications web (celles de Paramètres → Applications, ou un autre site) et Modules.
+- **Ajouter un bloc** : fenêtre en trois catégories, Widgets, Applications (celles de Paramètres → Applications, un autre site ou un autre programme du PC) et Modules.
 - **Clic droit sur un bloc** : réglages du bloc, retirer le bloc, modifier la page. Disponible même hors du mode édition.
 - **Plusieurs pages** (ex. « Travail », « Détente »). La **page principale** ne peut pas être supprimée.
   - Clic droit sur une page : ouvrir, modifier, renommer, supprimer.
@@ -50,13 +51,13 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 - La fenêtre s'ouvre **agrandie au maximum** sur l'écran courant. Option : reprendre la dernière taille.
 - **Gestion du redimensionnement** :
   - positions stockées en cases de grille (24 colonnes), jamais en pixels ;
-  - taille minimale propre à chaque type de bloc ;
+  - taille minimale propre à chaque type de bloc, et pour une application installée, celle qu'impose l'application (un bloc trop petit est agrandi automatiquement) ;
   - disposition **compacte** (12 colonnes) générée automatiquement quand la fenêtre est étroite (zone de grille < 1040 px, soit une fenêtre de ~1280 px), modifiable séparément ;
   - option par page : « Ajuster » (la page tient toujours dans la fenêtre) ou « Défiler » (cases carrées, la page s'allonge).
 
 ### Menu latéral
 
-- **Pages** et **applications** web, chacune avec son icône et sa pastille de **non-lus**.
+- **Pages** et **applications** (web et installées), chacune avec son icône ; pastille de **non-lus** pour les applications web.
 - **Rabattable** (bouton ou Ctrl+B) : les pages deviennent des onglets en haut de la fenêtre, suivies des applications ; le bouton Paramètres passe à droite.
 - **Clic droit sur une application** : l'ouvrir dans Tessera ou dans un navigateur installé, fermer son onglet, accéder à ses paramètres.
 
@@ -74,6 +75,21 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
   - Elle s'ouvre dans une fenêtre à part, sans pastille de non-lus dans Tessera.
 - **Dans un bloc** : une application (même connexion que son onglet) ou n'importe quel site, avec zoom et actualisation automatique.
 
+### Applications installées ✅
+
+Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtre** : Discord est déjà connecté, Obsidian ouvre ton coffre, et chaque application garde ses messages et ses notifications. Aucun module n'est nécessaire.
+
+- **Ajout** : Paramètres → Applications (liste des programmes du menu Démarrer, ou un `.exe` au choix), ou directement depuis « Ajouter un bloc ».
+- **Dans un bloc** ou **dans un onglet** du menu latéral (en plein écran).
+- La fenêtre suit son bloc : déplacement et redimensionnement de Tessera, changement de page, réduction, zone de notification.
+- **Déjà ouverte**, l'application est reprise telle quelle ; sinon, elle est lancée au premier affichage.
+- **Fermée** par l'utilisateur (✕ de Discord…) : le bloc affiche « Discord est fermé » et un bouton **Rouvrir**.
+- **Elle demande à s'afficher** (clic sur une de ses notifications, sur son icône dans la zone de notification…) : Tessera s'ouvre sur son bloc ou son onglet.
+- Quand un élément de Tessera passe devant (fenêtre de dialogue, clic droit, mode édition), la fenêtre est remplacée par une **image d'elle-même**.
+- **Taille minimale** de l'application mesurée automatiquement et appliquée au bloc (ex. GitSpread : 966 × 553 px).
+- **Rendue à l'identique** quand elle quitte Tessera : onglet fermé, bloc retiré, application supprimée ou Tessera quitté. Même après un **plantage** de Tessera, l'application reste ouverte et retrouve son apparence au lancement suivant.
+- Léger : aucun minuteur, la fenêtre est repositionnée uniquement sur les événements de Windows (environ 1 ms par déplacement).
+
 ### Widgets
 
 - **Horloge** ✅ et **Titre** ✅.
@@ -89,14 +105,14 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
   - Boutons Lancer, Arrêter (programme et sous-programmes), Relancer, Afficher dans l'Explorateur.
   - Statut en direct : en cours (depuis quand), arrêté, terminé, terminé avec erreur, ou « déjà ouvert hors de Tessera ».
   - **Journaux** de la console dans le bloc, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
-  - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des modules dédiés viendront à l'étape 13.
+  - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des modules dédiés viendront à l'étape 14.
 - **Prévus** :
   - **Mails** : Outlook (Microsoft Graph), Gmail (API Google, avec un identifiant de connexion fourni par l'utilisateur), autres fournisseurs via IMAP ;
   - **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct) ;
   - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC » ;
   - **Flux RSS**.
 
-### Notifications (étape 8)
+### Notifications (étape 9)
 
 - **Centre de notifications** dans l'app et **notifications natives Windows**, y compris celles de Discord.
 - Activation, son et priorité **réglables par application**.
@@ -115,12 +131,19 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 ### Plus tard
 
 - Application **Android** compagnon : lecture des SMS et des notifications du téléphone via le réseau local, appairage par QR code.
-- Intégration **expérimentale** de fenêtres d'applications externes (VLC, .exe).
+
+### Limites connues des applications installées
+
+- **Applications du Microsoft Store** (applications UWP) : absentes de la liste, leur fenêtre ne peut pas être affichée dans un bloc.
+- **Applications lancées en administrateur** : Windows interdit à Tessera de déplacer leur fenêtre (sauf si Tessera est lui aussi lancé en administrateur).
+- La **barre de titre dessinée par l'application** (Discord, Obsidian, GitSpread…) reste visible : elle fait partie de l'application. Seule une barre de titre Windows classique est retirée.
+- Une application qui ouvre **plusieurs fenêtres** : seule sa fenêtre principale est affichée dans le bloc ; les autres (paramètres, fenêtres détachées) s'ouvrent normalement.
+- **Taille minimale** : l'application ne peut pas devenir plus petite que ce qu'elle autorise. Si la fenêtre de Tessera devient trop étroite, les blocs concernés s'agrandissent.
 
 ### Limites connues des pages web
 
 - **Contenus protégés (DRM)** : Spotify, Netflix, Deezer… ne peuvent pas lire leurs morceaux ou vidéos. Electron n'inclut pas le module Widevine.
-- **Connexion Google** : Google refuse parfois les connexions depuis un navigateur intégré (« ce navigateur n'est peut-être pas sécurisé »). Pour les mails, les widgets par API de l'étape 9 contourneront ce problème.
+- **Connexion Google** : Google refuse parfois les connexions depuis un navigateur intégré (« ce navigateur n'est peut-être pas sécurisé »). Pour les mails, les widgets par API de l'étape 10 contourneront ce problème.
 - **Partage d'écran** (appels Discord…) : pas encore pris en charge.
 - **Clés d'accès (passkeys)** : la proposition automatique au chargement d'une page est désactivée (Electron l'affichait dans une fenêtre « Sécurité Windows » bloquante). La connexion par clé d'accès reste possible en la choisissant.
 
@@ -139,6 +162,7 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 | Icônes                | [Lucide](https://lucide.dev/)                                                                          | Icônes de l'interface                                   |
 | Éditeurs de notes     | [TipTap](https://tiptap.dev/) (texte riche), [CodeMirror 6](https://codemirror.net/) (Markdown / brut) | Bloc-notes                                              |
 | Aperçu Markdown       | [marked](https://marked.js.org/) + [DOMPurify](https://github.com/cure53/DOMPurify)                    | Rendu Markdown nettoyé (aucun script exécuté)           |
+| Fenêtres Windows      | [koffi](https://koffi.dev/)                                                                            | Appels à l'API Windows (applications installées)        |
 | Persistance           | Fichiers JSON (réglages, dispositions) + fichiers de notes                                             | Stockage local                                          |
 | Secrets               | `safeStorage` d'Electron (DPAPI Windows)                                                               | Chiffrement des jetons de connexion                     |
 | Distribution          | [electron-builder](https://www.electron.build/) + electron-updater                                     | Installeur Windows, mises à jour via GitHub Releases    |
@@ -185,6 +209,8 @@ src/
 │   ├── browsers.ts           #   Navigateurs installés (Brave, Chrome…) et ouverture d'applications
 │   ├── app-icon.ts           #   Icônes de la fenêtre et de la zone de notification aux couleurs de l'accent
 │   ├── web.ts                #   Pages web : verrouillage des <webview>, sessions, permissions, clic droit
+│   ├── desktop/              #   Applications installées : API Windows (koffi), programmes du menu Démarrer,
+│   │                         #   fenêtres ancrées sur les blocs (docking.ts)
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
 │   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
@@ -193,7 +219,8 @@ src/
 │   ├── index.html
 │   └── src/
 │       ├── components/       #   Menu latéral, barre d'onglets, logo, en-têtes, contrôles (ui/), clic droit
-│       │   └── grid/         #     Grille, cadre des widgets, fenêtres d'ajout et de réglages
+│       │   ├── grid/         #     Grille, cadre des widgets, fenêtres d'ajout et de réglages
+│       │   └── desktop/      #     Emplacement d'une application installée, fenêtre d'ajout de programme
 │       ├── plugin-sdk/       #   SDK des extensions (importé via @tessera/plugin-sdk)
 │       ├── plugins/          #   Découverte, validation et registre des extensions
 │       │   └── web/          #     Page web intégrée (WebFrame), commune aux onglets et widgets
@@ -210,6 +237,8 @@ src/
     ├── plugin-files.ts       #   Règles d'accès aux fichiers des extensions
     ├── plugin-processes.ts   #   Règles de lancement de programmes par les extensions
     ├── web-apps.ts           #   Applications web : catalogue, sessions, adresses, non-lus
+    ├── desktop-apps.ts       #   Applications installées : modèle, états, validation
+    ├── user-apps.ts          #   Liste des applications de l'utilisateur (web + installées)
     ├── ipc.ts                #   Noms des canaux IPC et types échangés
     ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
     └── app.ts                #   Constantes (nom, identifiant, dépôt)
@@ -219,7 +248,8 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 ├── tessera.heading/          #   Titre de section
 ├── tessera.notes/            #   Bloc-notes (permission « files »)
 ├── tessera.launcher/         #   Lanceur de programmes (permission « processes »)
-└── tessera.web/              #   Page web dans la grille (permission « web »)
+├── tessera.web/              #   Page web dans la grille (permission « web »)
+└── tessera.desktop/          #   Application installée dans la grille (permission « apps »)
 docs/
 └── plugins.md                # Guide de création d'une extension
 ```
@@ -312,22 +342,23 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 - [x] **Étape 6 :** lanceur d'applications (`.exe`, `.bat`, raccourcis).
 - [x] **Étape 7 :** widget web et onglets d'applications (Discord).
 - [x] **Étape 7.5 : retouches.** Nomenclature (bloc, widget, application web, module), menu latéral rabattable, clic droit sur les pages, applications et blocs, icônes aux couleurs de l'accent, ouverture des applications dans un navigateur installé, Bloc-notes (import, suppression rapide, regroupement par date, police en pixels).
-- [ ] **Étape 8 :** système de notifications complet.
+- [x] **Étape 8 : applications installées.** Afficher la fenêtre d'un programme déjà installé (Discord, Obsidian, GitSpread…) dans un bloc ou dans un onglet du menu latéral, sans module dédié : l'application garde sa connexion et ses propres notifications. Ajout depuis le menu Démarrer ou un `.exe`, « Rouvrir » quand l'application est fermée, taille minimale de l'application appliquée au bloc, récupération après plantage.
+- [ ] **Étape 9 :** système de notifications complet.
 
 ### Phase 2 : intégrations API
 
-- [ ] **Étape 9 :** mails (Outlook, Gmail, IMAP).
-- [ ] **Étape 10 :** YouTube et Twitch (lecteurs et connexion au compte).
-- [ ] **Étape 11 :** lecteur vidéo local.
+- [ ] **Étape 10 :** mails (Outlook, Gmail, IMAP).
+- [ ] **Étape 11 :** YouTube et Twitch (lecteurs et connexion au compte).
+- [ ] **Étape 12 :** lecteur vidéo local.
 
 ### Phase 3 : plugins
 
-- [ ] **Étape 12 :** modules tiers : installation, isolation, permissions, **modèle de module** pour les développeurs (projet de départ + guide) et **collections** (un module peut regrouper plusieurs widgets, ex. une « collection Facebook » : Messenger, fil d'actualité…).
-- [ ] **Étape 13 :** plugins dédiés [DevLauncher](https://github.com/SamuelnitraM/DevLauncher), [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) et [ProspectSolution](https://github.com/SamuelnitraM/ProspectSolution).
+- [ ] **Étape 13 :** modules tiers : installation, isolation, permissions, **modèle de module** pour les développeurs (projet de départ + guide) et **collections** (un module peut regrouper plusieurs widgets, ex. une « collection Facebook » : Messenger, fil d'actualité…).
+- [ ] **Étape 14 :** plugins dédiés [DevLauncher](https://github.com/SamuelnitraM/DevLauncher), [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) et [ProspectSolution](https://github.com/SamuelnitraM/ProspectSolution).
 
 ### Phase 4 : distribution
 
-- [ ] **Étape 14 :** installeur, mises à jour automatiques, lancement au démarrage, intégration continue (GitHub Actions).
+- [ ] **Étape 15 :** installeur, mises à jour automatiques, lancement au démarrage, intégration continue (GitHub Actions).
 
 ### Plus tard
 

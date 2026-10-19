@@ -1,0 +1,124 @@
+.desktop {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Barre du bloc : la fenêtre de l'application occupe tout le reste (clic droit = menu du bloc) */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 0.25rem 0 0.625rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.header img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.window {
+  flex: 1;
+  min-height: 0;
+}
+
+.missing {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  margin: 0;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  height: 100%;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.pickerTitle {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.pickerIntro {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.app {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.app span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app:hover {
+  border-color: var(--color-accent);
+}
+
+.pickerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

@@ -1,37 +1,48 @@
 import { useState } from 'react'
 import {
+  AppWindow,
   ArrowDown,
   ArrowUp,
+  FolderOpen,
   Globe,
+  List,
   Plus,
   ShieldOff,
   SquareArrowOutUpRight,
   Trash2
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { UserApp } from '@shared/user-apps'
 import { normalizeWebUrl, OPEN_IN_TESSERA, WEB_APP_PRESETS, type WebApp } from '@shared/web-apps'
+import { AppIcon } from '../../../components/AppIcon'
 import { Button } from '../../../components/ui/Button'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { useBrowsers } from '../../../hooks/useBrowsers'
 import { useNavigationStore } from '../../../stores/navigation'
+import { pickInstalledApp } from '../../../stores/programPicker'
 import { useSettingsStore } from '../../../stores/settings'
 import styles from '../settings.module.css'
 import { SettingsCard } from '../SettingRow'
 
-/** Applications web ouvertes en onglet : ajout, modification, ordre et suppression. */
+/**
+ * Applications de l'utilisateur, dans l'ordre du menu latéral : applications web (sites) et
+ * applications installées (programmes du PC). Ajout, modification, ordre et suppression.
+ */
 export function ApplicationsSection(): React.JSX.Element {
   const { t } = useTranslation()
   const apps = useSettingsStore((state) => state.settings.apps.items)
   const update = useSettingsStore((state) => state.update)
   const navigate = useNavigationStore((state) => state.navigate)
   const closeApp = useNavigationStore((state) => state.closeApp)
-  const [toDelete, setToDelete] = useState<WebApp | null>(null)
+  const [toDelete, setToDelete] = useState<UserApp | null>(null)
+  const [pickError, setPickError] = useState<string | null>(null)
   const browsers = useBrowsers()
 
-  const save = (items: WebApp[]): void => void update({ apps: { items } })
+  const save = (items: UserApp[]): void => void update({ apps: { items } })
 
   const addApp = (name: string, url: string): void => {
     const app: WebApp = {
+      kind: 'web',
       id: crypto.randomUUID(),
       name,
       url,
@@ -41,8 +52,8 @@ export function ApplicationsSection(): React.JSX.Element {
     save([...apps, app])
   }
 
-  const patchApp = (id: string, patch: Partial<WebApp>): void =>
-    save(apps.map((app) => (app.id === id ? { ...app, ...patch } : app)))
+  const patchApp = (id: string, patch: Partial<WebApp> | { name: string }): void =>
+    save(apps.map((app) => (app.id === id ? ({ ...app, ...patch } as UserApp) : app)))
 
   const move = (index: number, offset: -1 | 1): void => {
     const items = [...apps]
@@ -51,11 +62,24 @@ export function ApplicationsSection(): React.JSX.Element {
     save(items)
   }
 
-  const deleteApp = async (app: WebApp): Promise<void> => {
+  const deleteApp = async (app: UserApp): Promise<void> => {
     closeApp(app.id)
+    // Une application installée retrouve sa fenêtre normale (processus principal)
     save(apps.filter((item) => item.id !== app.id))
-    // Connexion, cookies et autorisations de l'application sont effacés avec elle
-    await window.tessera.web.clearAppData(app.id)
+    // Connexion, cookies et autorisations d'une application web sont effacés avec elle
+    if (app.kind === 'web') await window.tessera.web.clearAppData(app.id)
+  }
+
+  /** Application installée choisie avec la fenêtre de sélection de Windows. */
+  const pickExe = async (): Promise<void> => {
+    setPickError(null)
+    try {
+      await window.tessera.desktopApps.pick()
+    } catch (error) {
+      setPickError(
+        (error as Error).message.replace(/^Error invoking remote method '[^']+': Error: /, '')
+      )
+    }
   }
 
   return (
@@ -70,11 +94,7 @@ export function ApplicationsSection(): React.JSX.Element {
           {apps.map((app, index) => (
             <li key={app.id} className={styles.appRow}>
               <span className={styles.appIcon}>
-                {app.icon ? (
-                  <img src={app.icon} alt="" width={22} height={22} />
-                ) : (
-                  <Globe size={20} aria-hidden />
-                )}
+                <AppIcon app={app} size={22} />
               </span>
               <div className={styles.appFields}>
                 <input
@@ -88,29 +108,39 @@ export function ApplicationsSection(): React.JSX.Element {
                     else event.currentTarget.value = app.name
                   }}
                 />
-                <UrlInput
-                  value={app.url}
-                  onCommit={(url) => url !== app.url && patchApp(app.id, { url, icon: null })}
-                />
-                {/* Onglet de Tessera, ou fenêtre d'un navigateur installé (Brave…) */}
-                <select
-                  className={styles.input}
-                  value={
-                    browsers.some((browser) => browser.id === app.openWith)
-                      ? app.openWith
-                      : OPEN_IN_TESSERA
-                  }
-                  aria-label={t('settings.applications.openWith')}
-                  title={t('settings.applications.openWith')}
-                  onChange={(event) => patchApp(app.id, { openWith: event.target.value })}
-                >
-                  <option value={OPEN_IN_TESSERA}>{t('settings.applications.tessera')}</option>
-                  {browsers.map((browser) => (
-                    <option key={browser.id} value={browser.id}>
-                      {browser.name}
-                    </option>
-                  ))}
-                </select>
+                {app.kind === 'web' ? (
+                  <>
+                    <UrlInput
+                      value={app.url}
+                      onCommit={(url) => url !== app.url && patchApp(app.id, { url, icon: null })}
+                    />
+                    {/* Onglet de Tessera, ou fenêtre d'un navigateur installé (Brave…) */}
+                    <select
+                      className={styles.input}
+                      value={
+                        browsers.some((browser) => browser.id === app.openWith)
+                          ? app.openWith
+                          : OPEN_IN_TESSERA
+                      }
+                      aria-label={t('settings.applications.openWith')}
+                      title={t('settings.applications.openWith')}
+                      onChange={(event) => patchApp(app.id, { openWith: event.target.value })}
+                    >
+                      <option value={OPEN_IN_TESSERA}>{t('settings.applications.tessera')}</option>
+                      {browsers.map((browser) => (
+                        <option key={browser.id} value={browser.id}>
+                          {browser.name}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  // Le programme lancé ne se modifie pas : on supprime et on rajoute l'application
+                  <p className={styles.appPath} title={`${app.path} ${app.args}`.trim()}>
+                    <AppWindow size={13} aria-hidden />
+                    {t('settings.applications.installed')} · {app.path}
+                  </p>
+                )}
               </div>
               <div className={styles.appActions}>
                 <IconButton
@@ -130,11 +160,13 @@ export function ApplicationsSection(): React.JSX.Element {
                   label={t('settings.applications.open')}
                   onClick={() => navigate({ type: 'app', appId: app.id })}
                 />
-                <IconButton
-                  icon={ShieldOff}
-                  label={t('settings.applications.resetPermissions')}
-                  onClick={() => void window.tessera.web.resetPermissions(app.id)}
-                />
+                {app.kind === 'web' && (
+                  <IconButton
+                    icon={ShieldOff}
+                    label={t('settings.applications.resetPermissions')}
+                    onClick={() => void window.tessera.web.resetPermissions(app.id)}
+                  />
+                )}
                 <IconButton
                   icon={Trash2}
                   label={t('settings.applications.delete')}
@@ -147,10 +179,25 @@ export function ApplicationsSection(): React.JSX.Element {
         </ul>
       )}
 
+      <SettingsCard title={t('settings.applications.addInstalledTitle')}>
+        <p className={styles.cardIntro}>{t('settings.applications.installedIntro')}</p>
+        <div className={styles.installedActions}>
+          <Button variant="primary" icon={List} onClick={() => void pickInstalledApp()}>
+            {t('settings.applications.fromStartMenu')}
+          </Button>
+          <Button icon={FolderOpen} onClick={() => void pickExe()}>
+            {t('settings.applications.fromFile')}
+          </Button>
+        </div>
+        {pickError && <p className={styles.extensionError}>{pickError}</p>}
+      </SettingsCard>
+
       <SettingsCard title={t('settings.applications.addTitle')}>
         <div className={styles.presets}>
           {WEB_APP_PRESETS.map((preset) => {
-            const added = apps.some((app) => app.url === normalizeWebUrl(preset.url))
+            const added = apps.some(
+              (app) => app.kind === 'web' && app.url === normalizeWebUrl(preset.url)
+            )
             return (
               <button
                 key={preset.url}
@@ -171,7 +218,11 @@ export function ApplicationsSection(): React.JSX.Element {
       <ConfirmDialog
         open={toDelete !== null}
         title={t('settings.applications.deleteTitle', { name: toDelete?.name ?? '' })}
-        message={t('settings.applications.deleteMessage')}
+        message={
+          toDelete?.kind === 'desktop'
+            ? t('settings.applications.deleteInstalledMessage')
+            : t('settings.applications.deleteMessage')
+        }
         onClose={() => setToDelete(null)}
         actions={[
           { label: t('settings.applications.cancel'), onClick: () => setToDelete(null) },

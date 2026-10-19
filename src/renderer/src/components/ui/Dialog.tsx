@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useCoverDesktopApps } from '../../stores/desktopApps'
 import styles from './Dialog.module.css'
 
 interface DialogProps {
@@ -18,6 +19,8 @@ export function Dialog({ title, open, onClose, children }: DialogProps): React.J
   const { t } = useTranslation()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
+  // Les fenêtres des applications installées passeraient devant : remplacées par leur image
+  useCoverDesktopApps(open)
 
   useEffect(() => {
     const dialog = dialogRef.current

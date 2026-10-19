@@ -2,9 +2,21 @@ import { app, BrowserWindow, ipcMain } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type { LaunchOptions } from '@shared/plugin-processes'
+import type { HostRect } from '@shared/desktop-apps'
 import type { SettingsPatch } from '@shared/settings'
 import { listBrowsers, openInBrowser } from './browsers'
 import { getDashboard, saveDashboard } from './dashboard-store'
+import {
+  attachHost,
+  captureApps,
+  detachHost,
+  getAppStates,
+  launchApp,
+  moveHost,
+  releaseApp,
+  setSuspended
+} from './desktop/docking'
+import { addProgram, listPrograms, pickProgram, protectDesktopApps } from './desktop/programs'
 import {
   getPluginFolder,
   importPluginFiles,
@@ -46,9 +58,10 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IpcChannels.settingsGet, () => getSettings())
 
-  // Le patch vient de l'interface : il est entièrement revalidé par `updateSettings`
+  // Le patch vient de l'interface : il est entièrement revalidé par `updateSettings`, et ne
+  // peut pas changer le programme lancé par une application installée
   ipcMain.handle(IpcChannels.settingsUpdate, (_event, patch: SettingsPatch) =>
-    updateSettings(patch)
+    updateSettings(protectDesktopApps(patch))
   )
 
   ipcMain.handle(IpcChannels.dashboardGet, () => getDashboard())
@@ -119,6 +132,29 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.webClearAppData, (_event, appId: string) => clearAppData(appId))
   ipcMain.handle(IpcChannels.webResetPermissions, (_event, appId: string) =>
     resetAppPermissions(appId)
+  )
+
+  // Applications installées : ajout (menu Démarrer ou .exe) et fenêtres affichées dans Tessera
+  ipcMain.handle(IpcChannels.desktopAppsListPrograms, () => listPrograms())
+  ipcMain.handle(IpcChannels.desktopAppsAddProgram, (_event, key: string) => addProgram(key))
+  ipcMain.handle(IpcChannels.desktopAppsPick, (event) =>
+    pickProgram(BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle(IpcChannels.desktopAppsGetStates, () => getAppStates())
+  ipcMain.handle(
+    IpcChannels.desktopAppsAttach,
+    (_event, hostId: string, appId: string, rect: HostRect | null) =>
+      attachHost(hostId, appId, rect)
+  )
+  ipcMain.handle(IpcChannels.desktopAppsMove, (_event, hostId: string, rect: HostRect | null) =>
+    moveHost(hostId, rect)
+  )
+  ipcMain.handle(IpcChannels.desktopAppsDetach, (_event, hostId: string) => detachHost(hostId))
+  ipcMain.handle(IpcChannels.desktopAppsLaunch, (_event, appId: string) => launchApp(appId))
+  ipcMain.handle(IpcChannels.desktopAppsRelease, (_event, appId: string) => releaseApp(appId))
+  ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
+  ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean) =>
+    setSuspended(value === true)
   )
 
   // Navigateurs installés (ouverture d'applications web hors de Tessera)

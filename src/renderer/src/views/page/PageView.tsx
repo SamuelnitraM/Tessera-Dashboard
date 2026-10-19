@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { useElementSize } from '../../hooks/useElementSize'
 import { getLayoutMode } from '../../lib/grid'
 import { useDashboardStore } from '../../stores/dashboard'
+import { useCoverDesktopApps } from '../../stores/desktopApps'
 import { useNavigationStore } from '../../stores/navigation'
 import { PageToolbar } from './PageToolbar'
 import styles from './PageView.module.css'
@@ -26,6 +27,8 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
   const resetCompactLayout = useDashboardStore((state) => state.resetCompactLayout)
   const editing = useNavigationStore((state) => state.editing)
   const setEditing = useNavigationStore((state) => state.setEditing)
+  // Mode édition : les fenêtres des applications installées laissent place à leur image
+  useCoverDesktopApps(editing)
 
   const [gridRef, size] = useElementSize<HTMLDivElement>()
   const mode = size ? getLayoutMode(size.width) : 'wide'

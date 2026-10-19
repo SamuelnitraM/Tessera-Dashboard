@@ -4,7 +4,7 @@
  * ancienne version ne peut donc jamais casser l'app, les valeurs invalides reprennent leur défaut.
  */
 
-import { sanitizeWebApps, type WebApp } from './web-apps'
+import { sanitizeUserApps, type UserApp } from './user-apps'
 
 export const LANGUAGES = ['fr', 'en'] as const
 export type Language = (typeof LANGUAGES)[number]
@@ -47,8 +47,8 @@ export interface Settings {
     disabled: string[]
   }
   apps: {
-    /** Applications web ouvertes en onglet (Discord…), dans l'ordre de la barre latérale. */
-    items: WebApp[]
+    /** Applications web et installées (Discord…), dans l'ordre du menu latéral. */
+    items: UserApp[]
   }
 }
 
@@ -149,7 +149,7 @@ export function sanitizeSettings(input: unknown): Settings {
         : defaults.plugins.disabled
     },
     apps: {
-      items: sanitizeWebApps(asRecord(root.apps).items)
+      items: sanitizeUserApps(asRecord(root.apps).items)
     }
   }
 }

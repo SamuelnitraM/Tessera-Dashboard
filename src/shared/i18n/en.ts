@@ -12,7 +12,10 @@ export const en: Translation = {
     pickProgram: 'Choose a program',
     programFilter: 'Programs (.exe, .bat, .cmd, .lnk)',
     importFiles: 'Import files',
-    acceptedFiles: 'Accepted files'
+    acceptedFiles: 'Accepted files',
+    pickApp: 'Choose an app',
+    appFilter: 'Apps (.exe, .lnk)',
+    notAnApp: 'This shortcut does not lead to a program (.exe).'
   },
   web: {
     contextMenu: {
@@ -46,7 +49,7 @@ export const en: Translation = {
     home: 'Home',
     newPage: 'New page',
     apps: 'Apps',
-    noApps: 'Add Discord, WhatsApp… to open them here.',
+    noApps: 'Add Discord, WhatsApp, Obsidian… to open them here.',
     addApp: 'Add an app',
     settings: 'Settings',
     collapse: 'Collapse the side menu (Ctrl+B)',
@@ -78,6 +81,26 @@ export const en: Translation = {
     close: 'Close tab (frees memory)',
     loadError: 'The page could not be loaded ({{error}}).'
   },
+  desktopApps: {
+    starting: 'Opening {{name}}…',
+    closed: '{{name}} is closed.',
+    reopen: 'Reopen',
+    elsewhere: 'This app is shown somewhere else (another block or tab).',
+    showHere: 'Show it here',
+    timeout: '{{name}} did not open in time.',
+    error: 'Could not open {{name}} ({{error}}).',
+    retry: 'Try again',
+    closeTab: 'Close the tab (the app gets its normal window back)',
+    picker: {
+      title: 'Add an installed app',
+      intro:
+        'Programs from your Start menu. Tessera will show their real window, with your sign-in and their notifications.',
+      search: 'Search',
+      browse: 'Choose an .exe file…',
+      loading: 'Looking for installed programs…',
+      none: 'No program found.'
+    }
+  },
   pages: {
     defaultName: 'Page {{n}}',
     untitled: 'Untitled page',
@@ -94,7 +117,7 @@ export const en: Translation = {
     },
     emptyTitle: 'This page is empty',
     emptyText:
-      'Add your first blocks (widgets, web apps, modules), then move and resize them however you like.',
+      'Add your first blocks (widgets, apps, modules), then move and resize them however you like.',
     compactNotice:
       'Narrow window: you are editing the compact layout, separate from the full-size one.',
     resetCompact: 'Regenerate automatically',
@@ -107,7 +130,10 @@ export const en: Translation = {
     picker: {
       title: 'Add a block',
       widgets: 'Widgets',
-      webApps: 'Web apps',
+      apps: 'Apps',
+      installedApp: 'Installed app',
+      otherProgram: 'Another program from your PC…',
+      otherProgramDescription: 'Discord, Obsidian, an .exe…',
       modules: 'Modules',
       noWidgets: 'No widget enabled (Settings → Widgets and modules).',
       noModules: 'No module installed yet.',
@@ -183,7 +209,15 @@ export const en: Translation = {
     },
     applications: {
       intro:
-        'Web apps open in a Tessera tab or in a block, each with its own sign-in, kept between launches. Once opened, they stay loaded in the background.',
+        'Apps open in a Tessera tab or in a block. A web app (website) has its own sign-in, kept between launches. An installed app (program on your PC) is shown with its real window.',
+      installed: 'Installed app',
+      addInstalledTitle: 'Add an installed app',
+      installedIntro:
+        'Discord, Obsidian, your own programs… Their window is shown in Tessera, already signed in, with their notifications. Closing the tab or removing the block gives them their normal window back.',
+      fromStartMenu: 'Choose from installed programs…',
+      fromFile: 'Choose an .exe file…',
+      deleteInstalledMessage:
+        'The app will disappear from Tessera and get its normal window back. The program itself is not uninstalled.',
       openWith: 'Open with',
       tessera: 'Tessera (built-in tab)',
       browserHint:
@@ -193,7 +227,7 @@ export const en: Translation = {
       namePlaceholder: 'Name (optional)',
       urlPlaceholder: 'Address, e.g. app.example.com',
       invalidUrl: 'Invalid web address (http:// or https://).',
-      addTitle: 'Add an app',
+      addTitle: 'Add a web app',
       add: 'Add',
       open: 'Open',
       moveUp: 'Move up',
@@ -216,7 +250,8 @@ export const en: Translation = {
       toggle: 'Enable “{{name}}”',
       filesPermission: 'File access: {{folder}}',
       processesPermission: 'Can start and stop the programs you choose yourself',
-      webPermission: 'Can show web pages'
+      webPermission: 'Can show web pages',
+      appsPermission: 'Can show the window of your installed apps'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

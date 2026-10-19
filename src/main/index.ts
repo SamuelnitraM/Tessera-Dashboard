@@ -3,6 +3,7 @@ import { APP_ID } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
+import { initDocking, releaseAllApps, releaseRemovedApps } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
 import { setPluginFilesListener } from './plugins/files'
 import {
@@ -15,7 +16,7 @@ import { flushSettings, getSettings, loadSettings, onSettingsChange } from './se
 import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshAppIcons, refreshTrayMenu } from './tray'
 import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web'
-import { createMainWindow, markAppAsQuitting, showMainWindow } from './window'
+import { createMainWindow, getMainWindow, markAppAsQuitting, showMainWindow } from './window'
 
 // Une seule instance de l'app à la fois : un second lancement réaffiche la fenêtre existante
 if (!app.requestSingleInstanceLock()) {
@@ -25,6 +26,8 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     markAppAsQuitting()
+    // Les applications installées retrouvent leur fenêtre normale
+    releaseAllApps()
     flushSettings()
     flushDashboard()
     flushProcessApprovals()
@@ -50,7 +53,14 @@ if (!app.requestSingleInstanceLock()) {
     watchWebContents()
 
     registerIpcHandlers()
-    createMainWindow()
+    initDocking(createMainWindow(), {
+      changed: (appId, state) => broadcast(IpcChannels.desktopAppsChanged, appId, state),
+      // Une application demande à s'afficher : Tessera s'ouvre sur son bloc ou son onglet
+      reveal: (appId) => {
+        showMainWindow()
+        getMainWindow()?.webContents.send(IpcChannels.desktopAppsReveal, appId)
+      }
+    })
     createTray()
 
     onSettingsChange((next, previous) => {
@@ -62,6 +72,7 @@ if (!app.requestSingleInstanceLock()) {
       ) {
         refreshAppIcons()
       }
+      if (next.apps.items !== previous.apps.items) releaseRemovedApps()
       broadcast(IpcChannels.settingsChanged, next)
     })
 

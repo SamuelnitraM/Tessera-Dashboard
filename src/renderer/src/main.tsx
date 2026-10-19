@@ -7,11 +7,13 @@ import { initI18n } from './i18n'
 import { registerPluginTranslations } from './plugins/registry'
 import { applyAccentColor } from './lib/appearance'
 import { initDashboardStore } from './stores/dashboard'
+import { initDesktopAppsStore } from './stores/desktopApps'
 import { initSettingsStore, useSettingsStore } from './stores/settings'
 import './styles/global.css'
 
 // Langue et couleurs sont appliquées avant le premier affichage : pas de clignotement
 await Promise.all([initSettingsStore(), initDashboardStore()])
+await initDesktopAppsStore()
 const { settings, system } = useSettingsStore.getState()
 applyAccentColor(resolveAccentColor(settings.appearance.accentColor, system.accentColor))
 await initI18n(resolveLanguage(settings.general.language, system.languages))

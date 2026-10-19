@@ -4,6 +4,7 @@
  */
 
 export interface WebApp {
+  kind: 'web'
   id: string
   name: string
   /** Page d'accueil de l'application. */
@@ -92,36 +93,30 @@ function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
 }
 
-/** Liste d'applications valide (identifiants uniques, adresses web). */
-export function sanitizeWebApps(input: unknown): WebApp[] {
-  if (!Array.isArray(input)) return []
-  const ids = new Set<string>()
-  const apps: WebApp[] = []
-  for (const raw of input) {
-    const app = asRecord(raw)
-    const id = typeof app.id === 'string' && /^[a-z0-9-]{1,64}$/.test(app.id) ? app.id : null
-    const url = typeof app.url === 'string' ? normalizeWebUrl(app.url) : null
-    if (!id || !url || ids.has(id)) continue
-    ids.add(id)
-    const icon =
-      typeof app.icon === 'string' &&
-      app.icon.startsWith('data:image/') &&
-      app.icon.length <= MAX_APP_ICON_LENGTH
-        ? app.icon
-        : null
-    apps.push({
-      id,
-      name:
-        typeof app.name === 'string' && app.name.trim()
-          ? app.name.trim().slice(0, 40)
-          : new URL(url).hostname,
-      url,
-      icon,
-      openWith:
-        typeof app.openWith === 'string' && /^[a-z0-9-]{1,32}$/.test(app.openWith)
-          ? app.openWith
-          : OPEN_IN_TESSERA
-    })
+/** Application web valide (adresse web), ou `null`. */
+export function sanitizeWebApp(raw: unknown): WebApp | null {
+  const app = asRecord(raw)
+  const id = typeof app.id === 'string' && /^[a-z0-9-]{1,64}$/.test(app.id) ? app.id : null
+  const url = typeof app.url === 'string' ? normalizeWebUrl(app.url) : null
+  if (!id || !url) return null
+  const icon =
+    typeof app.icon === 'string' &&
+    app.icon.startsWith('data:image/') &&
+    app.icon.length <= MAX_APP_ICON_LENGTH
+      ? app.icon
+      : null
+  return {
+    kind: 'web',
+    id,
+    name:
+      typeof app.name === 'string' && app.name.trim()
+        ? app.name.trim().slice(0, 40)
+        : new URL(url).hostname,
+    url,
+    icon,
+    openWith:
+      typeof app.openWith === 'string' && /^[a-z0-9-]{1,32}$/.test(app.openWith)
+        ? app.openWith
+        : OPEN_IN_TESSERA
   }
-  return apps
 }

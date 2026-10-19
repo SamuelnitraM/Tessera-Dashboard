@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { FolderLock, Globe, SquareTerminal, TriangleAlert } from 'lucide-react'
+import { AppWindow, FolderLock, Globe, SquareTerminal, TriangleAlert } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { localize } from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
@@ -110,6 +110,12 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                 <p className={styles.extensionPermission}>
                   <Globe size={13} aria-hidden />
                   {t('settings.extensions.webPermission')}
+                </p>
+              )}
+              {manifest.permissions.includes('apps') && (
+                <p className={styles.extensionPermission}>
+                  <AppWindow size={13} aria-hidden />
+                  {t('settings.extensions.appsPermission')}
                 </p>
               )}
             </>

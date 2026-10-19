@@ -14,7 +14,10 @@ export const fr = {
     pickProgram: 'Choisir un programme',
     programFilter: 'Programmes (.exe, .bat, .cmd, .lnk)',
     importFiles: 'Importer des fichiers',
-    acceptedFiles: 'Fichiers acceptés'
+    acceptedFiles: 'Fichiers acceptés',
+    pickApp: 'Choisir une application',
+    appFilter: 'Applications (.exe, .lnk)',
+    notAnApp: 'Ce raccourci ne mène pas à un programme (.exe).'
   },
   web: {
     contextMenu: {
@@ -49,7 +52,7 @@ export const fr = {
     home: 'Accueil',
     newPage: 'Nouvelle page',
     apps: 'Applications',
-    noApps: 'Ajoute Discord, WhatsApp… pour les ouvrir ici.',
+    noApps: 'Ajoute Discord, WhatsApp, Obsidian… pour les ouvrir ici.',
     addApp: 'Ajouter une application',
     settings: 'Paramètres',
     collapse: 'Rabattre le menu latéral (Ctrl+B)',
@@ -81,6 +84,26 @@ export const fr = {
     close: 'Fermer l’onglet (libère la mémoire)',
     loadError: 'La page n’a pas pu être chargée ({{error}}).'
   },
+  desktopApps: {
+    starting: 'Ouverture de {{name}}…',
+    closed: '{{name}} est fermé.',
+    reopen: 'Rouvrir',
+    elsewhere: 'Cette application est affichée ailleurs (autre bloc ou onglet).',
+    showHere: 'L’afficher ici',
+    timeout: '{{name}} ne s’est pas ouvert à temps.',
+    error: 'Impossible d’ouvrir {{name}} ({{error}}).',
+    retry: 'Réessayer',
+    closeTab: 'Fermer l’onglet (l’application retrouve sa fenêtre normale)',
+    picker: {
+      title: 'Ajouter une application installée',
+      intro:
+        'Programmes de ton menu Démarrer. Tessera affichera leur vraie fenêtre, avec ta connexion et leurs notifications.',
+      search: 'Rechercher',
+      browse: 'Choisir un fichier .exe…',
+      loading: 'Recherche des programmes installés…',
+      none: 'Aucun programme trouvé.'
+    }
+  },
   pages: {
     defaultName: 'Page {{n}}',
     untitled: 'Page sans titre',
@@ -97,7 +120,7 @@ export const fr = {
     },
     emptyTitle: 'Cette page est vide',
     emptyText:
-      'Ajoute tes premiers blocs (widgets, applications web, modules), puis déplace-les et redimensionne-les à ta guise.',
+      'Ajoute tes premiers blocs (widgets, applications, modules), puis déplace-les et redimensionne-les à ta guise.',
     compactNotice:
       'Fenêtre étroite : tu modifies la disposition compacte, indépendante de celle en grand écran.',
     resetCompact: 'Régénérer automatiquement',
@@ -111,7 +134,10 @@ export const fr = {
     picker: {
       title: 'Ajouter un bloc',
       widgets: 'Widgets',
-      webApps: 'Applications web',
+      apps: 'Applications',
+      installedApp: 'Application installée',
+      otherProgram: 'Autre programme du PC…',
+      otherProgramDescription: 'Discord, Obsidian, un .exe…',
       modules: 'Modules',
       noWidgets: 'Aucun widget activé (Paramètres → Widgets et modules).',
       noModules: 'Aucun module installé pour le moment.',
@@ -188,7 +214,15 @@ export const fr = {
     },
     applications: {
       intro:
-        'Les applications web s’ouvrent dans un onglet de Tessera ou dans un bloc, avec leur propre connexion, conservée entre deux lancements. Elles restent chargées en arrière-plan une fois ouvertes.',
+        'Les applications s’ouvrent dans un onglet de Tessera ou dans un bloc. Une application web (site) a sa propre connexion, conservée entre deux lancements. Une application installée (programme du PC) s’affiche avec sa vraie fenêtre.',
+      installed: 'Application installée',
+      addInstalledTitle: 'Ajouter une application installée',
+      installedIntro:
+        'Discord, Obsidian, tes propres programmes… Leur fenêtre s’affiche dans Tessera, déjà connectée, avec leurs notifications. Fermer l’onglet ou retirer le bloc leur rend leur fenêtre normale.',
+      fromStartMenu: 'Choisir dans les programmes installés…',
+      fromFile: 'Choisir un fichier .exe…',
+      deleteInstalledMessage:
+        'L’application disparaîtra de Tessera et retrouvera sa fenêtre normale. Le programme lui-même n’est pas désinstallé.',
       openWith: 'Ouvrir avec',
       tessera: 'Tessera (onglet intégré)',
       browserHint:
@@ -198,7 +232,7 @@ export const fr = {
       namePlaceholder: 'Nom (facultatif)',
       urlPlaceholder: 'Adresse, ex. app.exemple.com',
       invalidUrl: 'Adresse web invalide (http:// ou https://).',
-      addTitle: 'Ajouter une application',
+      addTitle: 'Ajouter une application web',
       add: 'Ajouter',
       open: 'Ouvrir',
       moveUp: 'Monter',
@@ -221,7 +255,8 @@ export const fr = {
       toggle: 'Activer « {{name}} »',
       filesPermission: 'Accès aux fichiers : {{folder}}',
       processesPermission: 'Peut lancer et arrêter les programmes que tu choisis toi-même',
-      webPermission: 'Peut afficher des pages web'
+      webPermission: 'Peut afficher des pages web',
+      appsPermission: 'Peut afficher la fenêtre de tes applications installées'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

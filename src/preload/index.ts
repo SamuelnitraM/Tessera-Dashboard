@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
+import type { DesktopApp, DesktopAppState, HostRect, InstalledProgram } from '@shared/desktop-apps'
 import type { PluginFileEntry } from '@shared/plugin-files'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Settings, SettingsPatch } from '@shared/settings'
@@ -100,6 +101,38 @@ const api = {
       ipcRenderer.invoke(IpcChannels.webClearAppData, appId),
     resetPermissions: (appId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.webResetPermissions, appId)
+  },
+  /** Applications installées : ajout, et fenêtres affichées dans les blocs et onglets. */
+  desktopApps: {
+    listPrograms: (): Promise<InstalledProgram[]> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsListPrograms),
+    addProgram: (key: string): Promise<DesktopApp | null> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsAddProgram, key),
+    pick: (): Promise<DesktopApp | null> => ipcRenderer.invoke(IpcChannels.desktopAppsPick),
+    getStates: (): Promise<Record<string, DesktopAppState>> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsGetStates),
+    attach: (hostId: string, appId: string, rect: HostRect | null): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsAttach, hostId, appId, rect),
+    move: (hostId: string, rect: HostRect | null): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsMove, hostId, rect),
+    detach: (hostId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsDetach, hostId),
+    launch: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsLaunch, appId),
+    release: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsRelease, appId),
+    capture: (): Promise<Record<string, string>> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsCapture),
+    setSuspended: (value: boolean): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsSetSuspended, value),
+    onChange: (callback: (appId: string, state: DesktopAppState) => void) => {
+      const listener = (_event: IpcRendererEvent, appId: string, state: DesktopAppState): void =>
+        callback(appId, state)
+      ipcRenderer.on(IpcChannels.desktopAppsChanged, listener)
+      return () => ipcRenderer.removeListener(IpcChannels.desktopAppsChanged, listener)
+    },
+    onReveal: (callback: (appId: string) => void) =>
+      subscribe(IpcChannels.desktopAppsReveal, callback)
   },
   /** Navigateurs installés sur le PC. */
   browsers: {

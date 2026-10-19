@@ -1,0 +1,48 @@
+{
+  "id": "tessera.desktop",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": {
+    "fr": "Application installée",
+    "en": "Installed app"
+  },
+  "description": {
+    "fr": "Affiche la fenêtre d’un programme installé sur ton PC (Discord, Obsidian…) dans un bloc. L’application garde sa connexion et ses notifications.",
+    "en": "Shows the window of a program installed on your PC (Discord, Obsidian…) in a block. The app keeps its sign-in and notifications."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["apps"],
+  "widgets": [
+    {
+      "type": "app",
+      "name": {
+        "fr": "Application installée",
+        "en": "Installed app"
+      },
+      "description": {
+        "fr": "Un programme de ton PC dans un bloc.",
+        "en": "A program from your PC in a block."
+      },
+      "icon": "app-window",
+      "defaultSize": {
+        "w": 12,
+        "h": 8
+      },
+      "minSize": {
+        "w": 4,
+        "h": 3
+      },
+      "settings": [
+        {
+          "key": "showHeader",
+          "type": "boolean",
+          "label": {
+            "fr": "Afficher la barre du bloc (nom de l’application)",
+            "en": "Show the block bar (app name)"
+          },
+          "default": true
+        }
+      ]
+    }
+  ]
+}

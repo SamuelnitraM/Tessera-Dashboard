@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { CircleAlert, Globe, Plus } from 'lucide-react'
+import { AppWindow, CircleAlert, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { LayoutMode } from '@shared/dashboard'
+import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
 import { localize } from '@shared/plugins'
 import { listAvailableWidgets, WEB_APP_WIDGET, type RegisteredWidget } from '../../plugins/registry'
 import { useDashboardStore } from '../../stores/dashboard'
+import { pickInstalledApp } from '../../stores/programPicker'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
+import { AppIcon } from '../AppIcon'
 import { PluginIcon } from '../PluginIcon'
 import { Dialog } from '../ui/Dialog'
 import styles from './WidgetPicker.module.css'
@@ -20,14 +23,15 @@ interface BlockPickerProps {
 /**
  * Fenêtre « Ajouter un bloc », en trois catégories :
  * - Widgets : fournis avec Tessera
- * - Applications web : celles de Paramètres → Applications, ou un autre site
+ * - Applications : celles de Paramètres → Applications (web ou installées), un autre site, ou
+ *   un autre programme du PC
  * - Modules : développés par d'autres
  */
 export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps): React.JSX.Element {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
-  const webApps = useSettingsStore((state) => state.settings.apps.items)
+  const userApps = useSettingsStore((state) => state.settings.apps.items)
   const addWidget = useDashboardStore((state) => state.addWidget)
   const [pageFull, setPageFull] = useState(false)
 
@@ -44,7 +48,11 @@ export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps):
 
   const available = listAvailableWidgets(disabledPlugins)
   const webAppsEnabled = available.some((widget) => widget.key === WEB_APP_WIDGET)
-  const widgets = available.filter((widget) => widget.builtIn && widget.key !== WEB_APP_WIDGET)
+  const desktopAppsEnabled = available.some((widget) => widget.key === DESKTOP_APP_WIDGET)
+  const widgets = available.filter(
+    (widget) => widget.builtIn && widget.key !== WEB_APP_WIDGET && widget.key !== DESKTOP_APP_WIDGET
+  )
+  const apps = userApps.filter((app) => (app.kind === 'web' ? webAppsEnabled : desktopAppsEnabled))
   const modules = available.filter((widget) => !widget.builtIn)
 
   const option = (widget: RegisteredWidget): Option => ({
@@ -70,28 +78,44 @@ export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps):
         options={widgets.map(option)}
       />
 
-      {webAppsEnabled && (
+      {(webAppsEnabled || desktopAppsEnabled) && (
         <Category
-          title={t('blocks.picker.webApps')}
+          title={t('blocks.picker.apps')}
           options={[
-            ...webApps.map((app) => ({
+            ...apps.map((app) => ({
               key: app.id,
-              icon: app.icon ? (
-                <img src={app.icon} alt="" width={20} height={20} />
-              ) : (
-                <Globe size={20} aria-hidden />
-              ),
+              icon: <AppIcon app={app} size={20} />,
               name: app.name,
-              description: hostOf(app.url),
-              onClick: () => add(WEB_APP_WIDGET, { appId: app.id })
+              description: app.kind === 'web' ? hostOf(app.url) : t('blocks.picker.installedApp'),
+              onClick: () =>
+                add(app.kind === 'web' ? WEB_APP_WIDGET : DESKTOP_APP_WIDGET, { appId: app.id })
             })),
-            {
-              key: 'other-site',
-              icon: <Plus size={20} aria-hidden />,
-              name: t('blocks.picker.otherSite'),
-              description: t('blocks.picker.otherSiteDescription'),
-              onClick: () => add(WEB_APP_WIDGET)
-            }
+            ...(webAppsEnabled
+              ? [
+                  {
+                    key: 'other-site',
+                    icon: <Plus size={20} aria-hidden />,
+                    name: t('blocks.picker.otherSite'),
+                    description: t('blocks.picker.otherSiteDescription'),
+                    onClick: () => add(WEB_APP_WIDGET)
+                  }
+                ]
+              : []),
+            ...(desktopAppsEnabled
+              ? [
+                  {
+                    key: 'other-program',
+                    icon: <AppWindow size={20} aria-hidden />,
+                    name: t('blocks.picker.otherProgram'),
+                    description: t('blocks.picker.otherProgramDescription'),
+                    // Choisi dans la liste des programmes, puis ajouté directement
+                    onClick: () =>
+                      void pickInstalledApp().then(
+                        (app) => app && add(DESKTOP_APP_WIDGET, { appId: app.id })
+                      )
+                  }
+                ]
+              : [])
           ]}
         />
       )}

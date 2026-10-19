@@ -1,10 +1,10 @@
 # Créer un module
 
-Un **module** ajoute un ou plusieurs **blocs** à Tessera Dashboard. Techniquement, c'est un plugin, comme les widgets fournis avec l'app (Horloge, Bloc-notes, Lanceur, Application web) : ces derniers servent d'exemples complets.
+Un **module** ajoute un ou plusieurs **blocs** à Tessera Dashboard. Techniquement, c'est un plugin, comme les widgets fournis avec l'app (Horloge, Bloc-notes, Lanceur, Application web, Application installée) : ces derniers servent d'exemples complets.
 
 **Collection** : un même module peut fournir plusieurs widgets (tableau `widgets` du manifeste). Un éditeur peut ainsi proposer, en un seul téléchargement, une « collection » complète : par exemple Messenger, fil d'actualité et liste d'amis.
 
-> **État actuel (API v1)** : les plugins sont placés dans le dossier `plugins/` du projet et compilés avec l'app. L'installation de modules par l'utilisateur, avec isolation, ainsi qu'un projet de départ pour les développeurs, arriveront à l'étape 12 de la feuille de route.
+> **État actuel (API v1)** : les plugins sont placés dans le dossier `plugins/` du projet et compilés avec l'app. L'installation de modules par l'utilisateur, avec isolation, ainsi qu'un projet de départ pour les développeurs, arriveront à l'étape 13 de la feuille de route.
 
 Dans ce guide, « extension » et « plugin » désignent le paquet (dossier `plugins/<id>`), qu'il s'agisse d'un widget intégré ou d'un module.
 
@@ -67,7 +67,7 @@ Tout dossier contenant un `manifest.json` et un `index.tsx` est **découvert aut
 | `permissions`                   | Accès supplémentaires (facultatif) : `["files"]`, voir [Permissions](#permissions)                                                |
 | `files`                         | `{ "folder": "Notes" }` : dossier de fichiers de l'extension, obligatoire avec la permission `files`                              |
 
-Un manifeste invalide n'empêche pas l'app de démarrer : l'extension apparaît dans **Paramètres → Extensions** avec le champ fautif (ex. `widgets[0].minSize : ne peut pas dépasser defaultSize`).
+Un manifeste invalide n'empêche pas l'app de démarrer : l'extension apparaît dans **Paramètres → Widgets et modules** avec le champ fautif (ex. `widgets[0].minSize : ne peut pas dépasser defaultSize`).
 
 Le widget est enregistré dans les pages sous la clé `<id>/<type>` (ex. `tessera.clock/clock`).
 
@@ -86,13 +86,14 @@ Une valeur enregistrée invalide (mauvais type, hors limites, option supprimée)
 
 ### Permissions
 
-Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peut demander des accès supplémentaires, qui sont affichés à l'utilisateur dans **Paramètres → Extensions** :
+Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peut demander des accès supplémentaires, qui sont affichés à l'utilisateur dans **Paramètres → Widgets et modules** :
 
 | Permission  | Accès                                                                                                                                                               | Déclaration                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `files`     | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>`                                      | `"permissions": ["files"], "files": { "folder": "Notes" }` |
 | `processes` | Lancer et arrêter des programmes (`.exe`, `.bat`, `.cmd`, `.lnk`), **uniquement** ceux que l'utilisateur a choisis lui-même dans la fenêtre de sélection de Windows | `"permissions": ["processes"]`                             |
 | `web`       | Afficher des pages web (composant `WebView`), isolées de Tessera, avec la session partagée des pages web ou celle d'une application de l'utilisateur                | `"permissions": ["web"]`                                   |
+| `apps`      | Afficher la fenêtre d'une application installée de l'utilisateur (composant `InstalledAppView`), **uniquement** parmi celles qu'il a ajoutées à Tessera             | `"permissions": ["apps"]`                                  |
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -148,6 +149,7 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                                  |
 | `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                           |
 | `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous     |
+| `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                       |
 | `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
 | `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
 | `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                        |
@@ -220,6 +222,26 @@ const frame = useRef<WebViewHandle>(null)
 | `onTitle`, `onFavicons`, `onNavigate`, `onLoading`, `onError` | Suivi de la page                                                                                         |
 
 Les liens « nouvel onglet » s'ouvrent dans le navigateur par défaut, et les fenêtres de connexion (OAuth) dans une petite fenêtre partageant la session. Micro, caméra et position sont demandés à l'utilisateur. L'extension **Page web** (`plugins/tessera.web`) est un exemple complet.
+
+### Applications installées (`InstalledAppView`)
+
+Avec la permission `apps`, le composant `InstalledAppView` affiche, à son emplacement, la vraie fenêtre d'une application installée par l'utilisateur (Discord, Obsidian…). Tessera la lance si besoin, la garde sur le composant (déplacements, changement de page, dialogues) et propose de la rouvrir si l'utilisateur la ferme.
+
+```tsx
+const apps = useInstalledApps() // { id, name, icon }[] : celles de Paramètres → Applications
+
+<InstalledAppView appId={config.appId} hostId={instanceId} />
+
+// Fenêtre d'ajout de Tessera (programmes du menu Démarrer, ou un .exe) :
+const app = await addInstalledApp() // application ajoutée, ou null
+```
+
+| Prop     | Rôle                                                                     |
+| -------- | ------------------------------------------------------------------------ |
+| `appId`  | Application à afficher (parmi `useInstalledApps()`)                      |
+| `hostId` | Identifiant unique de l'emplacement, en général l'`instanceId` du widget |
+
+Une application ne s'affiche qu'à un endroit à la fois : un deuxième emplacement propose « L'afficher ici ». Une extension ne peut ni ajouter de programme sans passer par la fenêtre d'ajout (choix de l'utilisateur), ni changer le programme lancé. L'extension **Application installée** (`plugins/tessera.desktop`) est un exemple complet.
 
 ### Bonnes pratiques
 

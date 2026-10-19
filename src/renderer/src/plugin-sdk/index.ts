@@ -202,6 +202,15 @@ export { WebView, type WebViewProps } from './web'
 export { normalizeWebUrl } from '@shared/web-apps'
 
 // ---------------------------------------------------------------------------
+// Applications installées (permission `apps`)
+// ---------------------------------------------------------------------------
+
+export { useInstalledApps, type UserInstalledApp } from './apps'
+export { InstalledAppView, type InstalledAppViewProps } from './installed'
+/** Fenêtre d'ajout d'une application installée : renvoie l'application ajoutée, ou `null`. */
+export { pickInstalledApp as addInstalledApp } from '../stores/programPicker'
+
+// ---------------------------------------------------------------------------
 // Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera
 // ---------------------------------------------------------------------------
 

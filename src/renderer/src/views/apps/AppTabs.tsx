@@ -10,7 +10,10 @@ import {
   X
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { DesktopApp } from '@shared/desktop-apps'
 import { appPartition, parseUnreadCount, type WebApp } from '@shared/web-apps'
+import { AppIcon } from '../../components/AppIcon'
+import { DesktopAppHost } from '../../components/desktop/DesktopAppHost'
 import { WebFrame, type WebFrameHandle } from '../../components/web/WebFrame'
 import { useNavigationStore } from '../../stores/navigation'
 import { useSettingsStore } from '../../stores/settings'
@@ -18,8 +21,9 @@ import { useWebAppsStore } from '../../stores/webApps'
 import styles from './AppTabs.module.css'
 
 /**
- * Onglets des applications web. Chaque application ouverte garde sa page chargée en
- * arrière-plan ; seule celle de l'onglet actif est visible.
+ * Onglets des applications. Une application web ouverte garde sa page chargée en
+ * arrière-plan ; une application installée garde sa fenêtre, masquée hors de son onglet.
+ * Seul l'onglet actif est visible.
  */
 export function AppTabs(): React.JSX.Element {
   const apps = useSettingsStore((state) => state.settings.apps.items)
@@ -31,9 +35,13 @@ export function AppTabs(): React.JSX.Element {
     <>
       {apps
         .filter((app) => openedApps.includes(app.id))
-        .map((app) => (
-          <AppTab key={app.id} app={app} active={app.id === activeId} />
-        ))}
+        .map((app) =>
+          app.kind === 'web' ? (
+            <AppTab key={app.id} app={app} active={app.id === activeId} />
+          ) : (
+            <DesktopAppTab key={app.id} app={app} active={app.id === activeId} />
+          )
+        )}
     </>
   )
 }
@@ -141,6 +149,37 @@ function AppTab({ app, active }: { app: WebApp; active: boolean }): React.JSX.El
           onLoading={setLoading}
           onError={setError}
         />
+      </div>
+    </section>
+  )
+}
+
+/** Onglet d'une application installée : sa fenêtre occupe toute la zone sous la barre. */
+function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): React.JSX.Element {
+  const { t } = useTranslation()
+  const closeApp = useNavigationStore((state) => state.closeApp)
+
+  return (
+    <section
+      className={styles.tab}
+      data-active={active}
+      aria-hidden={!active}
+      aria-label={app.name}
+    >
+      <header className={styles.toolbar}>
+        <div className={styles.address}>
+          <AppIcon app={app} size={14} />
+          <span className={styles.appName}>{app.name}</span>
+          <span className={styles.host}>{app.processName}</span>
+        </div>
+        <ToolbarButton
+          icon={X}
+          label={t('desktopApps.closeTab')}
+          onClick={() => closeApp(app.id)}
+        />
+      </header>
+      <div className={styles.page}>
+        <DesktopAppHost app={app} hostId={`tab:${app.id}`} active={active} />
       </div>
     </section>
   )

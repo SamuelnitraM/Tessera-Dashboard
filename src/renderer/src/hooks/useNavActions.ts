@@ -2,7 +2,8 @@ import { useCallback } from 'react'
 import { ExternalLink, FolderOpen, Pencil, SquarePen, Settings, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { DashboardPage } from '@shared/dashboard'
-import { OPEN_IN_TESSERA, type WebApp } from '@shared/web-apps'
+import type { UserApp } from '@shared/user-apps'
+import { OPEN_IN_TESSERA } from '@shared/web-apps'
 import type { MenuItem } from '../stores/contextMenu'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
@@ -13,9 +14,9 @@ import { useBrowsers } from './useBrowsers'
  * application, et menus du clic droit correspondants.
  */
 export function useNavActions(): {
-  openApp: (app: WebApp) => void
+  openApp: (app: UserApp) => void
   pageMenu: (page: DashboardPage) => MenuItem[]
-  appMenu: (app: WebApp) => MenuItem[]
+  appMenu: (app: UserApp) => MenuItem[]
 } {
   const { t } = useTranslation()
   const browsers = useBrowsers()
@@ -25,11 +26,14 @@ export function useNavActions(): {
   const openedApps = useNavigationStore((state) => state.openedApps)
   const { openRename, openDelete } = usePageDialogsStore()
 
-  /** Onglet de Tessera, ou fenêtre du navigateur choisi pour cette application. */
+  /** Onglet de Tessera, ou fenêtre du navigateur choisi pour cette application web. */
   const openApp = useCallback(
-    (app: WebApp) => {
-      const browser = browsers.find((candidate) => candidate.id === app.openWith)
-      if (app.openWith !== OPEN_IN_TESSERA && browser) {
+    (app: UserApp) => {
+      const browser =
+        app.kind === 'web' && app.openWith !== OPEN_IN_TESSERA
+          ? browsers.find((candidate) => candidate.id === app.openWith)
+          : undefined
+      if (app.kind === 'web' && browser) {
         void window.tessera.browsers.open(browser.id, app.url)
       } else {
         navigate({ type: 'app', appId: app.id })
@@ -64,17 +68,19 @@ export function useNavActions(): {
     }
   ]
 
-  const appMenu = (app: WebApp): MenuItem[] => [
+  const appMenu = (app: UserApp): MenuItem[] => [
     {
       label: t('nav.appMenu.open'),
       icon: FolderOpen,
       onSelect: () => navigate({ type: 'app', appId: app.id })
     },
-    ...browsers.map((browser) => ({
-      label: t('nav.appMenu.openIn', { browser: browser.name }),
-      icon: ExternalLink,
-      onSelect: () => void window.tessera.browsers.open(browser.id, app.url)
-    })),
+    ...(app.kind === 'web'
+      ? browsers.map((browser) => ({
+          label: t('nav.appMenu.openIn', { browser: browser.name }),
+          icon: ExternalLink,
+          onSelect: () => void window.tessera.browsers.open(browser.id, app.url)
+        }))
+      : []),
     'separator',
     {
       label: t('nav.appMenu.closeTab'),
