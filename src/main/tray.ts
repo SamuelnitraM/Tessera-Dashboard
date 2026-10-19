@@ -3,6 +3,8 @@ import { APP_NAME } from '@shared/app'
 import { interpolate } from '@shared/i18n'
 import { getTranslation } from './i18n'
 import { getAppIcons } from './app-icon'
+import { setDoNotDisturb } from './notifications'
+import { getSettings } from './settings-store'
 import { getMainWindow, showMainWindow, toggleMainWindow } from './window'
 
 // Référence gardée au niveau du module : sinon le ramasse-miettes supprime l'icône
@@ -41,6 +43,12 @@ export function refreshTrayMenu(): void {
   tray.setContextMenu(
     Menu.buildFromTemplate([
       { label: interpolate(t.open, { appName: APP_NAME }), click: showMainWindow },
+      {
+        label: t.doNotDisturb,
+        type: 'checkbox',
+        checked: getSettings().notifications.doNotDisturb,
+        click: (item) => setDoNotDisturb(item.checked)
+      },
       { type: 'separator' },
       { label: t.quit, click: () => app.quit() }
     ])

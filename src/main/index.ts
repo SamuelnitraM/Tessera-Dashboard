@@ -5,6 +5,12 @@ import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
 import { initDocking, releaseAllApps, releaseRemovedApps } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
+import {
+  flushNotifications,
+  loadNotifications,
+  setNotificationListeners,
+  watchWebNotifications
+} from './notifications'
 import { setPluginFilesListener } from './plugins/files'
 import {
   flushProcessApprovals,
@@ -32,6 +38,7 @@ if (!app.requestSingleInstanceLock()) {
     flushDashboard()
     flushProcessApprovals()
     flushWebPermissions()
+    flushNotifications()
     stopCapturedProcesses()
   })
 
@@ -50,7 +57,9 @@ if (!app.requestSingleInstanceLock()) {
     loadDashboard()
     loadProcessApprovals()
     loadWebPermissions()
+    loadNotifications()
     watchWebContents()
+    watchWebNotifications()
 
     registerIpcHandlers()
     initDocking(createMainWindow(), {
@@ -65,7 +74,12 @@ if (!app.requestSingleInstanceLock()) {
 
     onSettingsChange((next, previous) => {
       if (next.appearance.theme !== previous.appearance.theme) applyTheme(next.appearance.theme)
-      if (next.general.language !== previous.general.language) refreshTrayMenu()
+      if (
+        next.general.language !== previous.general.language ||
+        next.notifications.doNotDisturb !== previous.notifications.doNotDisturb
+      ) {
+        refreshTrayMenu()
+      }
       if (
         next.appearance.accentColor !== previous.appearance.accentColor ||
         next.appearance.accentIcon !== previous.appearance.accentIcon
@@ -77,6 +91,15 @@ if (!app.requestSingleInstanceLock()) {
     })
 
     setPluginFilesListener((pluginId) => broadcast(IpcChannels.pluginFilesChanged, pluginId))
+    setNotificationListeners({
+      changed: (list) => broadcast(IpcChannels.notificationsChanged, list),
+      play: (sound, volume) => broadcast(IpcChannels.notificationsPlay, sound, volume),
+      // Clic sur une bannière : Tessera s'ouvre sur l'application qui l'a envoyée
+      activate: (notification) => {
+        showMainWindow()
+        getMainWindow()?.webContents.send(IpcChannels.notificationsActivated, notification)
+      }
+    })
     setProcessListeners({
       changed: (pluginId, run) => broadcast(IpcChannels.processesChanged, pluginId, run),
       output: (pluginId, runId, text) =>

@@ -112,12 +112,18 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
   - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC » ;
   - **Flux RSS**.
 
-### Notifications (étape 9)
+### Notifications ✅
 
-- **Centre de notifications** dans l'app et **notifications natives Windows**, y compris celles de Discord.
-- Activation, son et priorité **réglables par application**.
-- **Sons personnalisés** importés par l'utilisateur.
-- Mode **Ne pas déranger**.
+- **Sources** :
+  - les **applications web** (Discord web, Gmail…) : leurs notifications passent par Tessera, avec leur icône (avatar…). Un clic ouvre l'application et la bonne conversation ;
+  - les **widgets et modules** (permission « notifications ») : le **Lanceur** prévient quand un programme s'arrête avec une erreur, même si son bloc n'est pas affiché ;
+  - Tessera elle-même (notification de test).
+- **Centre de notifications** : bouton cloche du menu latéral (avec le nombre de non-lues), panneau à droite, clic pour ouvrir la source, suppression, « Tout marquer comme lu », « Tout effacer ». Historique conservé (200 dernières).
+- **Bannières Windows**, désactivables. Si les notifications sont coupées dans Windows, Paramètres → Notifications le signale, avec un bouton vers le réglage de Windows.
+- **Sons** : son de Windows, sons de Tessera (Carillon, Bulle, Clochette), ou **sons importés** (MP3, WAV, OGG, M4A), avec volume réglable.
+- **Par application** : activation, son et **priorité** (une application prioritaire passe même en Ne pas déranger, et sa bannière reste affichée).
+- **Ne pas déranger** : interrupteur dans le centre de notifications et dans le menu de la zone de notification, ou **chaque jour** entre deux heures. Les notifications arrivent alors dans le centre, sans bannière ni son. La cloche est barrée tant qu'il est actif.
+- Une notification avec la même étiquette remplace la précédente (compteur de messages mis à jour…).
 
 ### Système
 
@@ -131,6 +137,12 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 ### Plus tard
 
 - Application **Android** compagnon : lecture des SMS et des notifications du téléphone via le réseau local, appairage par QR code.
+
+### Limites connues des notifications
+
+- Les **applications installées** (Discord, Obsidian…) affichent leurs propres notifications Windows : Tessera ne les voit pas, elles se règlent dans l'application.
+- Une application web ouverte **dans un navigateur** (« Ouvrir avec ») envoie ses notifications par ce navigateur.
+- Le son « Son de Windows » est joué par la bannière : sans bannière (désactivée, ou notifications coupées dans Windows), il n'y a pas de son. Les sons de Tessera et les sons importés fonctionnent toujours.
 
 ### Limites connues des applications installées
 
@@ -209,12 +221,13 @@ src/
 │   ├── browsers.ts           #   Navigateurs installés (Brave, Chrome…) et ouverture d'applications
 │   ├── app-icon.ts           #   Icônes de la fenêtre et de la zone de notification aux couleurs de l'accent
 │   ├── web.ts                #   Pages web : verrouillage des <webview>, sessions, permissions, clic droit
+│   ├── notifications.ts      #   Notifications : historique, bannières Windows, sons importés, Ne pas déranger
 │   ├── desktop/              #   Applications installées : API Windows (koffi), programmes du menu Démarrer,
 │   │                         #   fenêtres ancrées sur les blocs (docking.ts)
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
 │   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
-│   └── webview.ts            #   Script de Tessera dans les pages web (clés d'accès…)
+│   └── webview.ts            #   Script de Tessera dans les pages web (notifications, clés d'accès)
 ├── renderer/                 # Interface React
 │   ├── index.html
 │   └── src/
@@ -228,7 +241,7 @@ src/
 │       ├── stores/           #   État global (réglages, tableau de bord, navigation, non-lus) avec Zustand
 │       ├── hooks/            #   Hooks React (taille d'un élément, nom d'une page)
 │       ├── i18n/             #   Initialisation d'i18next
-│       ├── lib/              #   Utilitaires (placement sur la grille, couleur d'accent)
+│       ├── lib/              #   Utilitaires (placement sur la grille, couleur d'accent, sons)
 │       └── styles/           #   Jetons de design (couleurs, rayons…)
 └── shared/                   # Partagé entre main et renderer
     ├── settings.ts           #   Schéma des réglages, valeurs par défaut, validation
@@ -238,6 +251,8 @@ src/
     ├── plugin-processes.ts   #   Règles de lancement de programmes par les extensions
     ├── web-apps.ts           #   Applications web : catalogue, sessions, adresses, non-lus
     ├── desktop-apps.ts       #   Applications installées : modèle, états, validation
+    ├── notifications.ts      #   Notifications : sources, réglages, Ne pas déranger, validation
+    ├── webview-channels.ts   #   Canaux IPC des pages web (séparés : un preload ne partage aucun module)
     ├── user-apps.ts          #   Liste des applications de l'utilisateur (web + installées)
     ├── ipc.ts                #   Noms des canaux IPC et types échangés
     ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
@@ -247,7 +262,7 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 ├── tessera.clock/            #   Horloge
 ├── tessera.heading/          #   Titre de section
 ├── tessera.notes/            #   Bloc-notes (permission « files »)
-├── tessera.launcher/         #   Lanceur de programmes (permission « processes »)
+├── tessera.launcher/         #   Lanceur de programmes (permissions « processes » et « notifications »)
 ├── tessera.web/              #   Page web dans la grille (permission « web »)
 └── tessera.desktop/          #   Application installée dans la grille (permission « apps »)
 docs/
@@ -343,7 +358,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 - [x] **Étape 7 :** widget web et onglets d'applications (Discord).
 - [x] **Étape 7.5 : retouches.** Nomenclature (bloc, widget, application web, module), menu latéral rabattable, clic droit sur les pages, applications et blocs, icônes aux couleurs de l'accent, ouverture des applications dans un navigateur installé, Bloc-notes (import, suppression rapide, regroupement par date, police en pixels).
 - [x] **Étape 8 : applications installées.** Afficher la fenêtre d'un programme déjà installé (Discord, Obsidian, GitSpread…) dans un bloc ou dans un onglet du menu latéral, sans module dédié : l'application garde sa connexion et ses propres notifications. Ajout depuis le menu Démarrer ou un `.exe`, « Rouvrir » quand l'application est fermée, taille minimale de l'application appliquée au bloc, récupération après plantage.
-- [ ] **Étape 9 :** système de notifications complet.
+- [x] **Étape 9 : notifications.** Centre de notifications, bannières Windows, notifications des applications web et des widgets, sons (intégrés et importés), réglages par application (activation, son, priorité), Ne pas déranger (manuel et horaire).
 
 ### Phase 2 : intégrations API
 

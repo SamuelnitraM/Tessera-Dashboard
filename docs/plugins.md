@@ -88,12 +88,13 @@ Une valeur enregistrée invalide (mauvais type, hors limites, option supprimée)
 
 Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peut demander des accès supplémentaires, qui sont affichés à l'utilisateur dans **Paramètres → Widgets et modules** :
 
-| Permission  | Accès                                                                                                                                                               | Déclaration                                                |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| `files`     | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>`                                      | `"permissions": ["files"], "files": { "folder": "Notes" }` |
-| `processes` | Lancer et arrêter des programmes (`.exe`, `.bat`, `.cmd`, `.lnk`), **uniquement** ceux que l'utilisateur a choisis lui-même dans la fenêtre de sélection de Windows | `"permissions": ["processes"]`                             |
-| `web`       | Afficher des pages web (composant `WebView`), isolées de Tessera, avec la session partagée des pages web ou celle d'une application de l'utilisateur                | `"permissions": ["web"]`                                   |
-| `apps`      | Afficher la fenêtre d'une application installée de l'utilisateur (composant `InstalledAppView`), **uniquement** parmi celles qu'il a ajoutées à Tessera             | `"permissions": ["apps"]`                                  |
+| Permission      | Accès                                                                                                                                                               | Déclaration                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `files`         | Lire, écrire, renommer et mettre à la Corbeille des fichiers texte, **uniquement** dans `Documents\Tessera Dashboard\<folder>`                                      | `"permissions": ["files"], "files": { "folder": "Notes" }` |
+| `processes`     | Lancer et arrêter des programmes (`.exe`, `.bat`, `.cmd`, `.lnk`), **uniquement** ceux que l'utilisateur a choisis lui-même dans la fenêtre de sélection de Windows | `"permissions": ["processes"]`                             |
+| `web`           | Afficher des pages web (composant `WebView`), isolées de Tessera, avec la session partagée des pages web ou celle d'une application de l'utilisateur                | `"permissions": ["web"]`                                   |
+| `notifications` | Envoyer des notifications (`useNotifications`), soumises aux réglages de l'utilisateur (par extension) et à Ne pas déranger                                         | `"permissions": ["notifications"]`                         |
+| `apps`          | Afficher la fenêtre d'une application installée de l'utilisateur (composant `InstalledAppView`), **uniquement** parmi celles qu'il a ajoutées à Tessera             | `"permissions": ["apps"]`                                  |
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -149,6 +150,7 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                                  |
 | `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                           |
 | `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous     |
+| `useNotifications()`                                                        | Notifications (permission `notifications`), voir ci-dessous                                    |
 | `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                       |
 | `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
 | `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
@@ -222,6 +224,24 @@ const frame = useRef<WebViewHandle>(null)
 | `onTitle`, `onFavicons`, `onNavigate`, `onLoading`, `onError` | Suivi de la page                                                                                         |
 
 Les liens « nouvel onglet » s'ouvrent dans le navigateur par défaut, et les fenêtres de connexion (OAuth) dans une petite fenêtre partageant la session. Micro, caméra et position sont demandés à l'utilisateur. L'extension **Page web** (`plugins/tessera.web`) est un exemple complet.
+
+### Notifications (`useNotifications`)
+
+Avec la permission `notifications`, `useNotifications().notify(input)` envoie une notification :
+
+```tsx
+const { notify } = useNotifications()
+await notify({ title: 'Sauvegarde terminée', body: '12 fichiers copiés', tag: 'backup' })
+```
+
+| Champ   | Rôle                                                           |
+| ------- | -------------------------------------------------------------- |
+| `title` | Titre (obligatoire)                                            |
+| `body`  | Texte                                                          |
+| `icon`  | Image `data:` (sinon, l'icône de Tessera)                      |
+| `tag`   | Une notification avec la même étiquette remplace la précédente |
+
+Tessera applique les réglages de l'utilisateur pour l'extension (activée, son, priorité) et le mode Ne pas déranger, puis affiche la notification dans le centre, en bannière Windows et avec un son. Un clic dessus ouvre la page qui contient un bloc de l'extension.
 
 ### Applications installées (`InstalledAppView`)
 

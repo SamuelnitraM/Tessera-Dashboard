@@ -3,6 +3,7 @@ import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type { DesktopApp, DesktopAppState, HostRect, InstalledProgram } from '@shared/desktop-apps'
+import type { CustomSound, NotifyInput, TesseraNotification } from '@shared/notifications'
 import type { PluginFileEntry } from '@shared/plugin-files'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Settings, SettingsPatch } from '@shared/settings'
@@ -133,6 +134,41 @@ const api = {
     },
     onReveal: (callback: (appId: string) => void) =>
       subscribe(IpcChannels.desktopAppsReveal, callback)
+  },
+  /** Notifications : centre, test, sons importés, envoi par les widgets et modules. */
+  notifications: {
+    list: (): Promise<TesseraNotification[]> => ipcRenderer.invoke(IpcChannels.notificationsList),
+    markRead: (ids: string[] | 'all'): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.notificationsMarkRead, ids),
+    remove: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannels.notificationsRemove, id),
+    clear: (): Promise<void> => ipcRenderer.invoke(IpcChannels.notificationsClear),
+    activate: (id: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.notificationsActivate, id),
+    test: (): Promise<TesseraNotification | null> =>
+      ipcRenderer.invoke(IpcChannels.notificationsTest),
+    notify: (pluginId: string, input: NotifyInput): Promise<TesseraNotification | null> =>
+      ipcRenderer.invoke(IpcChannels.notificationsNotify, pluginId, input),
+    importSound: (): Promise<CustomSound | null> =>
+      ipcRenderer.invoke(IpcChannels.notificationsImportSound),
+    deleteSound: (id: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.notificationsDeleteSound, id),
+    getSound: (sound: string): Promise<Uint8Array | null> =>
+      ipcRenderer.invoke(IpcChannels.notificationsGetSound, sound),
+    /** Bannières bloquées par Windows (notifications désactivées dans ses paramètres). */
+    bannersBlocked: (): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.notificationsBannersBlocked),
+    openSystemSettings: (): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.notificationsOpenSystemSettings),
+    onChange: (callback: (notifications: TesseraNotification[]) => void) =>
+      subscribe(IpcChannels.notificationsChanged, callback),
+    onPlay: (callback: (sound: string, volume: number) => void) => {
+      const listener = (_event: IpcRendererEvent, sound: string, volume: number): void =>
+        callback(sound, volume)
+      ipcRenderer.on(IpcChannels.notificationsPlay, listener)
+      return () => ipcRenderer.removeListener(IpcChannels.notificationsPlay, listener)
+    },
+    onActivated: (callback: (notification: TesseraNotification) => void) =>
+      subscribe(IpcChannels.notificationsActivated, callback)
   },
   /** Navigateurs installés sur le PC. */
   browsers: {

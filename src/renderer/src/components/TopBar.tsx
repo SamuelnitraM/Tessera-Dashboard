@@ -13,6 +13,7 @@ import { useWebAppsStore } from '../stores/webApps'
 import { AppIcon } from './AppIcon'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
+import { NotificationBell } from './notifications/NotificationBell'
 import styles from './TopBar.module.css'
 
 /**
@@ -80,6 +81,11 @@ export function TopBar(): React.JSX.Element {
       )}
 
       <div className={styles.end}>
+        <NotificationBell
+          variant="icon"
+          className={styles.iconButton}
+          badgeClassName={styles.appBadge}
+        />
         <button
           type="button"
           className={styles.iconButton}

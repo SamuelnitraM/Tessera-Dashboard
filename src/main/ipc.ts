@@ -18,6 +18,21 @@ import {
 } from './desktop/docking'
 import { addProgram, listPrograms, pickProgram, protectDesktopApps } from './desktop/programs'
 import {
+  activateNotification,
+  areBannersBlocked,
+  clearNotifications,
+  deleteSound,
+  getNotifications,
+  getSoundData,
+  importSound,
+  markRead,
+  notifyFromPlugin,
+  openSystemNotificationSettings,
+  removeNotification,
+  sendTestNotification
+} from './notifications'
+import type { NotifyInput } from '@shared/notifications'
+import {
   getPluginFolder,
   importPluginFiles,
   listFiles,
@@ -155,6 +170,32 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
   ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean) =>
     setSuspended(value === true)
+  )
+
+  // Notifications : centre, test, sons importés, notifications des widgets et modules
+  ipcMain.handle(IpcChannels.notificationsList, () => getNotifications())
+  ipcMain.handle(IpcChannels.notificationsMarkRead, (_event, ids: string[] | 'all') =>
+    markRead(
+      ids === 'all' ? 'all' : Array.isArray(ids) ? ids.filter((id) => typeof id === 'string') : []
+    )
+  )
+  ipcMain.handle(IpcChannels.notificationsRemove, (_event, id: string) => removeNotification(id))
+  ipcMain.handle(IpcChannels.notificationsClear, () => clearNotifications())
+  ipcMain.handle(IpcChannels.notificationsActivate, (_event, id: string) =>
+    activateNotification(id)
+  )
+  ipcMain.handle(IpcChannels.notificationsTest, () => sendTestNotification())
+  ipcMain.handle(IpcChannels.notificationsNotify, (_event, pluginId: string, input: NotifyInput) =>
+    notifyFromPlugin(pluginId, input)
+  )
+  ipcMain.handle(IpcChannels.notificationsImportSound, (event) =>
+    importSound(BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle(IpcChannels.notificationsDeleteSound, (_event, id: string) => deleteSound(id))
+  ipcMain.handle(IpcChannels.notificationsGetSound, (_event, sound: string) => getSoundData(sound))
+  ipcMain.handle(IpcChannels.notificationsBannersBlocked, () => areBannersBlocked())
+  ipcMain.handle(IpcChannels.notificationsOpenSystemSettings, () =>
+    openSystemNotificationSettings()
   )
 
   // Navigateurs installés (ouverture d'applications web hors de Tessera)

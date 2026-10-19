@@ -6,6 +6,7 @@ export const en: Translation = {
   },
   tray: {
     open: 'Open {{appName}}',
+    doNotDisturb: 'Do not disturb',
     quit: 'Quit'
   },
   dialogs: {
@@ -15,7 +16,11 @@ export const en: Translation = {
     acceptedFiles: 'Accepted files',
     pickApp: 'Choose an app',
     appFilter: 'Apps (.exe, .lnk)',
-    notAnApp: 'This shortcut does not lead to a program (.exe).'
+    notAnApp: 'This shortcut does not lead to a program (.exe).',
+    importSound: 'Import a sound',
+    soundFilter: 'Sounds (.mp3, .wav, .ogg, .m4a)',
+    soundInvalid: 'Unsupported sound format.',
+    soundTooBig: 'This sound is too large (3 MB maximum).'
   },
   web: {
     contextMenu: {
@@ -80,6 +85,29 @@ export const en: Translation = {
     openInBrowser: 'Open in browser',
     close: 'Close tab (frees memory)',
     loadError: 'The page could not be loaded ({{error}}).'
+  },
+  processes: {
+    crashTitle: '{{name}} stopped',
+    crashBody: 'The program ended with an error (code {{code}}).'
+  },
+  notifications: {
+    testTitle: 'Test notification',
+    testBody: 'Tessera notifications are working.',
+    center: {
+      title: 'Notifications',
+      open: 'Notifications',
+      empty: 'No notifications.',
+      markAllRead: 'Mark all as read',
+      clear: 'Clear all',
+      dismiss: 'Remove',
+      doNotDisturb: 'Do not disturb',
+      scheduled: 'Do not disturb is on (schedule until {{time}}).',
+      settings: 'Notification settings'
+    },
+    sources: {
+      tessera: 'Tessera Dashboard',
+      web: 'Web pages'
+    }
   },
   desktopApps: {
     starting: 'Opening {{name}}…',
@@ -202,10 +230,60 @@ export const en: Translation = {
       expanded: 'Expanded',
       collapsed: 'Collapsed'
     },
-    comingSoon: {
-      title: 'Coming soon',
-      notifications:
-        'Per-app toggles, custom sounds and Do Not Disturb will come with the notification system.'
+    notifications: {
+      banners: {
+        label: 'Windows banners',
+        description:
+          'Shows notifications at the bottom right of the screen, even when Tessera is in the background.'
+      },
+      sound: {
+        label: 'Default sound',
+        description: 'Played for every notification, unless an app has its own setting.'
+      },
+      volume: {
+        label: 'Volume',
+        description:
+          'Of Tessera sounds and imported sounds (the Windows sound follows the system volume).'
+      },
+      test: 'Send a test notification',
+      blocked:
+        'Notifications are turned off in Windows: no banner can be shown. The notification center and Tessera sounds still work.',
+      openWindowsSettings: 'Open Windows settings',
+      dndTitle: 'Do not disturb',
+      dnd: {
+        label: 'Do not disturb',
+        description:
+          'Notifications go to the notification center, without banner or sound. High-priority apps still get through.'
+      },
+      schedule: {
+        label: 'Every day',
+        description: 'Turns on Do not disturb automatically between these two times.',
+        from: 'From',
+        to: 'to'
+      },
+      soundsTitle: 'Imported sounds',
+      soundsIntro: 'MP3, WAV, OGG or M4A, 3 MB maximum.',
+      importSound: 'Import a sound…',
+      play: 'Play',
+      deleteSound: 'Delete the sound',
+      noSounds: 'No imported sound.',
+      sourcesTitle: 'Per app',
+      sourcesIntro:
+        'Installed apps (Discord, Obsidian…) show their own Windows notifications: set them up in the app itself.',
+      enabled: '{{name}} notifications',
+      soundFor: '{{name}} sound',
+      priorityFor: '{{name}} priority',
+      priorityNormal: 'Normal',
+      priorityHigh: 'High priority',
+      soundDefault: 'Default sound',
+      sounds: {
+        system: 'Windows sound',
+        none: 'None',
+        chime: 'Chime',
+        pop: 'Pop',
+        bell: 'Bell'
+      },
+      noSources: 'No app can send notifications yet.'
     },
     applications: {
       intro:
@@ -251,7 +329,8 @@ export const en: Translation = {
       filesPermission: 'File access: {{folder}}',
       processesPermission: 'Can start and stop the programs you choose yourself',
       webPermission: 'Can show web pages',
-      appsPermission: 'Can show the window of your installed apps'
+      appsPermission: 'Can show the window of your installed apps',
+      notificationsPermission: 'Can send you notifications'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

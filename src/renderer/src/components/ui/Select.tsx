@@ -10,6 +10,7 @@ interface SelectProps<T extends string> {
   value: T
   options: SelectOption<T>[]
   onChange: (value: T) => void
+  'aria-label'?: string
   'aria-labelledby'?: string
 }
 

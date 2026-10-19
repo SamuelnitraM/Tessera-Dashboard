@@ -1,11 +1,126 @@
 /// <reference lib="dom" />
 // (Ce script tourne dans une page web : il a besoin des types du navigateur.)
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
+import { WebviewChannels } from '@shared/webview-channels'
 
 /**
  * Script de Tessera exécuté dans chaque page web intégrée (onglets d'applications, widgets web),
- * avant les scripts de la page. Il n'expose aucune API de Tessera à la page.
+ * avant les scripts de la page.
  *
+ * Notifications : la page (Discord web, Gmail…) utilise l'API `Notification` du navigateur.
+ * Elle est remplacée par une version qui transmet chaque notification à Tessera : réglages par
+ * application, Ne pas déranger, sons, centre de notifications. Un clic sur la notification est
+ * renvoyé à la page, qui ouvre la bonne conversation. C'est le seul accès donné à la page :
+ * afficher ses propres notifications.
+ */
+const notificationListeners = new Map<string, (type: string) => void>()
+
+contextBridge.exposeInMainWorld('__tesseraNotifications', {
+  show: (
+    input: { title: string; body: string; icon: string; tag: string },
+    listener: (type: string) => void
+  ): string => {
+    const id = crypto.randomUUID()
+    notificationListeners.set(id, listener)
+    ipcRenderer.send(WebviewChannels.notify, id, {
+      title: String(input?.title ?? ''),
+      body: String(input?.body ?? ''),
+      icon: String(input?.icon ?? ''),
+      tag: String(input?.tag ?? '')
+    })
+    return id
+  },
+  close: (id: string): void => {
+    if (!notificationListeners.delete(id)) return
+    ipcRenderer.send(WebviewChannels.notifyClose, id)
+  }
+})
+
+ipcRenderer.on(WebviewChannels.notificationEvent, (_event, id: string, type: string) => {
+  notificationListeners.get(id)?.(type)
+})
+
+contextBridge.executeInMainWorld({
+  func: () => {
+    type Bridge = {
+      show: (
+        input: { title: string; body: string; icon: string; tag: string },
+        listener: (type: string) => void
+      ) => string
+      close: (id: string) => void
+    }
+    const bridge = (window as unknown as { __tesseraNotifications: Bridge }).__tesseraNotifications
+
+    /** Même interface que la `Notification` du navigateur, transmise à Tessera. */
+    class TesseraNotification extends EventTarget {
+      static get permission(): NotificationPermission {
+        return 'granted'
+      }
+      static requestPermission(
+        callback?: (permission: NotificationPermission) => void
+      ): Promise<NotificationPermission> {
+        callback?.('granted')
+        return Promise.resolve('granted')
+      }
+      static get maxActions(): number {
+        return 0
+      }
+
+      readonly title: string
+      readonly body: string
+      readonly icon: string
+      readonly tag: string
+      readonly data: unknown
+      readonly silent: boolean
+      onclick: ((event: Event) => void) | null = null
+      onshow: ((event: Event) => void) | null = null
+      onclose: ((event: Event) => void) | null = null
+      onerror: ((event: Event) => void) | null = null
+      private readonly id: string
+
+      constructor(title: string, options: NotificationOptions = {}) {
+        super()
+        this.title = String(title)
+        this.body = options.body ?? ''
+        this.icon = options.icon ? new URL(options.icon, location.href).href : ''
+        this.tag = options.tag ?? ''
+        this.data = options.data ?? null
+        this.silent = options.silent === true
+        this.id = bridge.show(
+          { title: this.title, body: this.body, icon: this.icon, tag: this.tag },
+          (type) => {
+            const event = new Event(type, { cancelable: true })
+            this.dispatchEvent(event)
+            const handler = this[`on${type}` as 'onclick']
+            if (typeof handler === 'function') handler.call(this, event)
+          }
+        )
+      }
+
+      close(): void {
+        bridge.close(this.id)
+      }
+    }
+
+    Object.defineProperty(window, 'Notification', {
+      value: TesseraNotification,
+      writable: true,
+      configurable: true
+    })
+    // Notifications envoyées par un service worker (même chemin)
+    if (window.ServiceWorkerRegistration) {
+      ServiceWorkerRegistration.prototype.showNotification = function (
+        title: string,
+        options?: NotificationOptions
+      ) {
+        new TesseraNotification(title, options)
+        return Promise.resolve()
+      }
+    }
+  }
+})
+
+/**
  * Clés d'accès (passkeys) : les pages de connexion (Discord…) demandent souvent une proposition
  * « discrète » de clé d'accès dès leur ouverture. Electron l'affiche sous forme de fenêtre
  * « Sécurité Windows » bloquante. On indique donc à la page que ce mode n'est pas disponible ;

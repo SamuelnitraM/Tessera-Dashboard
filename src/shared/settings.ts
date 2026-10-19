@@ -4,6 +4,11 @@
  * ancienne version ne peut donc jamais casser l'app, les valeurs invalides reprennent leur défaut.
  */
 
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  sanitizeNotificationSettings,
+  type NotificationSettings
+} from './notifications'
 import { sanitizeUserApps, type UserApp } from './user-apps'
 
 export const LANGUAGES = ['fr', 'en'] as const
@@ -50,6 +55,8 @@ export interface Settings {
     /** Applications web et installées (Discord…), dans l'ordre du menu latéral. */
     items: UserApp[]
   }
+  /** Notifications : bannières, sons, Ne pas déranger, réglages par source. */
+  notifications: NotificationSettings
 }
 
 type SettingsSections = Omit<Settings, 'schemaVersion'>
@@ -93,7 +100,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   apps: {
     items: []
-  }
+  },
+  notifications: DEFAULT_NOTIFICATION_SETTINGS
 }
 
 export function isHexColor(value: unknown): value is HexColor {
@@ -150,7 +158,8 @@ export function sanitizeSettings(input: unknown): Settings {
     },
     apps: {
       items: sanitizeUserApps(asRecord(root.apps).items)
-    }
+    },
+    notifications: sanitizeNotificationSettings(root.notifications)
   }
 }
 
@@ -162,7 +171,8 @@ export function applySettingsPatch(current: Settings, patch: SettingsPatch): Set
     appearance: { ...current.appearance, ...patch.appearance },
     window: { ...current.window, ...patch.window },
     plugins: { ...current.plugins, ...patch.plugins },
-    apps: { ...current.apps, ...patch.apps }
+    apps: { ...current.apps, ...patch.apps },
+    notifications: { ...current.notifications, ...patch.notifications }
   })
 }
 

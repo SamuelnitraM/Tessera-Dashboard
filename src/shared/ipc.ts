@@ -53,6 +53,24 @@ export const IpcChannels = {
   desktopAppsChanged: 'desktop-apps:changed',
   /** Événement main -> renderer : une application demande à s'afficher (identifiant). */
   desktopAppsReveal: 'desktop-apps:reveal',
+  notificationsList: 'notifications:list',
+  notificationsMarkRead: 'notifications:mark-read',
+  notificationsRemove: 'notifications:remove',
+  notificationsClear: 'notifications:clear',
+  notificationsActivate: 'notifications:activate',
+  notificationsTest: 'notifications:test',
+  notificationsNotify: 'notifications:notify',
+  notificationsImportSound: 'notifications:import-sound',
+  notificationsDeleteSound: 'notifications:delete-sound',
+  notificationsGetSound: 'notifications:get-sound',
+  notificationsBannersBlocked: 'notifications:banners-blocked',
+  notificationsOpenSystemSettings: 'notifications:open-system-settings',
+  /** Événement main -> renderer : l'historique des notifications a changé. */
+  notificationsChanged: 'notifications:changed',
+  /** Événement main -> renderer : son à jouer (son, volume). */
+  notificationsPlay: 'notifications:play',
+  /** Événement main -> renderer : clic sur une bannière (notification). */
+  notificationsActivated: 'notifications:activated',
   browsersList: 'browsers:list',
   browsersOpen: 'browsers:open',
   systemGetPreferences: 'system:get-preferences',

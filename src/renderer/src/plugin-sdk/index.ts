@@ -13,6 +13,7 @@ import {
   type RefObject
 } from 'react'
 import { useTranslation } from 'react-i18next'
+import type { NotifyInput } from '@shared/notifications'
 import type { PluginFileEntry } from '@shared/plugin-files'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Language } from '@shared/settings'
@@ -190,6 +191,33 @@ export function useProcesses(): PluginProcesses {
         api.onOutput((id, runId, text) => id === pluginId && callback(runId, text))
     }
   }, [pluginId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications (permission `notifications`)
+// ---------------------------------------------------------------------------
+
+export type { NotifyInput } from '@shared/notifications'
+
+export interface PluginNotifications {
+  /**
+   * Envoie une notification : centre de notifications, bannière Windows et son, selon les
+   * réglages de l'utilisateur (Paramètres → Notifications) et le mode Ne pas déranger.
+   */
+  notify: (input: NotifyInput) => Promise<void>
+}
+
+export function useNotifications(): PluginNotifications {
+  const pluginId = useContext(PluginContext)?.id
+  return useMemo(
+    () => ({
+      notify: async (input) => {
+        if (!pluginId) throw new Error('useNotifications doit être utilisé dans un widget.')
+        await window.tessera.notifications.notify(pluginId, input)
+      }
+    }),
+    [pluginId]
+  )
 }
 
 // ---------------------------------------------------------------------------

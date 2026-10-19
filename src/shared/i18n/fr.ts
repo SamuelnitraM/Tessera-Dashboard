@@ -8,6 +8,7 @@ export const fr = {
   },
   tray: {
     open: 'Ouvrir {{appName}}',
+    doNotDisturb: 'Ne pas déranger',
     quit: 'Quitter'
   },
   dialogs: {
@@ -17,7 +18,11 @@ export const fr = {
     acceptedFiles: 'Fichiers acceptés',
     pickApp: 'Choisir une application',
     appFilter: 'Applications (.exe, .lnk)',
-    notAnApp: 'Ce raccourci ne mène pas à un programme (.exe).'
+    notAnApp: 'Ce raccourci ne mène pas à un programme (.exe).',
+    importSound: 'Importer un son',
+    soundFilter: 'Sons (.mp3, .wav, .ogg, .m4a)',
+    soundInvalid: 'Format de son non pris en charge.',
+    soundTooBig: 'Ce son est trop lourd (3 Mo au maximum).'
   },
   web: {
     contextMenu: {
@@ -83,6 +88,29 @@ export const fr = {
     openInBrowser: 'Ouvrir dans le navigateur',
     close: 'Fermer l’onglet (libère la mémoire)',
     loadError: 'La page n’a pas pu être chargée ({{error}}).'
+  },
+  processes: {
+    crashTitle: '{{name}} s’est arrêté',
+    crashBody: 'Le programme s’est terminé avec une erreur (code {{code}}).'
+  },
+  notifications: {
+    testTitle: 'Notification de test',
+    testBody: 'Les notifications de Tessera fonctionnent.',
+    center: {
+      title: 'Notifications',
+      open: 'Notifications',
+      empty: 'Aucune notification.',
+      markAllRead: 'Tout marquer comme lu',
+      clear: 'Tout effacer',
+      dismiss: 'Supprimer',
+      doNotDisturb: 'Ne pas déranger',
+      scheduled: 'Ne pas déranger est actif (horaire jusqu’à {{time}}).',
+      settings: 'Paramètres des notifications'
+    },
+    sources: {
+      tessera: 'Tessera Dashboard',
+      web: 'Pages web'
+    }
   },
   desktopApps: {
     starting: 'Ouverture de {{name}}…',
@@ -207,10 +235,60 @@ export const fr = {
       expanded: 'Déplié',
       collapsed: 'Rabattu'
     },
-    comingSoon: {
-      title: 'Bientôt disponible',
-      notifications:
-        'Activation par application, sons personnalisés et mode Ne pas déranger arriveront avec le système de notifications.'
+    notifications: {
+      banners: {
+        label: 'Bannières Windows',
+        description:
+          'Affiche les notifications en bas à droite de l’écran, même quand Tessera est en arrière-plan.'
+      },
+      sound: {
+        label: 'Son par défaut',
+        description: 'Joué à chaque notification, sauf réglage propre à une application.'
+      },
+      volume: {
+        label: 'Volume',
+        description:
+          'Des sons de Tessera et des sons importés (le son de Windows suit le volume du système).'
+      },
+      test: 'Envoyer une notification de test',
+      blocked:
+        'Les notifications sont désactivées dans Windows : aucune bannière ne peut s’afficher. Le centre de notifications et les sons de Tessera fonctionnent quand même.',
+      openWindowsSettings: 'Ouvrir les paramètres de Windows',
+      dndTitle: 'Ne pas déranger',
+      dnd: {
+        label: 'Ne pas déranger',
+        description:
+          'Les notifications arrivent dans le centre de notifications, sans bannière ni son. Les applications prioritaires passent quand même.'
+      },
+      schedule: {
+        label: 'Chaque jour',
+        description: 'Active Ne pas déranger automatiquement entre ces deux heures.',
+        from: 'De',
+        to: 'à'
+      },
+      soundsTitle: 'Sons importés',
+      soundsIntro: 'Formats MP3, WAV, OGG ou M4A, 3 Mo au maximum.',
+      importSound: 'Importer un son…',
+      play: 'Écouter',
+      deleteSound: 'Supprimer le son',
+      noSounds: 'Aucun son importé.',
+      sourcesTitle: 'Par application',
+      sourcesIntro:
+        'Les applications installées (Discord, Obsidian…) affichent leurs propres notifications Windows : règle-les dans l’application elle-même.',
+      enabled: 'Notifications de {{name}}',
+      soundFor: 'Son de {{name}}',
+      priorityFor: 'Priorité de {{name}}',
+      priorityNormal: 'Normale',
+      priorityHigh: 'Prioritaire',
+      soundDefault: 'Son par défaut',
+      sounds: {
+        system: 'Son de Windows',
+        none: 'Aucun',
+        chime: 'Carillon',
+        pop: 'Bulle',
+        bell: 'Clochette'
+      },
+      noSources: 'Aucune application ne peut encore envoyer de notification.'
     },
     applications: {
       intro:
@@ -256,7 +334,8 @@ export const fr = {
       filesPermission: 'Accès aux fichiers : {{folder}}',
       processesPermission: 'Peut lancer et arrêter les programmes que tu choisis toi-même',
       webPermission: 'Peut afficher des pages web',
-      appsPermission: 'Peut afficher la fenêtre de tes applications installées'
+      appsPermission: 'Peut afficher la fenêtre de tes applications installées',
+      notificationsPermission: 'Peut t’envoyer des notifications'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

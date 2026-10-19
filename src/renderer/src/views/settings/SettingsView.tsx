@@ -10,9 +10,9 @@ import {
 import { AboutSection } from './sections/AboutSection'
 import { AppearanceSection } from './sections/AppearanceSection'
 import { ApplicationsSection } from './sections/ApplicationsSection'
-import { ComingSoonSection } from './sections/ComingSoonSection'
 import { ExtensionsSection } from './sections/ExtensionsSection'
 import { GeneralSection } from './sections/GeneralSection'
+import { NotificationsSection } from './sections/NotificationsSection'
 import styles from './settings.module.css'
 
 const SECTION_ICONS: Record<SettingsSection, LucideIcon> = {
@@ -60,9 +60,7 @@ export function SettingsView({ section }: SettingsViewProps): React.JSX.Element 
           <h2 className={styles.sectionTitle}>{t(`settings.sections.${section}`)}</h2>
           {section === 'general' && <GeneralSection />}
           {section === 'appearance' && <AppearanceSection />}
-          {section === 'notifications' && (
-            <ComingSoonSection icon={Bell} text={t('settings.comingSoon.notifications')} />
-          )}
+          {section === 'notifications' && <NotificationsSection />}
           {section === 'applications' && <ApplicationsSection />}
           {section === 'extensions' && <ExtensionsSection />}
           {section === 'about' && <AboutSection />}

@@ -11,7 +11,10 @@ import {
   type ProcessErrorCode,
   type ProcessRun
 } from '@shared/plugin-processes'
+import { interpolate } from '@shared/i18n'
+import { pluginSource } from '@shared/notifications'
 import { getTranslation } from '../i18n'
+import { notify } from '../notifications'
 import { JsonStore } from '../json-store'
 import { hasPermission } from './manifests'
 
@@ -237,8 +240,19 @@ export function startProcess(pluginId: string, owner: string, options: LaunchOpt
     update(state, { status: 'failed', error: error.message, endedAt: Date.now() })
   })
   child.on('exit', (code) => {
-    if (state.info.status === 'running')
-      update(state, { status: 'exited', exitCode: code, endedAt: Date.now() })
+    if (state.info.status !== 'running') return
+    update(state, { status: 'exited', exitCode: code, endedAt: Date.now() })
+    // Arrêt inattendu (erreur) : notification, même si le bloc n'est pas affiché
+    if (code !== 0 && code !== null && !state.info.stoppedByUser) {
+      if (hasPermission(pluginId, 'notifications')) {
+        const text = getTranslation().processes
+        void notify(pluginSource(pluginId), {
+          title: interpolate(text.crashTitle, { name: targetName(path) }),
+          body: interpolate(text.crashBody, { code: String(code) }),
+          tag: state.info.id
+        })
+      }
+    }
   })
 
   state.info = { ...state.info, pid: child.pid ?? null }

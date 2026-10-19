@@ -14,6 +14,7 @@ import { useWebAppsStore } from '../stores/webApps'
 import { AppIcon } from './AppIcon'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
+import { NotificationBell } from './notifications/NotificationBell'
 import styles from './Sidebar.module.css'
 
 /** Menu latéral déplié : pages, applications et paramètres. */
@@ -104,6 +105,7 @@ export function Sidebar(): React.JSX.Element {
       </div>
 
       <div className={styles.footer}>
+        <NotificationBell variant="item" className={styles.item} />
         <NavItem
           icon={Settings}
           label={t('nav.settings')}
