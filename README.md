@@ -100,6 +100,8 @@ Types d'applications génériques, à ajouter depuis les paramètres :
 | Interface             | [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/)                            | Interface utilisateur                                   |
 | Grille                | [react-grid-layout](https://github.com/react-grid-layout/react-grid-layout)                            | Tuiles déplaçables et redimensionnables                 |
 | Internationalisation  | [i18next](https://www.i18next.com/) / react-i18next                                                    | Français et anglais                                     |
+| État de l'interface   | [Zustand](https://zustand.docs.pmnd.rs/)                                                               | Réglages et navigation partagés entre composants        |
+| Icônes                | [Lucide](https://lucide.dev/)                                                                          | Icônes de l'interface                                   |
 | Éditeurs de notes     | [TipTap](https://tiptap.dev/) (texte riche), [CodeMirror 6](https://codemirror.net/) (Markdown / brut) | Bloc-notes                                              |
 | Persistance           | Fichiers JSON (réglages, dispositions) + fichiers de notes                                             | Stockage local                                          |
 | Secrets               | `safeStorage` d'Electron (DPAPI Windows)                                                               | Chiffrement des jetons de connexion                     |
@@ -130,20 +132,42 @@ Arborescence :
 
 ```
 src/
-├── main/                 # Processus principal (Node.js)
-│   ├── index.ts          #   Point d'entrée : instance unique, démarrage
-│   ├── window.ts         #   Fenêtre principale, sécurité de navigation
-│   ├── tray.ts           #   Icône de la zone de notification
-│   ├── ipc.ts            #   Réponses aux demandes de l'interface
-│   └── paths.ts          #   Chemins des ressources (dev / packagé)
-├── preload/              # Pont sécurisé main <-> renderer (window.tessera)
-├── renderer/             # Interface React
+├── main/                     # Processus principal (Node.js)
+│   ├── index.ts              #   Point d'entrée : instance unique, démarrage, abonnements
+│   ├── window.ts             #   Fenêtre principale, fermeture, sécurité de navigation
+│   ├── window-state.ts       #   Mémorisation de la position et de la taille
+│   ├── tray.ts               #   Icône et menu de la zone de notification
+│   ├── settings-store.ts     #   Lecture, modification et sauvegarde des réglages
+│   ├── system.ts             #   Thème natif, couleur d'accent et langues de Windows
+│   ├── i18n.ts               #   Traductions côté système (menus natifs)
+│   ├── ipc.ts                #   Réponses aux demandes de l'interface
+│   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres
+│   ├── json-file.ts          #   Lecture / écriture atomique de fichiers JSON
+│   └── paths.ts              #   Chemins des ressources (dev / packagé)
+├── preload/                  # Pont sécurisé main <-> renderer (window.tessera)
+├── renderer/                 # Interface React
 │   ├── index.html
 │   └── src/
-└── shared/               # Constantes et types partagés (noms des canaux IPC…)
-resources/                # Icônes (app, zone de notification), sons
-plugins/                  # (à venir) Widgets intégrés, écrits comme des plugins
+│       ├── components/       #   Barre latérale, en-têtes, contrôles (ui/)
+│       ├── views/            #   Vues : accueil, paramètres (et ses sections)
+│       ├── stores/           #   État global (réglages, navigation) avec Zustand
+│       ├── i18n/             #   Initialisation d'i18next
+│       ├── lib/              #   Utilitaires (couleur d'accent…)
+│       └── styles/           #   Jetons de design (couleurs, rayons…)
+└── shared/                   # Partagé entre main et renderer
+    ├── settings.ts           #   Schéma des réglages, valeurs par défaut, validation
+    ├── ipc.ts                #   Noms des canaux IPC et types échangés
+    ├── i18n/                 #   Traductions (fr.ts = référence, en.ts)
+    └── app.ts                #   Constantes (nom, identifiant, dépôt)
+resources/                    # Icônes (app, zone de notification), sons
+plugins/                      # (à venir) Widgets intégrés, écrits comme des plugins
 ```
+
+**Réglages** : ils sont stockés dans `%APPDATA%\Tessera Dashboard\settings.json`. Le fichier est entièrement revalidé à chaque lecture : une valeur invalide reprend sa valeur par défaut, l'app ne peut donc pas être cassée par un fichier abîmé. Pour ajouter un réglage :
+
+1. l'ajouter au type `Settings`, à `DEFAULT_SETTINGS` et à `sanitizeSettings` dans `src/shared/settings.ts` ;
+2. ajouter ses textes dans `src/shared/i18n/fr.ts` puis `en.ts` ;
+3. afficher son contrôle dans la section voulue de `src/renderer/src/views/settings/sections/`.
 
 **Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
 
@@ -186,7 +210,10 @@ npm run dev
 | `npm run format`       | Formate tout le code avec Prettier                      |
 | `npm run format:check` | Vérifie le formatage sans modifier les fichiers         |
 
-**Comportement de la fenêtre** : l'app s'ouvre agrandie. Fermer la fenêtre la **masque** dans la zone de notification (à côté de l'horloge) : clic sur l'icône pour la réafficher, clic droit → **Quitter** pour fermer vraiment l'app.
+**Comportement de la fenêtre** (modifiable dans Paramètres → Général) :
+
+- l'app s'ouvre **agrandie**, ou à sa **dernière taille** ;
+- par défaut, fermer la fenêtre la **masque** dans la zone de notification (à côté de l'horloge) : clic sur l'icône pour la réafficher, clic droit → **Quitter** pour fermer vraiment l'app. Cette option peut être désactivée pour que la croix quitte l'app.
 
 ---
 
@@ -197,7 +224,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 ### Phase 0 : fondations
 
 - [x] **Étape 1 : initialisation.** Electron + electron-vite + React + TypeScript, ESLint/Prettier, fenêtre agrandie au lancement, instance unique, icône dans la barre des tâches.
-- [ ] **Étape 2 : structure de l'interface.** Navigation (pages, onglets), thèmes et couleur d'accent, FR/EN, squelette des paramètres, sauvegarde des réglages.
+- [x] **Étape 2 : structure de l'interface.** Navigation (pages, onglets), thèmes et couleur d'accent, FR/EN, squelette des paramètres, sauvegarde des réglages.
 - [ ] **Étape 3 : grille.** Pages multiples, mode édition, ajout, suppression et redimensionnement des widgets, gestion du redimensionnement de la fenêtre.
 - [ ] **Étape 4 : architecture des plugins.** Registre, manifeste, API interne des widgets.
 
@@ -234,6 +261,8 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 - **Commits** : [Conventional Commits](https://www.conventionalcommits.org/fr/) rédigés en français (`feat:`, `fix:`, `docs:`, `refactor:`, `chore:`…).
 - **Code** : TypeScript strict, formatage Prettier, règles ESLint.
+- **Textes** : aucun texte en dur dans l'interface. Tout passe par `src/shared/i18n/` : `fr.ts` est la référence, et TypeScript signale toute clé manquante dans `en.ts`.
+- **Styles** : variables CSS globales (`styles/global.css`) et CSS Modules (`*.module.css`) par composant.
 - **README** : mis à jour à la fin de chaque étape (feuille de route, installation, fonctionnalités).
 
 ---

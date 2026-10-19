@@ -1,7 +1,11 @@
 import { app } from 'electron'
 import { APP_ID } from '@shared/app'
+import { IpcChannels } from '@shared/ipc'
+import { broadcast } from './broadcast'
 import { registerIpcHandlers } from './ipc'
-import { createTray } from './tray'
+import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
+import { applyTheme, watchSystemPreferences } from './system'
+import { createTray, refreshTrayMenu } from './tray'
 import { createMainWindow, markAppAsQuitting, showMainWindow } from './window'
 
 // Une seule instance de l'app à la fois : un second lancement réaffiche la fenêtre existante
@@ -10,15 +14,36 @@ if (!app.requestSingleInstanceLock()) {
 } else {
   app.on('second-instance', showMainWindow)
 
-  app.on('before-quit', markAppAsQuitting)
+  app.on('before-quit', () => {
+    markAppAsQuitting()
+    flushSettings()
+  })
 
-  // L'app vit dans la barre des tâches : fermer toutes les fenêtres ne la quitte pas
-  app.on('window-all-closed', () => {})
+  // Avec l'arrière-plan activé, la fenêtre est seulement masquée (window.ts) : cet événement
+  // n'arrive donc que si l'utilisateur a choisi de quitter l'app en fermant la fenêtre
+  app.on('window-all-closed', () => {
+    if (!getSettings().window.closeToTray) app.quit()
+  })
 
   void app.whenReady().then(() => {
     app.setAppUserModelId(APP_ID)
+
+    // Les réglages sont chargés avant la fenêtre : thème et taille sont connus dès l'ouverture
+    const settings = loadSettings()
+    applyTheme(settings.appearance.theme)
+
     registerIpcHandlers()
     createMainWindow()
     createTray()
+
+    onSettingsChange((next, previous) => {
+      if (next.appearance.theme !== previous.appearance.theme) applyTheme(next.appearance.theme)
+      if (next.general.language !== previous.general.language) refreshTrayMenu()
+      broadcast(IpcChannels.settingsChanged, next)
+    })
+
+    watchSystemPreferences((preferences) => {
+      broadcast(IpcChannels.systemPreferencesChanged, preferences)
+    })
   })
 }

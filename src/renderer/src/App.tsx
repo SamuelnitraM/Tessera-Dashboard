@@ -1,41 +1,28 @@
-import { useEffect, useState } from 'react'
-import type { AppInfo } from '@shared/ipc'
-import logo from '@resources/icon.png'
+import { useEffect } from 'react'
+import { Sidebar } from './components/Sidebar'
+import { changeLanguage } from './i18n'
+import { applyAccentColor } from './lib/appearance'
+import { useNavigationStore } from './stores/navigation'
+import { useResolvedAccentColor, useResolvedLanguage } from './stores/settings'
+import { HomeView } from './views/HomeView'
+import { SettingsView } from './views/settings/SettingsView'
+import styles from './App.module.css'
 
-/** Écran d'accueil provisoire : la grille de widgets arrive à l'étape 3. */
 export function App(): React.JSX.Element {
-  const [info, setInfo] = useState<AppInfo | null>(null)
+  const view = useNavigationStore((state) => state.view)
+  const accentColor = useResolvedAccentColor()
+  const language = useResolvedLanguage()
 
-  useEffect(() => {
-    void window.tessera.app.getInfo().then(setInfo)
-  }, [])
+  // Répercute en direct les changements de couleur et de langue
+  useEffect(() => applyAccentColor(accentColor), [accentColor])
+  useEffect(() => void changeLanguage(language), [language])
 
   return (
-    <main className="welcome">
-      <img className="welcome__logo" src={logo} alt="" />
-      <h1 className="welcome__title">{info?.name ?? 'Tessera Dashboard'}</h1>
-      <p className="welcome__subtitle">Toutes tes applications, une seule fenêtre.</p>
-
-      {info && (
-        <dl className="welcome__versions">
-          <div>
-            <dt>Version</dt>
-            <dd>{info.version}</dd>
-          </div>
-          <div>
-            <dt>Electron</dt>
-            <dd>{info.versions.electron}</dd>
-          </div>
-          <div>
-            <dt>Chromium</dt>
-            <dd>{info.versions.chrome}</dd>
-          </div>
-          <div>
-            <dt>Node.js</dt>
-            <dd>{info.versions.node}</dd>
-          </div>
-        </dl>
-      )}
-    </main>
+    <div className={styles.shell}>
+      <Sidebar />
+      <main className={styles.content}>
+        {view.type === 'settings' ? <SettingsView section={view.section} /> : <HomeView />}
+      </main>
+    </div>
   )
 }

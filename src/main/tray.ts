@@ -1,5 +1,7 @@
 import { app, Menu, nativeImage, Tray } from 'electron'
 import { APP_NAME } from '@shared/app'
+import { interpolate } from '@shared/i18n'
+import { getTranslation } from './i18n'
 import { getResourcePath } from './paths'
 import { showMainWindow, toggleMainWindow } from './window'
 
@@ -12,17 +14,22 @@ export function createTray(): Tray {
   const icon = nativeImage.createFromPath(getResourcePath('tray-icon.png'))
   tray = new Tray(icon)
   tray.setToolTip(APP_NAME)
-
-  // Les libellés seront traduits (FR/EN) à l'étape 2
-  tray.setContextMenu(
-    Menu.buildFromTemplate([
-      { label: `Ouvrir ${APP_NAME}`, click: showMainWindow },
-      { type: 'separator' },
-      { label: 'Quitter', click: () => app.quit() }
-    ])
-  )
-
   tray.on('click', toggleMainWindow)
+  refreshTrayMenu()
 
   return tray
+}
+
+/** (Re)construit le menu du clic droit, par exemple après un changement de langue. */
+export function refreshTrayMenu(): void {
+  if (!tray) return
+  const t = getTranslation().tray
+
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: interpolate(t.open, { appName: APP_NAME }), click: showMainWindow },
+      { type: 'separator' },
+      { label: t.quit, click: () => app.quit() }
+    ])
+  )
 }

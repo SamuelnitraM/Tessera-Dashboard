@@ -1,7 +1,10 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { getResourcePath } from './paths'
+import { getSettings } from './settings-store'
+import { getWindowBackground } from './system'
+import { loadWindowState, saveWindowState } from './window-state'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -17,15 +20,19 @@ export function getMainWindow(): BrowserWindow | null {
 }
 
 export function createMainWindow(): BrowserWindow {
+  // « Dernière taille » : on reprend la position mémorisée, sinon on agrandit
+  const savedState = getSettings().window.startupMode === 'last' ? loadWindowState() : null
+
   mainWindow = new BrowserWindow({
     title: APP_NAME,
     icon: getResourcePath('icon.png'),
     width: 1280,
     height: 800,
+    ...savedState?.bounds,
     minWidth: 960,
     minHeight: 600,
     show: false, // affichée seulement une fois prête, pour éviter un flash blanc
-    backgroundColor: '#0f1117',
+    backgroundColor: getWindowBackground(),
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(import.meta.dirname, '../preload/index.cjs'),
@@ -36,23 +43,30 @@ export function createMainWindow(): BrowserWindow {
     }
   })
 
-  // Au lancement, la fenêtre occupe tout l'écran courant (sans être en plein écran)
+  // Agrandie = occupe tout l'écran courant, sans être en plein écran
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.maximize()
+    if (!savedState || savedState.isMaximized) mainWindow?.maximize()
     mainWindow?.show()
   })
 
-  // Fermer la fenêtre ne quitte pas l'app : elle reste dans la barre des tâches
   mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault()
-      mainWindow?.hide()
-    }
+    if (mainWindow) saveWindowState(mainWindow)
+    // Sans arrière-plan, la fenêtre se ferme normalement et l'app quitte (voir index.ts)
+    if (isQuitting || !getSettings().window.closeToTray) return
+
+    // L'app continue de tourner dans la zone de notification
+    event.preventDefault()
+    mainWindow?.hide()
   })
 
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // Suit le thème choisi pour la couleur de fond visible pendant les redimensionnements
+  const updateBackground = (): void => mainWindow?.setBackgroundColor(getWindowBackground())
+  nativeTheme.on('updated', updateBackground)
+  mainWindow.on('closed', () => nativeTheme.off('updated', updateBackground))
 
   protectNavigation(mainWindow)
 
