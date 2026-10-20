@@ -1,11 +1,13 @@
-import { useState } from 'react'
-import { AppWindow, Pencil, Plus } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { AppWindow, ExternalLink, Pencil, Plus } from 'lucide-react'
 import {
   addInstalledApp,
   Button,
   InstalledAppView,
+  takeOutInstalledApp,
   useInstalledApps,
   usePluginTranslation,
+  type PanOffset,
   type UserInstalledApp,
   type WidgetProps
 } from '@tessera/plugin-sdk'
@@ -15,6 +17,8 @@ import styles from './DesktopWidget.module.css'
 interface DesktopConfig {
   showHeader: boolean
   appId?: string | null
+  /** Partie affichée quand la fenêtre est plus grande que le bloc. */
+  offset?: PanOffset
 }
 
 export function DesktopWidget({
@@ -25,10 +29,12 @@ export function DesktopWidget({
   const t = usePluginTranslation()
   const apps = useInstalledApps()
   const [changing, setChanging] = useState(false)
+  // La barre du bloc sert de poignée pour déplacer le contenu d'une fenêtre rognée
+  const header = useRef<HTMLDivElement>(null)
   const app = config.appId ? apps.find((candidate) => candidate.id === config.appId) : undefined
 
   const choose = (appId: string): void => {
-    setConfig({ appId })
+    setConfig({ appId, offset: { x: 0, y: 0 } })
     setChanging(false)
   }
 
@@ -45,9 +51,20 @@ export function DesktopWidget({
   return (
     <div className={styles.desktop}>
       {config.showHeader && (
-        <div className={styles.header}>
+        <div ref={header} className={styles.header}>
           <AppIcon app={app} size={16} />
           <span className={styles.name}>{app?.name}</span>
+          {app && (
+            <button
+              type="button"
+              className={styles.iconButton}
+              title={t('takeOut')}
+              aria-label={t('takeOut')}
+              onClick={() => void takeOutInstalledApp(app.id)}
+            >
+              <ExternalLink size={14} aria-hidden />
+            </button>
+          )}
           <button
             type="button"
             className={styles.iconButton}
@@ -61,7 +78,13 @@ export function DesktopWidget({
       )}
       <div className={styles.window}>
         {app ? (
-          <InstalledAppView appId={app.id} hostId={instanceId} />
+          <InstalledAppView
+            appId={app.id}
+            hostId={instanceId}
+            offset={config.offset}
+            onOffsetChange={(offset) => setConfig({ offset })}
+            panHandle={header}
+          />
         ) : (
           <p className={styles.missing}>{t('missing')}</p>
         )}

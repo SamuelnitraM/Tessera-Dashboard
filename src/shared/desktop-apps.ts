@@ -42,8 +42,9 @@ export interface InstalledProgram {
  * - `running` : sa fenêtre est dans Tessera
  * - `closed` : fermée par l'utilisateur (ou réduite dans sa zone de notification)
  * - `error` : impossible de la lancer ou de trouver sa fenêtre
+ * - `outside` : sortie de Tessera par l'utilisateur (« Sortir la fenêtre »), ouverte sur le bureau
  */
-export type DesktopAppStatus = 'idle' | 'starting' | 'running' | 'closed' | 'error'
+export type DesktopAppStatus = 'idle' | 'starting' | 'running' | 'closed' | 'error' | 'outside'
 
 export interface DesktopAppState {
   status: DesktopAppStatus
@@ -60,7 +61,34 @@ export interface HostRect {
   height: number
   /** Partie visible (page qui défile), relative au bloc. Absente = entièrement visible. */
   clip?: { x: number; y: number; width: number; height: number }
+  /**
+   * Fenêtre plus grande que le bloc (taille minimale de l'application) : partie affichée,
+   * décalage depuis le coin haut gauche de la fenêtre.
+   */
+  offset?: { x: number; y: number }
 }
+
+/**
+ * Clic gauche + droit sur une fenêtre rognée : déplacement de la souris (px CSS) depuis le début
+ * du geste. Le bloc déplace le contenu en conséquence.
+ */
+export interface DesktopAppPan {
+  hostId: string
+  phase: 'start' | 'move' | 'end'
+  dx: number
+  dy: number
+}
+
+/** Image d'une fenêtre (affichée pendant qu'elle est masquée), taille en px CSS. */
+export interface DesktopAppSnapshot {
+  url: string
+  width: number
+  height: number
+}
+
+/** À la fermeture de Tessera : fermer les applications installées, ou les rendre au bureau. */
+export const QUIT_MODES = ['close', 'restore'] as const
+export type QuitMode = (typeof QUIT_MODES)[number]
 
 /** Bloc « application installée » (extension intégrée tessera.desktop), configuré par `{ appId }`. */
 export const DESKTOP_APP_WIDGET = 'tessera.desktop/app'

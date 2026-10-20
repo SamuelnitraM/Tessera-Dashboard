@@ -11,10 +11,11 @@ import {
   captureApps,
   detachHost,
   getAppStates,
+  closeApp,
   launchApp,
   moveHost,
-  releaseApp,
-  setSuspended
+  setSuspended,
+  takeOutApp
 } from './desktop/docking'
 import { addProgram, listPrograms, pickProgram, protectDesktopApps } from './desktop/programs'
 import {
@@ -166,7 +167,8 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IpcChannels.desktopAppsDetach, (_event, hostId: string) => detachHost(hostId))
   ipcMain.handle(IpcChannels.desktopAppsLaunch, (_event, appId: string) => launchApp(appId))
-  ipcMain.handle(IpcChannels.desktopAppsRelease, (_event, appId: string) => releaseApp(appId))
+  ipcMain.handle(IpcChannels.desktopAppsClose, (_event, appId: string) => closeApp(appId))
+  ipcMain.handle(IpcChannels.desktopAppsTakeOut, (_event, appId: string) => takeOutApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
   ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean) =>
     setSuspended(value === true)

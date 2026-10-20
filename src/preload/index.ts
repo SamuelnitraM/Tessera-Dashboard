@@ -2,7 +2,14 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
-import type { DesktopApp, DesktopAppState, HostRect, InstalledProgram } from '@shared/desktop-apps'
+import type {
+  DesktopApp,
+  DesktopAppPan,
+  DesktopAppSnapshot,
+  DesktopAppState,
+  HostRect,
+  InstalledProgram
+} from '@shared/desktop-apps'
 import type { CustomSound, NotifyInput, TesseraNotification } from '@shared/notifications'
 import type { PluginFileEntry } from '@shared/plugin-files'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
@@ -120,9 +127,11 @@ const api = {
       ipcRenderer.invoke(IpcChannels.desktopAppsDetach, hostId),
     launch: (appId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsLaunch, appId),
-    release: (appId: string): Promise<void> =>
-      ipcRenderer.invoke(IpcChannels.desktopAppsRelease, appId),
-    capture: (): Promise<Record<string, string>> =>
+    close: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsClose, appId),
+    takeOut: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsTakeOut, appId),
+    capture: (): Promise<Record<string, DesktopAppSnapshot>> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsCapture),
     setSuspended: (value: boolean): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsSetSuspended, value),
@@ -133,7 +142,9 @@ const api = {
       return () => ipcRenderer.removeListener(IpcChannels.desktopAppsChanged, listener)
     },
     onReveal: (callback: (appId: string) => void) =>
-      subscribe(IpcChannels.desktopAppsReveal, callback)
+      subscribe(IpcChannels.desktopAppsReveal, callback),
+    onPan: (callback: (pan: DesktopAppPan) => void) =>
+      subscribe(IpcChannels.desktopAppsPan, callback)
   },
   /** Notifications : centre, test, sons importés, envoi par les widgets et modules. */
   notifications: {

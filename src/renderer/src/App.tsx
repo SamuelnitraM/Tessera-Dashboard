@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
+import { AppDialogs } from './components/AppDialogs'
 import { ProgramPickerHost } from './components/desktop/ProgramPicker'
 import { NotificationCenter } from './components/notifications/NotificationCenter'
 import { PageDialogs } from './components/PageDialogs'
@@ -73,6 +74,7 @@ export function App(): React.JSX.Element {
         <AppTabs />
       </main>
       <PageDialogs />
+      <AppDialogs />
       <ContextMenuHost />
       <ProgramPickerHost />
       <NotificationCenter />

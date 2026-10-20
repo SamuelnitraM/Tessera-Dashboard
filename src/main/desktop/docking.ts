@@ -1,51 +1,66 @@
-import { spawn } from 'node:child_process'
-import { dirname, join } from 'node:path'
-import { app, nativeImage, screen, type BrowserWindow } from 'electron'
-import type { DesktopApp, DesktopAppState, HostRect } from '@shared/desktop-apps'
+import { dirname } from 'node:path'
+import { nativeImage, screen, type BrowserWindow } from 'electron'
+import type {
+  DesktopApp,
+  DesktopAppPan,
+  DesktopAppSnapshot,
+  DesktopAppState,
+  HostRect,
+  QuitMode
+} from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
-import { readJsonFile, writeJsonFile } from '../json-file'
 import { getSettings } from '../settings-store'
+import {
+  adoptWindow,
+  createFrame,
+  releaseFrame,
+  setFrameHostLostListener,
+  setFramePanListener,
+  setFramePannable
+} from './frames'
 import { saveMinSize } from './programs'
+import { childStyle, returnWindow, saveWindow, type SavedWindow } from './saved-window'
 import * as w from './win32'
 
 /**
- * Fenêtres des applications installées affichées dans Tessera (mode « ancré »).
+ * Fenêtres des applications installées affichées dans Tessera.
  *
- * La fenêtre de l'application reste une vraie fenêtre Windows. Tessera en devient la
- * propriétaire (elle reste au-dessus de Tessera, hors de la barre des tâches), lui retire sa
- * barre de titre si elle en a une, puis la maintient exactement sur le bloc ou l'onglet qui
- * l'affiche : déplacement et redimensionnement de Tessera, changement de page, réduction…
+ * Chaque fenêtre est insérée dans un « cadre » : une petite fenêtre sans bordure, de la taille
+ * exacte de la partie visible du bloc, posée au-dessus de Tessera. La fenêtre de l'application
+ * y garde sa taille réelle (au moins sa taille minimale) : ce qui dépasse est caché, et le
+ * décalage choisi par l'utilisateur fait glisser le contenu. Le clic gauche + droit sur une
+ * fenêtre rognée est détecté par l'hébergeur et transmis au bloc, qui déplace le contenu.
  *
- * Pourquoi pas une vraie sous-fenêtre (SetParent) ? Testé : si Tessera plantait, la fenêtre
- * de l'application serait détruite avec elle, et les applications WPF ne s'y affichent pas.
- * Ici, en cas de plantage, l'application reste ouverte et Tessera lui rend son apparence au
- * lancement suivant (fichier `docked-windows.json`).
+ * Les cadres sont créés par un processus séparé (src/main/frame-host) : si Tessera plantait,
+ * la fenêtre insérée serait détruite avec un cadre lui appartenant. L'hébergeur, lui, rend leur
+ * fenêtre aux applications dès que Tessera disparaît.
+ *
+ * Insérée dans un cadre, la fenêtre n'a plus de barre de titre, de bord redimensionnable ni de
+ * bouton agrandir. Si l'application essaie quand même de se déplacer ou de se redimensionner
+ * (glisser sa barre de titre dessinée…), l'opération est annulée et la fenêtre remise en place.
  *
  * Aucun minuteur : tout est déclenché par les événements de Tessera et de Windows.
  */
-
-interface SavedWindow {
-  style: number
-  exStyle: number
-  owner: number
-  placement: w.WindowPlacement
-}
 
 interface DockedWindow {
   appId: string
   hwnd: w.Hwnd
   pid: number
+  frame: w.Hwnd
   saved: SavedWindow
-  /** Affichée par Tessera. Sert à reconnaître ce que l'application fait d'elle-même. */
+  /** Taille minimale imposée par l'application (px physiques). */
+  min: { width: number; height: number }
+  /** Cadre affiché. */
   shown: boolean
+  /** Fenêtre rognée (plus grande que son bloc) : l'hébergeur le sait, pour le clic gauche + droit. */
+  pannable: boolean
   /** Masquée par l'application elle-même (Discord fermé dans sa zone de notification…). */
   hiddenByApp: boolean
-  /** Rectangle de la fenêtre après le dernier placement, et emplacement visé. */
+  /** Rectangle de la fenêtre (écran) après le dernier placement, et emplacement visé. */
   placed: w.Rect | null
   target: string | null
-  /** Taille visée (px physiques), pour recadrer les captures. */
+  /** Taille de la fenêtre (px physiques), pour les captures. */
   size: { width: number; height: number }
-  clipped: boolean
   /** Repositionnements demandés par l'application elle-même (protection contre les boucles). */
   corrections: { count: number; since: number }
   unwatch: () => void
@@ -60,17 +75,18 @@ interface DockingListeners {
   changed: (appId: string, state: DesktopAppState) => void
   /** L'application demande à s'afficher (clic sur sa notification…) : l'interface va vers elle. */
   reveal: (appId: string) => void
+  /** Clic gauche + droit sur une fenêtre rognée : son bloc déplace le contenu. */
+  pan: (pan: DesktopAppPan) => void
 }
 
 /** Délai maximal d'apparition de la fenêtre après le lancement. */
 const LAUNCH_TIMEOUT_MS = 30_000
 /** Une fenêtre plus petite est un écran de démarrage, pas la fenêtre principale. */
 const MIN_MAIN_WINDOW = { width: 400, height: 300 }
-const NOT_MAXIMIZED = ~(w.WS.MAXIMIZE | w.WS.MINIMIZE)
 
 let hostWindow: BrowserWindow | null = null
 let hostHwnd: w.Hwnd = 0
-let listeners: DockingListeners = { changed: () => {}, reveal: () => {} }
+let listeners: DockingListeners = { changed: () => {}, reveal: () => {}, pan: () => {} }
 /** Fenêtre de Tessera recouverte par son interface (fenêtre de dialogue, mode édition…). */
 let suspended = false
 
@@ -79,6 +95,8 @@ const hosts = new Map<string, Host>()
 const activeHosts = new Map<string, string>()
 const windows = new Map<string, DockedWindow>()
 const states = new Map<string, DesktopAppState>()
+/** Applications en cours d'insertion (création du cadre). */
+const docking = new Set<string>()
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -105,43 +123,6 @@ function setState(appId: string, patch: Partial<DesktopAppState>): void {
 }
 
 // ---------------------------------------------------------------------------
-// Sauvegarde de secours (plantage de Tessera)
-// ---------------------------------------------------------------------------
-
-interface CrashEntry {
-  hwnd: number
-  pid: number
-  hiddenByApp: boolean
-  saved: SavedWindow
-}
-
-const crashFile = (): string => join(app.getPath('userData'), 'docked-windows.json')
-
-/** Écrite immédiatement (pas de délai) : elle doit exister même si Tessera plante juste après. */
-function saveCrashList(): void {
-  const entries: CrashEntry[] = [...windows.values()].map(({ hwnd, pid, hiddenByApp, saved }) => ({
-    hwnd,
-    pid,
-    hiddenByApp,
-    saved
-  }))
-  writeJsonFile(crashFile(), entries)
-}
-
-/** Au démarrage : rend leur apparence aux fenêtres restées ancrées après un plantage. */
-function recoverAfterCrash(): void {
-  const entries = readJsonFile(crashFile())
-  if (!Array.isArray(entries) || entries.length === 0) return
-  for (const entry of entries as CrashEntry[]) {
-    if (typeof entry?.hwnd !== 'number' || !entry.saved?.placement) continue
-    // Même numéro de fenêtre ET même processus : c'est bien la fenêtre ancrée
-    if (!w.isWindow(entry.hwnd) || w.getProcessId(entry.hwnd) !== entry.pid) continue
-    restoreWindow(entry.hwnd, entry.saved, entry.hiddenByApp)
-  }
-  writeJsonFile(crashFile(), [])
-}
-
-// ---------------------------------------------------------------------------
 // Placement
 // ---------------------------------------------------------------------------
 
@@ -159,119 +140,96 @@ function hostScale(): number {
   return display.scaleFactor * hostWindow.webContents.getZoomFactor()
 }
 
-function hide(docked: DockedWindow): void {
+interface Layout {
+  /** Cadre : partie visible du bloc, à l'écran. */
+  frame: { x: number; y: number; width: number; height: number }
+  /** Fenêtre de l'application, relative au cadre. */
+  window: { x: number; y: number; width: number; height: number }
+  /** Fenêtre plus grande que le bloc. */
+  cropped: boolean
+}
+
+/** Où poser le cadre et la fenêtre, ou `null` si le bloc n'est pas visible. */
+function layoutFor(docked: DockedWindow): Layout | null {
+  const hostId = activeHosts.get(docked.appId)
+  const rect = hostId ? hosts.get(hostId)?.rect : null
+  if (!rect || suspended || docked.hiddenByApp || !hostIsVisible()) return null
+  const scale = hostScale()
+  const px = (value: number): number => Math.round(value * scale)
+  const origin = w.clientOrigin(hostHwnd)
+
+  // Bloc entier (px physiques, écran) et partie visible (page qui défile)
+  const block = {
+    x: origin.x + px(rect.x),
+    y: origin.y + px(rect.y),
+    width: Math.max(1, px(rect.width)),
+    height: Math.max(1, px(rect.height))
+  }
+  const clip = rect.clip
+    ? {
+        x: px(rect.clip.x),
+        y: px(rect.clip.y),
+        width: px(rect.clip.width),
+        height: px(rect.clip.height)
+      }
+    : { x: 0, y: 0, width: block.width, height: block.height }
+  if (clip.width <= 0 || clip.height <= 0) return null
+
+  // Fenêtre : au moins sa taille minimale ; le décalage choisit la partie affichée
+  const width = Math.max(block.width, docked.min.width)
+  const height = Math.max(block.height, docked.min.height)
+  const offsetX = Math.min(Math.max(0, px(rect.offset?.x ?? 0)), width - block.width)
+  const offsetY = Math.min(Math.max(0, px(rect.offset?.y ?? 0)), height - block.height)
+  return {
+    frame: { x: block.x + clip.x, y: block.y + clip.y, width: clip.width, height: clip.height },
+    window: { x: -clip.x - offsetX, y: -clip.y - offsetY, width, height },
+    cropped: width > block.width || height > block.height
+  }
+}
+
+function hideFrame(docked: DockedWindow): void {
   if (!docked.shown) return
   docked.shown = false
-  w.showWindow(docked.hwnd, w.SW.HIDE)
+  w.showWindow(docked.frame, w.SW.HIDE)
 }
 
-/** Sort la fenêtre de l'état réduit ou agrandi, directement à l'emplacement visé. */
-function normalize(hwnd: w.Hwnd, rect: w.Rect): void {
+/** Remet la fenêtre dans l'état normal (ni réduite ni agrandie). */
+function normalize(hwnd: w.Hwnd): void {
   if (!w.isMinimized(hwnd) && !w.isMaximized(hwnd)) return
   const placement = w.getPlacement(hwnd)
-  w.setPlacement(hwnd, {
-    ...placement,
-    flags: 0,
-    showCmd: w.SW.SHOWNOACTIVATE,
-    rcNormalPosition: rect
-  })
+  w.setPlacement(hwnd, { ...placement, flags: 0, showCmd: w.SW.SHOWNOACTIVATE })
 }
 
-/** Bloc ou onglet visible qui affiche l'application, en px physiques à l'écran. */
-function hostTarget(appId: string): { screen: w.Rect; rect: HostRect; scale: number } | null {
-  const hostId = activeHosts.get(appId)
-  const rect = hostId ? hosts.get(hostId)?.rect : null
-  const clip = rect?.clip
-  if (!rect || suspended || !hostIsVisible() || (clip && (clip.width <= 0 || clip.height <= 0))) {
-    return null
-  }
-  const scale = hostScale()
-  const origin = w.clientOrigin(hostHwnd)
-  const left = origin.x + Math.round(rect.x * scale)
-  const top = origin.y + Math.round(rect.y * scale)
-  return {
-    screen: {
-      left,
-      top,
-      right: left + Math.max(1, Math.round(rect.width * scale)),
-      bottom: top + Math.max(1, Math.round(rect.height * scale))
-    },
-    rect,
-    scale
-  }
-}
-
-/** Place la fenêtre sur son bloc, ou la masque si son bloc n'est pas visible. */
+/** Place le cadre sur son bloc et la fenêtre dans le cadre, ou masque le cadre. */
 function place(docked: DockedWindow): void {
-  if (!w.isWindow(docked.hwnd)) {
+  if (!w.isWindow(docked.hwnd) || !w.isWindow(docked.frame)) {
     forget(docked)
     return setState(docked.appId, { status: 'closed' })
   }
-  const target = docked.hiddenByApp ? null : hostTarget(docked.appId)
-  if (!target) return hide(docked)
+  const layout = layoutFor(docked)
+  if (!layout) return hideFrame(docked)
 
-  const { screen: area, scale } = target
-  const clip = target.rect.clip
-  const { left, top } = area
-  const width = area.right - area.left
-  const height = area.bottom - area.top
-
+  const { frame, window } = layout
+  if (docked.pannable !== layout.cropped) {
+    docked.pannable = layout.cropped
+    setFramePannable(docked.frame, layout.cropped)
+  }
+  const key = JSON.stringify(layout)
   const current = w.getWindowRect(docked.hwnd)
-  const key = [left, top, width, height, clip?.x, clip?.y, clip?.width, clip?.height].join()
   if (docked.shown && key === docked.target && sameRect(docked.placed, current)) return
 
-  normalize(docked.hwnd, area)
-  // Bordures invisibles (fenêtres redimensionnables) : le cadre visible doit couvrir le bloc
-  const frame = w.getFrameRect(docked.hwnd)
-  const outer = w.getWindowRect(docked.hwnd)
-  const border = {
-    left: frame.left - outer.left,
-    top: frame.top - outer.top,
-    right: outer.right - frame.right,
-    bottom: outer.bottom - frame.bottom
-  }
-  w.setWindowPos(
-    docked.hwnd,
-    left - border.left,
-    top - border.top,
-    width + border.left + border.right,
-    height + border.top + border.bottom,
-    w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER
-  )
-  const placed = w.getWindowRect(docked.hwnd)
-  docked.placed = placed
+  normalize(docked.hwnd)
+  const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER
+  w.setWindowPos(docked.frame, frame.x, frame.y, frame.width, frame.height, quiet)
+  w.setWindowPos(docked.hwnd, window.x, window.y, window.width, window.height, quiet)
+  docked.placed = w.getWindowRect(docked.hwnd)
   docked.target = key
-  docked.size = { width, height }
+  docked.size = { width: window.width, height: window.height }
 
-  // Partie visible : le bloc (fenêtre plus grande que lui à cause de sa taille minimale), ou
-  // la partie du bloc visible dans la page qui défile
-  const tooBig =
-    placed.right - placed.left > width + border.left + border.right ||
-    placed.bottom - placed.top > height + border.top + border.bottom
-  const scaled = clip && {
-    x: Math.round(clip.x * scale),
-    y: Math.round(clip.y * scale),
-    width: Math.round(clip.width * scale),
-    height: Math.round(clip.height * scale)
-  }
-  if (scaled || tooBig) {
-    const area = scaled ?? { x: 0, y: 0, width, height }
-    w.setRegion(docked.hwnd, {
-      left: border.left + area.x,
-      top: border.top + area.y,
-      right: border.left + area.x + area.width,
-      bottom: border.top + area.y + area.height
-    })
-    docked.clipped = true
-  } else if (docked.clipped) {
-    w.setRegion(docked.hwnd, null)
-    docked.clipped = false
-  }
-
+  if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) w.showWindow(docked.hwnd, w.SW.SHOWNA)
   if (!docked.shown) {
     docked.shown = true
-    // ShowWindow et non SWP_SHOWWINDOW : envoie WM_SHOWWINDOW, sans quoi WPF ne se redessine pas
-    w.showWindow(docked.hwnd, w.SW.SHOWNA)
+    w.showWindow(docked.frame, w.SW.SHOWNA)
   }
 }
 
@@ -280,105 +238,99 @@ function placeAll(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Ancrage
+// Insertion dans un cadre
 // ---------------------------------------------------------------------------
-
-/** Rend à la fenêtre son apparence et sa position d'origine. */
-function restoreWindow(hwnd: w.Hwnd, saved: SavedWindow, hidden: boolean): void {
-  w.showWindow(hwnd, w.SW.HIDE)
-  w.setOwner(hwnd, saved.owner)
-  w.setRegion(hwnd, null)
-  w.setStyle(hwnd, saved.style & ~w.WS.VISIBLE & NOT_MAXIMIZED)
-  w.setExStyle(hwnd, saved.exStyle)
-  w.setDockedLook(hwnd, false)
-  w.setWindowPos(
-    hwnd,
-    0,
-    0,
-    0,
-    0,
-    w.SWP.NOMOVE | w.SWP.NOSIZE | w.SWP.NOZORDER | w.SWP.FRAMECHANGED | w.SWP.NOACTIVATE
-  )
-  // Réaffichée comme avant (normale, agrandie ou réduite), sauf si l'application s'était masquée
-  w.setPlacement(hwnd, hidden ? { ...saved.placement, showCmd: w.SW.HIDE } : saved.placement)
-}
 
 function forget(docked: DockedWindow): void {
   docked.unwatch()
   if (windows.get(docked.appId) === docked) windows.delete(docked.appId)
-  saveCrashList()
+  releaseFrame(docked.hwnd, docked.frame)
 }
 
-function undock(docked: DockedWindow): void {
-  forget(docked)
-  if (w.isWindow(docked.hwnd)) restoreWindow(docked.hwnd, docked.saved, docked.hiddenByApp)
+/**
+ * Sort la fenêtre de son cadre. `close` : elle est fermée comme par son bouton ✕ (sans jamais
+ * apparaître sur le bureau). Sinon, elle retrouve sa place et son apparence d'origine.
+ */
+function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
+  docked.unwatch()
+  if (windows.get(docked.appId) === docked) windows.delete(docked.appId)
+  if (w.isWindow(docked.hwnd)) {
+    returnWindow(docked.hwnd, docked.saved, mode === 'restore' && !docked.hiddenByApp)
+    if (mode === 'close') w.postMessage(docked.hwnd, w.WM_CLOSE)
+  }
+  releaseFrame(docked.hwnd, docked.frame)
 }
 
-function dock(appId: string, hwnd: w.Hwnd, pid: number): void {
-  const saved: SavedWindow = {
-    style: w.getStyle(hwnd),
-    exStyle: w.getExStyle(hwnd),
-    owner: w.getOwner(hwnd),
-    placement: w.getPlacement(hwnd)
+async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
+  if (docking.has(appId) || windows.has(appId)) return
+  docking.add(appId)
+  try {
+    const saved = saveWindow(hwnd)
+    w.showWindow(hwnd, w.SW.HIDE)
+    // Réduite ou agrandie : remise à l'état normal (encore masquée), puis taille minimale
+    // imposée par l'application : on lui demande 1×1 et on regarde ce qu'elle garde
+    normalize(hwnd)
+    w.showWindow(hwnd, w.SW.HIDE)
+    w.setWindowPos(hwnd, 0, 0, 1, 1, w.SWP.NOMOVE | w.SWP.NOZORDER | w.SWP.NOACTIVATE)
+    const measured = w.getFrameRect(hwnd)
+    const min = {
+      width: Math.max(1, measured.right - measured.left),
+      height: Math.max(1, measured.bottom - measured.top)
+    }
+    const scale = hostScale()
+    saveMinSize(appId, Math.round(min.width / scale), Math.round(min.height / scale))
+
+    const frame = await createFrame(hostHwnd, { x: 0, y: 0, width: 1, height: 1 })
+    if (!frame || !w.isWindow(hwnd)) {
+      if (w.isWindow(hwnd)) returnWindow(hwnd, saved, true)
+      setState(appId, { status: 'error', error: 'frame' })
+      return
+    }
+    adoptWindow(hwnd, frame, saved)
+    w.setStyle(hwnd, childStyle(saved.style))
+    w.setExStyle(hwnd, saved.exStyle & ~w.WS_EX_APPWINDOW)
+    w.setParent(hwnd, frame)
+    w.setWindowPos(
+      hwnd,
+      0,
+      0,
+      0,
+      0,
+      w.SWP.NOMOVE | w.SWP.NOSIZE | w.SWP.NOZORDER | w.SWP.FRAMECHANGED | w.SWP.NOACTIVATE
+    )
+
+    const docked: DockedWindow = {
+      appId,
+      hwnd,
+      pid,
+      frame,
+      saved,
+      min,
+      shown: false,
+      pannable: false,
+      hiddenByApp: false,
+      placed: null,
+      target: null,
+      size: { width: 0, height: 0 },
+      corrections: { count: 0, since: 0 },
+      unwatch: () => {}
+    }
+    docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
+      if (target === hwnd) onWindowEvent(docked, event)
+    })
+    windows.set(appId, docked)
+    setState(appId, { status: 'running', error: null })
+    w.showWindow(hwnd, w.SW.SHOWNA)
+    place(docked)
+  } finally {
+    docking.delete(appId)
   }
-  const docked: DockedWindow = {
-    appId,
-    hwnd,
-    pid,
-    saved,
-    shown: true,
-    hiddenByApp: false,
-    placed: null,
-    target: null,
-    size: { width: 0, height: 0 },
-    clipped: false,
-    corrections: { count: 0, since: 0 },
-    unwatch: () => {}
-  }
-  const stripCaption = w.hasNativeCaption(hwnd)
-  hide(docked)
-  // Réduite ou agrandie : remise à l'état normal, directement sur son bloc
-  normalize(hwnd, hostTarget(appId)?.screen ?? w.getWindowRect(hwnd))
-  w.showWindow(hwnd, w.SW.HIDE)
-
-  w.setOwner(hwnd, hostHwnd)
-  let style = w.getStyle(hwnd) & NOT_MAXIMIZED
-  if (stripCaption) style &= ~(w.WS.CAPTION | w.WS.THICKFRAME)
-  w.setStyle(hwnd, style)
-  w.setExStyle(hwnd, saved.exStyle & ~w.WS_EX_APPWINDOW) // hors de la barre des tâches
-  w.setDockedLook(hwnd, true)
-  // Au-dessus de Tessera : changer de propriétaire ne réordonne pas les fenêtres
-  w.setWindowPos(
-    hwnd,
-    0,
-    0,
-    0,
-    0,
-    w.SWP.NOMOVE | w.SWP.NOSIZE | w.SWP.FRAMECHANGED | w.SWP.NOACTIVATE
-  )
-
-  // Taille minimale imposée par l'application : on lui demande 1×1 et on regarde ce qu'elle garde
-  w.setWindowPos(hwnd, 0, 0, 1, 1, w.SWP.NOMOVE | w.SWP.NOZORDER | w.SWP.NOACTIVATE)
-  const frame = w.getFrameRect(hwnd)
-  const scale = hostScale()
-  saveMinSize(
-    appId,
-    Math.round((frame.right - frame.left) / scale),
-    Math.round((frame.bottom - frame.top) / scale)
-  )
-
-  docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
-    if (target === hwnd) onWindowEvent(docked, event)
-  })
-  windows.set(appId, docked)
-  saveCrashList()
-  setState(appId, { status: 'running', error: null })
-  place(docked)
 }
 
 /** Ce que l'application fait d'elle-même (les événements arrivent après coup). */
 function onWindowEvent(docked: DockedWindow, event: number): void {
   if (windows.get(docked.appId) !== docked) return
+  const visible = (w.getStyle(docked.hwnd) & w.WS.VISIBLE) !== 0
   switch (event) {
     case w.WinEvent.OBJECT_DESTROY:
       forget(docked)
@@ -386,32 +338,32 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       return
 
     case w.WinEvent.OBJECT_HIDE:
-      // Masquée alors que Tessera l'affichait : fermée dans sa zone de notification
-      if (docked.shown && !w.isVisible(docked.hwnd)) {
-        docked.shown = false
+      // Masquée par l'application : fermée dans sa zone de notification (Discord…)
+      if (!visible && !docked.hiddenByApp) {
         docked.hiddenByApp = true
-        saveCrashList()
+        hideFrame(docked)
         setState(docked.appId, { status: 'closed' })
       }
       return
 
     case w.WinEvent.OBJECT_SHOW:
       // Réaffichée par l'application (rouverte, clic sur sa notification…)
-      if (!docked.shown && w.isVisible(docked.hwnd)) {
-        docked.shown = true
+      if (visible && docked.hiddenByApp) {
         docked.hiddenByApp = false
         docked.target = null
-        saveCrashList()
         setState(docked.appId, { status: 'running', error: null })
-        const hostId = activeHosts.get(docked.appId)
-        if (hostId && hosts.get(hostId)?.rect && hostIsVisible() && !suspended) place(docked)
-        else {
-          // Son bloc n'est pas affiché : Tessera s'ouvre dessus
-          docked.shown = false
-          w.showWindow(docked.hwnd, w.SW.HIDE)
-          listeners.reveal(docked.appId)
-        }
+        if (layoutFor(docked)) place(docked)
+        else listeners.reveal(docked.appId) // son bloc n'est pas affiché : Tessera va vers lui
       }
+      return
+
+    case w.WinEvent.SYSTEM_MOVESIZESTART:
+      // L'utilisateur tire la fenêtre (barre de titre dessinée, bord) : opération annulée
+      w.postMessage(docked.hwnd, w.WM_CANCELMODE)
+      setTimeout(() => {
+        docked.target = null
+        place(docked)
+      }, 0)
       return
 
     case w.WinEvent.SYSTEM_MINIMIZESTART:
@@ -423,11 +375,12 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       return
 
     case w.WinEvent.OBJECT_LOCATIONCHANGE: {
-      // Déplacée ou agrandie par l'application : remise sur son bloc (10 fois par seconde au plus)
+      // Déplacée, agrandie ou redimensionnée par l'application : remise en place
+      // (20 fois par seconde au plus, contre les boucles)
       if (!docked.shown || sameRect(docked.placed, w.getWindowRect(docked.hwnd))) return
       const now = Date.now()
       if (now - docked.corrections.since > 1000) docked.corrections = { count: 0, since: now }
-      if (++docked.corrections.count > 10) return
+      if (++docked.corrections.count > 20) return
       docked.target = null
       place(docked)
     }
@@ -438,71 +391,53 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
 // Lancement
 // ---------------------------------------------------------------------------
 
-/** Découpe des arguments en respectant les guillemets : `a "b c" d` -> [a, b c, d]. */
-function splitArgs(args: string): string[] {
-  return [...args.matchAll(/"([^"]*)"|(\S+)/g)].map((match) => match[1] ?? match[2])
-}
-
-/** Fenêtre principale de l'application, si elle est ouverte. */
+/** Fenêtre principale de l'application, si elle est ouverte (hors de Tessera). */
 function findMainWindow(desktopApp: DesktopApp): w.TopWindow | undefined {
-  const taken = new Set([...windows.values()].map((docked) => docked.hwnd))
   return w
     .findTopWindows(desktopApp.processName)
     .find(
       (candidate) =>
-        !taken.has(candidate.hwnd) &&
         candidate.title !== '' &&
         (w.isMinimized(candidate.hwnd) ||
           (candidate.width >= MIN_MAIN_WINDOW.width && candidate.height >= MIN_MAIN_WINDOW.height))
     )
 }
 
-/** Ancre la fenêtre de l'application si elle est déjà ouverte. */
+/** Insère la fenêtre de l'application si elle est déjà ouverte. */
 function connect(desktopApp: DesktopApp): boolean {
   const found = findMainWindow(desktopApp)
   if (!found) return false
-  dock(desktopApp.id, found.hwnd, found.pid)
+  void dock(desktopApp.id, found.hwnd, found.pid)
   return true
 }
 
-/** Lance (ou rouvre) l'application, puis ancre sa fenêtre dès qu'elle apparaît. */
+/** Lance (ou rouvre, ou ramène dans Tessera) l'application, puis insère sa fenêtre. */
 export async function launchApp(appId: string): Promise<void> {
   const desktopApp = findApp(appId)
   if (!desktopApp || getAppState(appId).status === 'starting') return
   const docked = windows.get(appId)
-  if (docked && w.isVisible(docked.hwnd) && !docked.hiddenByApp) return place(docked)
+  if (docked && !docked.hiddenByApp) return place(docked)
   if (!docked && connect(desktopApp)) return
 
   setState(appId, { status: 'starting', error: null })
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const child = spawn(desktopApp.path, splitArgs(desktopApp.args), {
-        cwd: dirname(desktopApp.path),
-        detached: true,
-        stdio: 'ignore'
-      })
-      child.once('error', reject)
-      child.once('spawn', () => {
-        child.unref()
-        resolve()
-      })
-    })
-  } catch (error) {
-    setState(appId, { status: 'error', error: (error as Error).message })
+  // Lancé comme un double-clic : l'application n'hérite d'aucune ressource de Tessera
+  if (!w.shellExecute(desktopApp.path, desktopApp.args, dirname(desktopApp.path))) {
+    setState(appId, { status: 'error', error: 'launch' })
     return
   }
 
-  // Une application déjà ancrée mais masquée (Discord) se réaffiche : géré par OBJECT_SHOW
+  // Une application déjà insérée mais masquée (Discord) se réaffiche : géré par OBJECT_SHOW
   const start = Date.now()
   while (Date.now() - start < LAUNCH_TIMEOUT_MS) {
     await sleep(400)
     const current = windows.get(appId)
     if (current && !current.hiddenByApp) return
-    if (!current && findMainWindow(desktopApp)) {
+    if (!current && !docking.has(appId) && findMainWindow(desktopApp)) {
       // Laisse le temps à un éventuel écran de démarrage de se fermer
       await sleep(800)
       if (connect(desktopApp)) return
     }
+    if (docking.has(appId)) return
   }
   setState(appId, { status: 'error', error: 'timeout' })
 }
@@ -524,10 +459,12 @@ export function attachHost(hostId: string, appId: string, rect: HostRect | null)
     docked.target = null
     return place(docked)
   }
-  if (getAppState(appId).status === 'starting') return
-  // Déjà ouverte : ancrée tout de suite. Sinon, lancée la première fois seulement :
+  const { status } = getAppState(appId)
+  // Sortie de Tessera par l'utilisateur, ou en cours d'ouverture : on attend
+  if (status === 'starting' || status === 'outside' || docking.has(appId)) return
+  // Déjà ouverte : insérée tout de suite. Sinon, lancée la première fois seulement :
   // une application fermée par l'utilisateur attend qu'il la rouvre.
-  if (!connect(desktopApp) && getAppState(appId).status === 'idle') void launchApp(appId)
+  if (!connect(desktopApp) && status === 'idle') void launchApp(appId)
 }
 
 /** Nouvel emplacement du bloc ou de l'onglet (déplacement, redimensionnement, défilement). */
@@ -555,12 +492,23 @@ export function detachHost(hostId: string): void {
   if (docked) place(docked)
 }
 
-/** Rend sa fenêtre normale à l'application (elle quitte Tessera). */
-export function releaseApp(appId: string): void {
+/**
+ * Ferme l'application (bloc retiré, onglet fermé, application supprimée), comme par son bouton
+ * ✕ : une application peut encore demander d'enregistrer, Discord passe dans sa zone de
+ * notification. Elle n'apparaît jamais sur le bureau.
+ */
+export function closeApp(appId: string): void {
   const docked = windows.get(appId)
-  if (docked) undock(docked)
+  if (docked) undock(docked, 'close')
   states.delete(appId)
   listeners.changed(appId, getAppState(appId))
+}
+
+/** « Sortir la fenêtre de Tessera » : l'application retrouve sa fenêtre sur le bureau. */
+export function takeOutApp(appId: string): void {
+  const docked = windows.get(appId)
+  if (docked) undock(docked, 'restore')
+  setState(appId, { status: 'outside', error: null })
 }
 
 /** Masque les fenêtres pendant que l'interface de Tessera passe au-dessus (dialogue, édition…). */
@@ -570,37 +518,36 @@ export function setSuspended(value: boolean): void {
   placeAll()
 }
 
-/** Images des fenêtres affichées, montrées à leur place pendant qu'elles sont masquées. */
-export function captureApps(): Record<string, string> {
-  const images: Record<string, string> = {}
+/** Images des fenêtres affichées (taille réelle), montrées à leur place pendant qu'elles sont masquées. */
+export function captureApps(): Record<string, DesktopAppSnapshot> {
+  const images: Record<string, DesktopAppSnapshot> = {}
+  const scale = hostScale()
   for (const docked of windows.values()) {
     if (!docked.shown) continue
     const capture = w.captureWindow(docked.hwnd)
     if (!capture) continue
-    const frame = w.getFrameRect(docked.hwnd)
-    const outer = w.getWindowRect(docked.hwnd)
-    const image = nativeImage
-      .createFromBitmap(capture.bits, { width: capture.width, height: capture.height })
-      .crop({
-        x: frame.left - outer.left,
-        y: frame.top - outer.top,
-        width: Math.min(docked.size.width, frame.right - frame.left),
-        height: Math.min(docked.size.height, frame.bottom - frame.top)
-      })
-    images[docked.appId] = `data:image/jpeg;base64,${image.toJPEG(85).toString('base64')}`
+    const image = nativeImage.createFromBitmap(capture.bits, {
+      width: capture.width,
+      height: capture.height
+    })
+    images[docked.appId] = {
+      url: `data:image/jpeg;base64,${image.toJPEG(85).toString('base64')}`,
+      width: capture.width / scale,
+      height: capture.height / scale
+    }
   }
   return images
 }
 
-/** Applications supprimées des réglages : leur fenêtre redevient normale. */
-export function releaseRemovedApps(): void {
+/** Applications supprimées des réglages : elles sont fermées. */
+export function closeRemovedApps(): void {
   const ids = new Set(getSettings().apps.items.map((item) => item.id))
-  for (const appId of [...windows.keys()]) if (!ids.has(appId)) releaseApp(appId)
+  for (const appId of [...windows.keys()]) if (!ids.has(appId)) closeApp(appId)
 }
 
-/** Avant de quitter : toutes les applications retrouvent leur fenêtre normale. */
-export function releaseAllApps(): void {
-  for (const docked of [...windows.values()]) undock(docked)
+/** Avant de quitter : les applications sont fermées, ou rendues au bureau (réglage). */
+export function releaseAllApps(mode: QuitMode): void {
+  for (const docked of [...windows.values()]) undock(docked, mode)
 }
 
 /** Branche le gestionnaire sur la fenêtre de Tessera. */
@@ -608,7 +555,24 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
   hostWindow = window
   hostHwnd = Number(window.getNativeWindowHandle().readBigInt64LE(0))
   listeners = next
-  recoverAfterCrash()
+
+  // L'hébergeur des cadres s'est arrêté : les fenêtres insérées ont disparu avec ses cadres
+  setFrameHostLostListener(() => {
+    for (const docked of [...windows.values()]) {
+      docked.unwatch()
+      windows.delete(docked.appId)
+      setState(docked.appId, { status: 'closed' })
+    }
+  })
+
+  // Clic gauche + droit sur une fenêtre rognée : transmis à son bloc (px CSS)
+  setFramePanListener(({ pan, frame, dx, dy }) => {
+    const docked = [...windows.values()].find((candidate) => candidate.frame === frame)
+    const hostId = docked && activeHosts.get(docked.appId)
+    if (!hostId) return
+    const scale = hostScale()
+    listeners.pan({ hostId, phase: pan, dx: dx / scale, dy: dy / scale })
+  })
 
   // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement)
   window.on('move', placeAll)

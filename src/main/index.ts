@@ -3,7 +3,7 @@ import { APP_ID } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
-import { initDocking, releaseAllApps, releaseRemovedApps } from './desktop/docking'
+import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
 import {
   flushNotifications,
@@ -32,8 +32,8 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     markAppAsQuitting()
-    // Les applications installées retrouvent leur fenêtre normale
-    releaseAllApps()
+    // Les applications installées sont fermées, ou rendues au bureau (réglage)
+    releaseAllApps(getSettings().apps.onQuit)
     flushSettings()
     flushDashboard()
     flushProcessApprovals()
@@ -68,7 +68,8 @@ if (!app.requestSingleInstanceLock()) {
       reveal: (appId) => {
         showMainWindow()
         getMainWindow()?.webContents.send(IpcChannels.desktopAppsReveal, appId)
-      }
+      },
+      pan: (pan) => getMainWindow()?.webContents.send(IpcChannels.desktopAppsPan, pan)
     })
     createTray()
 
@@ -86,7 +87,7 @@ if (!app.requestSingleInstanceLock()) {
       ) {
         refreshAppIcons()
       }
-      if (next.apps.items !== previous.apps.items) releaseRemovedApps()
+      if (next.apps.items !== previous.apps.items) closeRemovedApps()
       broadcast(IpcChannels.settingsChanged, next)
     })
 

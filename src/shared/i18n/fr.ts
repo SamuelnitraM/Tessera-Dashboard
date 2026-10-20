@@ -72,6 +72,7 @@ export const fr = {
       open: 'Ouvrir',
       openIn: 'Ouvrir dans {{browser}}',
       closeTab: 'Fermer l’onglet',
+      delete: 'Supprimer l’application…',
       settings: 'Paramètres de l’application'
     },
     renamePage: 'Renommer la page',
@@ -121,7 +122,14 @@ export const fr = {
     timeout: '{{name}} ne s’est pas ouvert à temps.',
     error: 'Impossible d’ouvrir {{name}} ({{error}}).',
     retry: 'Réessayer',
-    closeTab: 'Fermer l’onglet (l’application retrouve sa fenêtre normale)',
+    closeTab: 'Fermer l’onglet (l’application est fermée)',
+    takeOut: 'Sortir la fenêtre de Tessera (sur le bureau)',
+    outside: '{{name}} est ouvert hors de Tessera.',
+    bringBack: 'Ramener dans Tessera',
+    panHint: 'Glisser pour choisir la partie affichée',
+    /** Barre d'un bloc ou d'un onglet dont la fenêtre est rognée. */
+    panHintHandle:
+      'Glisser pour choisir la partie affichée (ou barres de défilement, ou clic gauche + droit sur la fenêtre)',
     picker: {
       title: 'Ajouter une application installée',
       intro:
@@ -294,13 +302,20 @@ export const fr = {
       intro:
         'Les applications s’ouvrent dans un onglet de Tessera ou dans un bloc. Une application web (site) a sa propre connexion, conservée entre deux lancements. Une application installée (programme du PC) s’affiche avec sa vraie fenêtre.',
       installed: 'Application installée',
+      onQuit: {
+        label: 'À la fermeture de Tessera',
+        description:
+          'Ce que deviennent les applications installées affichées dans Tessera quand tu quittes l’app.',
+        close: 'Les fermer',
+        restore: 'Les rendre au bureau'
+      },
       addInstalledTitle: 'Ajouter une application installée',
       installedIntro:
-        'Discord, Obsidian, tes propres programmes… Leur fenêtre s’affiche dans Tessera, déjà connectée, avec leurs notifications. Fermer l’onglet ou retirer le bloc leur rend leur fenêtre normale.',
+        'Discord, Obsidian, tes propres programmes… Leur fenêtre s’affiche dans Tessera, déjà connectée, avec leurs notifications. Plus grande que son bloc, elle est rognée : glisse la barre du bloc pour choisir la partie affichée. Retirer le bloc ou fermer l’onglet ferme l’application.',
       fromStartMenu: 'Choisir dans les programmes installés…',
       fromFile: 'Choisir un fichier .exe…',
       deleteInstalledMessage:
-        'L’application disparaîtra de Tessera et retrouvera sa fenêtre normale. Le programme lui-même n’est pas désinstallé.',
+        'L’application disparaîtra de Tessera et sera fermée. Le programme lui-même n’est pas désinstallé.',
       openWith: 'Ouvrir avec',
       tessera: 'Tessera (onglet intégré)',
       browserHint:

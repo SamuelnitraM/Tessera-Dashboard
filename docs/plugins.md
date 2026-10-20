@@ -256,10 +256,16 @@ const apps = useInstalledApps() // { id, name, icon }[] : celles de Paramètres 
 const app = await addInstalledApp() // application ajoutée, ou null
 ```
 
-| Prop     | Rôle                                                                     |
-| -------- | ------------------------------------------------------------------------ |
-| `appId`  | Application à afficher (parmi `useInstalledApps()`)                      |
-| `hostId` | Identifiant unique de l'emplacement, en général l'`instanceId` du widget |
+| Prop                       | Rôle                                                                                                                                      |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `appId`                    | Application à afficher (parmi `useInstalledApps()`)                                                                                       |
+| `hostId`                   | Identifiant unique de l'emplacement, en général l'`instanceId` du widget                                                                  |
+| `offset`, `onOffsetChange` | Fenêtre plus grande que l'emplacement : partie affichée, et nouvelle partie choisie par l'utilisateur (à enregistrer avec `setConfig`)    |
+| `panHandle`                | Élément (ref) qu'on glisse pour choisir la partie affichée, en général la barre du widget. En mode édition, on glisse directement l'image |
+
+Une fenêtre rognée a aussi ses barres de défilement dans l'emplacement, et le clic gauche + droit sur la fenêtre déplace son contenu : rien à faire dans le module, `onOffsetChange` reçoit la nouvelle partie affichée.
+
+`takeOutInstalledApp(appId)` sort la fenêtre de Tessera (sur le bureau). Quand plus aucun emplacement n'affiche l'application (bloc retiré, onglet fermé), Tessera la ferme.
 
 Une application ne s'affiche qu'à un endroit à la fois : un deuxième emplacement propose « L'afficher ici ». Une extension ne peut ni ajouter de programme sans passer par la fenêtre d'ajout (choix de l'utilisateur), ni changer le programme lancé. L'extension **Application installée** (`plugins/tessera.desktop`) est un exemple complet.
 

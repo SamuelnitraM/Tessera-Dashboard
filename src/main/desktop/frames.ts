@@ -1,0 +1,95 @@
+import { spawn, type ChildProcessByStdio } from 'node:child_process'
+import type { Readable, Writable } from 'node:stream'
+import { join } from 'node:path'
+import type { FrameCommand, FramePan, FrameReply } from '../frame-host/protocol'
+import type { SavedWindow } from './saved-window'
+import type { Hwnd } from './win32'
+
+/**
+ * Cadres des applications installées, créés par l'hébergeur (src/main/frame-host) : un
+ * processus séparé, lancé à la première application affichée.
+ */
+
+let host: ChildProcessByStdio<Writable, Readable, null> | null = null
+let nextId = 1
+const pending = new Map<number, (frame: Hwnd) => void>()
+let onHostLost: () => void = () => {}
+let onPan: (pan: FramePan) => void = () => {}
+
+/** Appelé si l'hébergeur s'arrête alors que Tessera tourne (ses cadres ont disparu). */
+export function setFrameHostLostListener(listener: () => void): void {
+  onHostLost = listener
+}
+
+/** Clic gauche + droit sur un cadre rogné : l'utilisateur déplace le contenu. */
+export function setFramePanListener(listener: (pan: FramePan) => void): void {
+  onPan = listener
+}
+
+function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
+  if (host) return host
+  const child = spawn(process.execPath, [join(import.meta.dirname, 'frame-host.js')], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    stdio: ['pipe', 'pipe', 'ignore'],
+    windowsHide: true,
+    // Hors du « job » de Tessera : l'hébergeur doit survivre à un plantage de Tessera
+    detached: true
+  })
+  child.unref()
+  let buffer = ''
+  child.stdout.setEncoding('utf8')
+  child.stdout.on('data', (chunk: string) => {
+    buffer += chunk
+    for (let end = buffer.indexOf('\n'); end >= 0; end = buffer.indexOf('\n')) {
+      const message = JSON.parse(buffer.slice(0, end)) as FrameReply
+      buffer = buffer.slice(end + 1)
+      if ('pan' in message) {
+        onPan(message)
+      } else if ('id' in message) {
+        pending.get(message.id)?.(message.frame)
+        pending.delete(message.id)
+      }
+    }
+  })
+  child.on('exit', () => {
+    host = null
+    for (const resolve of pending.values()) resolve(0)
+    pending.clear()
+    onHostLost()
+  })
+  // Le canal ne doit pas retenir Tessera à la fermeture
+  ;(child.stdin as unknown as { unref?: () => void }).unref?.()
+  ;(child.stdout as unknown as { unref?: () => void }).unref?.()
+  host = child
+  return child
+}
+
+function send(command: FrameCommand): void {
+  ensureHost().stdin.write(`${JSON.stringify(command)}\n`)
+}
+
+/** Nouveau cadre masqué, propriété de la fenêtre de Tessera. `0` si l'hébergeur a échoué. */
+export function createFrame(
+  owner: Hwnd,
+  rect: { x: number; y: number; width: number; height: number }
+): Promise<Hwnd> {
+  return new Promise((resolve) => {
+    const id = nextId++
+    pending.set(id, resolve)
+    send({ cmd: 'create', id, owner, ...rect })
+  })
+}
+
+/** La fenêtre est dans son cadre : l'hébergeur la rendra si Tessera disparaît. */
+export const adoptWindow = (window: Hwnd, frame: Hwnd, saved: SavedWindow): void =>
+  send({ cmd: 'adopt', window, frame, saved })
+
+/** Fenêtre rognée ou non : le clic gauche + droit déplace son contenu. */
+export function setFramePannable(frame: Hwnd, value: boolean): void {
+  if (host) send({ cmd: 'pannable', frame, value })
+}
+
+/** Tessera a repris la fenêtre : le cadre est détruit (rien à faire si l'hébergeur est arrêté). */
+export function releaseFrame(window: Hwnd, frame: Hwnd): void {
+  if (host) send({ cmd: 'release', window, frame })
+}

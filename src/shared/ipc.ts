@@ -46,13 +46,16 @@ export const IpcChannels = {
   desktopAppsMove: 'desktop-apps:move',
   desktopAppsDetach: 'desktop-apps:detach',
   desktopAppsLaunch: 'desktop-apps:launch',
-  desktopAppsRelease: 'desktop-apps:release',
+  desktopAppsClose: 'desktop-apps:close',
+  desktopAppsTakeOut: 'desktop-apps:take-out',
   desktopAppsCapture: 'desktop-apps:capture',
   desktopAppsSetSuspended: 'desktop-apps:set-suspended',
   /** Événement main -> renderer : état d'une application installée (identifiant, état). */
   desktopAppsChanged: 'desktop-apps:changed',
   /** Événement main -> renderer : une application demande à s'afficher (identifiant). */
   desktopAppsReveal: 'desktop-apps:reveal',
+  /** Événement main -> renderer : clic gauche + droit sur une fenêtre rognée (DesktopAppPan). */
+  desktopAppsPan: 'desktop-apps:pan',
   notificationsList: 'notifications:list',
   notificationsMarkRead: 'notifications:mark-read',
   notificationsRemove: 'notifications:remove',

@@ -108,3 +108,12 @@
     transform: rotate(360deg);
   }
 }
+
+/* Fenêtre rognée : la barre de l'onglet se glisse pour choisir la partie affichée */
+.toolbar[data-pan='true'] {
+  cursor: grab;
+}
+
+.toolbar[data-pan='true']:active {
+  cursor: grabbing;
+}

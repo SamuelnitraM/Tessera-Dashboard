@@ -59,7 +59,7 @@ Tessera Dashboard permet de composer sa page d'accueil avec des **widgets** (mai
 
 - **Pages** et **applications** (web et installées), chacune avec son icône ; pastille de **non-lus** pour les applications web.
 - **Rabattable** (bouton ou Ctrl+B) : les pages deviennent des onglets en haut de la fenêtre, suivies des applications ; le bouton Paramètres passe à droite.
-- **Clic droit sur une application** : l'ouvrir dans Tessera ou dans un navigateur installé, fermer son onglet, accéder à ses paramètres.
+- **Clic droit sur une application** : l'ouvrir dans Tessera ou dans un navigateur installé, fermer son onglet, sortir sa fenêtre de Tessera (application installée), accéder à ses paramètres, la **supprimer** (avec confirmation).
 
 ### Applications web ✅
 
@@ -81,14 +81,22 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 
 - **Ajout** : Paramètres → Applications (liste des programmes du menu Démarrer, ou un `.exe` au choix), ou directement depuis « Ajouter un bloc ».
 - **Dans un bloc** ou **dans un onglet** du menu latéral (en plein écran).
-- La fenêtre suit son bloc : déplacement et redimensionnement de Tessera, changement de page, réduction, zone de notification.
+- La fenêtre est insérée dans un **cadre** de la taille du bloc et le suit : déplacement et redimensionnement de Tessera, changement de page, réduction, zone de notification.
+- **Plus grande que son bloc** (taille minimale de l'application), elle est **rognée**. Un bloc peut donc être aussi petit que voulu. Testé avec Discord, VS Code, VLC, FileZilla, 7-Zip et GitSpread. Pour choisir la partie affichée :
+  - les **barres de défilement** du bloc (à droite, en bas) ;
+  - **clic gauche + clic droit** enfoncés ensemble sur la fenêtre : le contenu suit la souris, dans toutes les directions, jusqu'au relâchement. L'application ne reçoit pas ces clics ; un simple clic droit lui arrive normalement (avec 0,2 s de retard au plus s'il est tenu) ;
+  - glisser la barre du bloc (ou, en mode édition, son image).
+- **Ni déplaçable ni redimensionnable** hors de Tessera : sans barre de titre ni bord Windows, et tout glisser de sa propre barre de titre (VS Code, Discord…) est annulé. Seule la grille, en mode édition, change sa taille.
 - **Déjà ouverte**, l'application est reprise telle quelle ; sinon, elle est lancée au premier affichage.
 - **Fermée** par l'utilisateur (✕ de Discord…) : le bloc affiche « Discord est fermé » et un bouton **Rouvrir**.
 - **Elle demande à s'afficher** (clic sur une de ses notifications, sur son icône dans la zone de notification…) : Tessera s'ouvre sur son bloc ou son onglet.
 - Quand un élément de Tessera passe devant (fenêtre de dialogue, clic droit, mode édition), la fenêtre est remplacée par une **image d'elle-même**.
-- **Taille minimale** de l'application mesurée automatiquement et appliquée au bloc (ex. GitSpread : 966 × 553 px).
-- **Rendue à l'identique** quand elle quitte Tessera : onglet fermé, bloc retiré, application supprimée ou Tessera quitté. Même après un **plantage** de Tessera, l'application reste ouverte et retrouve son apparence au lancement suivant.
-- Léger : aucun minuteur, la fenêtre est repositionnée uniquement sur les événements de Windows (environ 1 ms par déplacement).
+- **Fermée** quand on retire son bloc, ferme son onglet ou la supprime de Tessera, comme par son bouton ✕ : elle peut encore demander d'enregistrer, et Discord passe dans sa zone de notification. Elle n'apparaît jamais sur le bureau.
+- **Sortir la fenêtre de Tessera** (barre du bloc, onglet ou clic droit) : elle retrouve sa place sur le bureau ; le bloc propose de la **ramener**.
+- **À la fermeture de Tessera** (réglage) : les applications sont fermées (par défaut) ou rendues au bureau.
+- **Plantage de Tessera** : les cadres appartiennent à un petit **hébergeur** séparé (même exécutable, en mode Node), qui rend aussitôt leur fenêtre aux applications. Testé : VS Code, VLC, FileZilla et GitSpread retrouvent leur fenêtre en 0,2 s.
+- Lancées comme un double-clic (Shell Windows) : les applications n'héritent d'aucune ressource de Tessera.
+- Léger : aucun minuteur, la fenêtre est repositionnée uniquement sur les événements de Windows (environ 1 ms par déplacement). L'hébergeur, démarré à la première application affichée, occupe environ 65 Mo.
 
 ### Widgets
 
@@ -150,7 +158,8 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 - **Applications lancées en administrateur** : Windows interdit à Tessera de déplacer leur fenêtre (sauf si Tessera est lui aussi lancé en administrateur).
 - La **barre de titre dessinée par l'application** (Discord, Obsidian, GitSpread…) reste visible : elle fait partie de l'application. Seule une barre de titre Windows classique est retirée.
 - Une application qui ouvre **plusieurs fenêtres** : seule sa fenêtre principale est affichée dans le bloc ; les autres (paramètres, fenêtres détachées) s'ouvrent normalement.
-- **Taille minimale** : l'application ne peut pas devenir plus petite que ce qu'elle autorise. Si la fenêtre de Tessera devient trop étroite, les blocs concernés s'agrandissent.
+- **Taille minimale** : la fenêtre ne devient jamais plus petite que ce que l'application autorise ; dans un bloc plus petit, elle est rognée.
+- **Version installée de Tessera** (étape 15) : l'hébergeur des cadres utilise le mode Node d'Electron (fusible `RunAsNode`), qui devra rester activé.
 
 ### Limites connues des pages web
 
@@ -223,7 +232,8 @@ src/
 │   ├── web.ts                #   Pages web : verrouillage des <webview>, sessions, permissions, clic droit
 │   ├── notifications.ts      #   Notifications : historique, bannières Windows, sons importés, Ne pas déranger
 │   ├── desktop/              #   Applications installées : API Windows (koffi), programmes du menu Démarrer,
-│   │                         #   fenêtres ancrées sur les blocs (docking.ts)
+│   │                         #   cadres sur les blocs (docking.ts), lien avec l'hébergeur (frames.ts)
+│   ├── frame-host/           #   Hébergeur des cadres : processus séparé (mode Node) et son fil de fenêtres
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
 │   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
@@ -359,6 +369,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 - [x] **Étape 7.5 : retouches.** Nomenclature (bloc, widget, application web, module), menu latéral rabattable, clic droit sur les pages, applications et blocs, icônes aux couleurs de l'accent, ouverture des applications dans un navigateur installé, Bloc-notes (import, suppression rapide, regroupement par date, police en pixels).
 - [x] **Étape 8 : applications installées.** Afficher la fenêtre d'un programme déjà installé (Discord, Obsidian, GitSpread…) dans un bloc ou dans un onglet du menu latéral, sans module dédié : l'application garde sa connexion et ses propres notifications. Ajout depuis le menu Démarrer ou un `.exe`, « Rouvrir » quand l'application est fermée, taille minimale de l'application appliquée au bloc, récupération après plantage.
 - [x] **Étape 9 : notifications.** Centre de notifications, bannières Windows, notifications des applications web et des widgets, sons (intégrés et importés), réglages par application (activation, son, priorité), Ne pas déranger (manuel et horaire).
+- [x] **Étape 9.5 : applications installées, suite.** Cadres (rognage ; déplacement du contenu par barres de défilement, clic gauche + droit ou glisser), fenêtres ni déplaçables ni redimensionnables, hébergeur séparé (plantage), fermeture au retrait du bloc ou de l'onglet, « Sortir la fenêtre », réglage à la fermeture, suppression d'une application par clic droit.
 
 ### Phase 2 : intégrations API
 

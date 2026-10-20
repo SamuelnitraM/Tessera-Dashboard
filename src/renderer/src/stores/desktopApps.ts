@@ -1,6 +1,10 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
-import { DESKTOP_APP_WIDGET, type DesktopAppState } from '@shared/desktop-apps'
+import {
+  DESKTOP_APP_WIDGET,
+  type DesktopAppSnapshot,
+  type DesktopAppState
+} from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
 import { useDashboardStore } from './dashboard'
 import { useNavigationStore } from './navigation'
@@ -15,8 +19,8 @@ import { useSettingsStore } from './settings'
  */
 interface DesktopAppsState {
   states: Record<string, DesktopAppState>
-  /** Images des fenêtres, affichées pendant qu'elles sont masquées. */
-  snapshots: Record<string, string>
+  /** Images des fenêtres (taille réelle), affichées pendant qu'elles sont masquées. */
+  snapshots: Record<string, DesktopAppSnapshot>
   /** Éléments de l'interface ouverts par-dessus les fenêtres. */
   overlays: number
   suspended: boolean
@@ -98,8 +102,8 @@ function usedApps(): Set<string> {
 }
 
 /**
- * Suit les états envoyés par le processus principal, et rend sa fenêtre normale à une
- * application qui n'est plus affichée nulle part (bloc retiré, onglet fermé).
+ * Suit les états envoyés par le processus principal, et ferme une application qui n'est plus
+ * affichée nulle part (bloc retiré, onglet fermé, application supprimée).
  */
 export async function initDesktopAppsStore(): Promise<void> {
   useDesktopAppsStore.setState({ states: await window.tessera.desktopApps.getStates() })
@@ -110,7 +114,7 @@ export async function initDesktopAppsStore(): Promise<void> {
   let used = usedApps()
   const check = (): void => {
     const next = usedApps()
-    for (const appId of used) if (!next.has(appId)) void window.tessera.desktopApps.release(appId)
+    for (const appId of used) if (!next.has(appId)) void window.tessera.desktopApps.close(appId)
     used = next
   }
   useDashboardStore.subscribe(check)

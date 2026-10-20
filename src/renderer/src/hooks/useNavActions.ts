@@ -1,10 +1,21 @@
 import { useCallback } from 'react'
-import { ExternalLink, FolderOpen, Pencil, SquarePen, Settings, Trash2, X } from 'lucide-react'
+import {
+  ExternalLink,
+  FolderOpen,
+  LogOut,
+  Pencil,
+  SquarePen,
+  Settings,
+  Trash2,
+  X
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { DashboardPage } from '@shared/dashboard'
 import type { UserApp } from '@shared/user-apps'
 import { OPEN_IN_TESSERA } from '@shared/web-apps'
+import { useAppDialogsStore } from '../stores/appDialogs'
 import type { MenuItem } from '../stores/contextMenu'
+import { useDesktopAppsStore } from '../stores/desktopApps'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
 import { useBrowsers } from './useBrowsers'
@@ -25,6 +36,7 @@ export function useNavActions(): {
   const closeApp = useNavigationStore((state) => state.closeApp)
   const openedApps = useNavigationStore((state) => state.openedApps)
   const { openRename, openDelete } = usePageDialogsStore()
+  const openDeleteApp = useAppDialogsStore((state) => state.openDelete)
 
   /** Onglet de Tessera, ou fenêtre du navigateur choisi pour cette application web. */
   const openApp = useCallback(
@@ -88,10 +100,28 @@ export function useNavActions(): {
       disabled: !openedApps.includes(app.id),
       onSelect: () => closeApp(app.id)
     },
+    // Application installée affichée dans Tessera : la remettre sur le bureau
+    ...(app.kind === 'desktop' &&
+    useDesktopAppsStore.getState().states[app.id]?.status === 'running'
+      ? [
+          {
+            label: t('desktopApps.takeOut'),
+            icon: LogOut,
+            onSelect: () => void window.tessera.desktopApps.takeOut(app.id)
+          }
+        ]
+      : []),
     {
       label: t('nav.appMenu.settings'),
       icon: Settings,
       onSelect: () => navigate({ type: 'settings', section: 'applications' })
+    },
+    'separator',
+    {
+      label: t('nav.appMenu.delete'),
+      icon: Trash2,
+      danger: true,
+      onSelect: () => openDeleteApp(app.id)
     }
   ]
 

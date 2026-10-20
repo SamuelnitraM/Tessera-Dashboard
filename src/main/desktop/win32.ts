@@ -27,6 +27,7 @@ const user32 = koffi.load('user32.dll')
 const kernel32 = koffi.load('kernel32.dll')
 const dwmapi = koffi.load('dwmapi.dll')
 const gdi32 = koffi.load('gdi32.dll')
+const shell32 = koffi.load('shell32.dll')
 
 koffi.struct('RECT', { left: 'int32_t', top: 'int32_t', right: 'int32_t', bottom: 'int32_t' })
 koffi.struct('POINT', { x: 'int32_t', y: 'int32_t' })
@@ -98,6 +99,12 @@ const api = {
     'bool __stdcall SetWindowPlacement(intptr_t hwnd, WINDOWPLACEMENT *wp)'
   ),
   SetWindowRgn: fn(user32, 'int __stdcall SetWindowRgn(intptr_t hwnd, intptr_t rgn, bool redraw)'),
+  SetParent: fn(user32, 'intptr_t __stdcall SetParent(intptr_t child, intptr_t parent)'),
+  GetParent: fn(user32, 'intptr_t __stdcall GetParent(intptr_t hwnd)'),
+  PostMessageW: fn(
+    user32,
+    'bool __stdcall PostMessageW(intptr_t hwnd, uint32_t msg, uintptr_t wParam, intptr_t lParam)'
+  ),
   SetWinEventHook: fn(
     user32,
     'intptr_t __stdcall SetWinEventHook(uint32_t min, uint32_t max, intptr_t mod, WinEventProc *cb, uint32_t pid, uint32_t tid, uint32_t flags)'
@@ -128,6 +135,10 @@ const api = {
     kernel32,
     'bool __stdcall QueryFullProcessImageNameW(intptr_t h, uint32_t flags, _Out_ uint8_t *buf, _Inout_ uint32_t *size)'
   ),
+  ShellExecuteW: fn(
+    shell32,
+    'intptr_t __stdcall ShellExecuteW(intptr_t hwnd, str16 operation, str16 file, str16 parameters, str16 directory, int show)'
+  ),
   DwmSetWindowAttribute: fn(
     dwmapi,
     'int32_t __stdcall DwmSetWindowAttribute(intptr_t hwnd, uint32_t attr, const void *value, uint32_t size)'
@@ -144,11 +155,16 @@ const GWLP_HWNDPARENT = -8
 const GW_OWNER = 4
 
 export const WS = {
-  MAXIMIZE: 0x01000000,
+  POPUP: 0x80000000 | 0,
+  CHILD: 0x40000000,
   MINIMIZE: 0x20000000,
   VISIBLE: 0x10000000,
+  MAXIMIZE: 0x01000000,
   CAPTION: 0x00c00000,
-  THICKFRAME: 0x00040000
+  SYSMENU: 0x00080000,
+  THICKFRAME: 0x00040000,
+  MINIMIZEBOX: 0x00020000,
+  MAXIMIZEBOX: 0x00010000
 } as const
 export const WS_EX_APPWINDOW = 0x00040000
 const WS_EX_TOOLWINDOW = 0x00000080
@@ -165,6 +181,8 @@ export const SWP = {
 export const SW = { HIDE: 0, SHOWNOACTIVATE: 4, SHOWNA: 8 } as const
 
 export const WinEvent = {
+  SYSTEM_MOVESIZESTART: 0x000a,
+  SYSTEM_MOVESIZEEND: 0x000b,
   SYSTEM_MINIMIZESTART: 0x0016,
   OBJECT_DESTROY: 0x8001,
   OBJECT_SHOW: 0x8002,
@@ -195,6 +213,14 @@ export const setExStyle = (hwnd: Hwnd, style: number): void =>
   void api.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | 0)
 export const getOwner = (hwnd: Hwnd): Hwnd => Number(api.GetWindowLongPtrW(hwnd, GWLP_HWNDPARENT))
 /** Fenêtre propriétaire : la fenêtre reste au-dessus d'elle, et se réduit avec elle. */
+export const setParent = (hwnd: Hwnd, parent: Hwnd): void => void api.SetParent(hwnd, parent)
+export const getParent = (hwnd: Hwnd): Hwnd => Number(api.GetParent(hwnd))
+export const postMessage = (hwnd: Hwnd, message: number): void =>
+  void api.PostMessageW(hwnd, message, 0, 0)
+export const WM_CLOSE = 0x0010
+/** Interrompt un déplacement ou un redimensionnement en cours (fenêtre tirée par l'utilisateur). */
+export const WM_CANCELMODE = 0x001f
+
 export const setOwner = (hwnd: Hwnd, owner: Hwnd): void =>
   void api.SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, owner)
 
@@ -322,6 +348,17 @@ export function hasNativeCaption(hwnd: Hwnd): boolean {
   return clientOrigin(hwnd).y - getFrameRect(hwnd).top > 8
 }
 
+/**
+ * Lance un programme comme un double-clic (Shell Windows). Contrairement au lancement par Node,
+ * le programme n'hérite d'aucune ressource de Tessera (connexions, canaux…). Renvoie
+ * en cas d'échec.
+ */
+export function shellExecute(path: string, args: string, directory: string): boolean {
+  return (
+    Number(api.ShellExecuteW(0, 'open', path, args || null, directory, 1 /* SW_SHOWNORMAL */)) > 32
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Capture d'image
 // ---------------------------------------------------------------------------
@@ -389,9 +426,10 @@ export function watchProcessWindows(pid: number, listener: WinEventListener): ()
     if (idObject === 0) listener(event, hwnd) // OBJID_WINDOW : la fenêtre elle-même
   }, koffi.pointer(WinEventProc))
   const hooks = [
-    // Deux plages : réduction (système) et objets (affichage, déplacement, destruction)
+    // Deux plages : système (déplacement par l'utilisateur, réduction) et objets (affichage,
+    // déplacement, destruction)
     api.SetWinEventHook(
-      WinEvent.SYSTEM_MINIMIZESTART,
+      WinEvent.SYSTEM_MOVESIZESTART,
       WinEvent.SYSTEM_MINIMIZESTART,
       0,
       callback,

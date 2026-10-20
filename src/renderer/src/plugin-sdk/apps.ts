@@ -28,3 +28,8 @@ export function useInstalledApps(): readonly UserInstalledApp[] {
   const items = useSettingsStore((state) => state.settings.apps.items)
   return useMemo(() => items.filter(isDesktopApp), [items])
 }
+
+/** Sort la fenêtre de l'application de Tessera : elle retrouve sa place sur le bureau. */
+export function takeOutInstalledApp(appId: string): Promise<void> {
+  return window.tessera.desktopApps.takeOut(appId)
+}

@@ -233,8 +233,8 @@ export { normalizeWebUrl } from '@shared/web-apps'
 // Applications installées (permission `apps`)
 // ---------------------------------------------------------------------------
 
-export { useInstalledApps, type UserInstalledApp } from './apps'
-export { InstalledAppView, type InstalledAppViewProps } from './installed'
+export { takeOutInstalledApp, useInstalledApps, type UserInstalledApp } from './apps'
+export { InstalledAppView, type InstalledAppViewProps, type PanOffset } from './installed'
 /** Fenêtre d'ajout d'une application installée : renvoie l'application ajoutée, ou `null`. */
 export { pickInstalledApp as addInstalledApp } from '../stores/programPicker'
 

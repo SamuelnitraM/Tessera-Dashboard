@@ -69,6 +69,7 @@ export const en: Translation = {
       open: 'Open',
       openIn: 'Open in {{browser}}',
       closeTab: 'Close tab',
+      delete: 'Delete the app…',
       settings: 'App settings'
     },
     renamePage: 'Rename page',
@@ -118,7 +119,13 @@ export const en: Translation = {
     timeout: '{{name}} did not open in time.',
     error: 'Could not open {{name}} ({{error}}).',
     retry: 'Try again',
-    closeTab: 'Close the tab (the app gets its normal window back)',
+    closeTab: 'Close the tab (the app is closed)',
+    takeOut: 'Take the window out of Tessera (to the desktop)',
+    outside: '{{name}} is open outside Tessera.',
+    bringBack: 'Bring back into Tessera',
+    panHint: 'Drag to choose the visible part',
+    panHintHandle:
+      'Drag to choose the visible part (or use the scrollbars, or left + right click on the window)',
     picker: {
       title: 'Add an installed app',
       intro:
@@ -289,13 +296,19 @@ export const en: Translation = {
       intro:
         'Apps open in a Tessera tab or in a block. A web app (website) has its own sign-in, kept between launches. An installed app (program on your PC) is shown with its real window.',
       installed: 'Installed app',
+      onQuit: {
+        label: 'When Tessera quits',
+        description: 'What happens to the installed apps shown in Tessera when you quit the app.',
+        close: 'Close them',
+        restore: 'Give them back to the desktop'
+      },
       addInstalledTitle: 'Add an installed app',
       installedIntro:
-        'Discord, Obsidian, your own programs… Their window is shown in Tessera, already signed in, with their notifications. Closing the tab or removing the block gives them their normal window back.',
+        'Discord, Obsidian, your own programs… Their window is shown in Tessera, already signed in, with their notifications. When larger than its block, it is cropped: drag the block bar to choose the visible part. Removing the block or closing the tab closes the app.',
       fromStartMenu: 'Choose from installed programs…',
       fromFile: 'Choose an .exe file…',
       deleteInstalledMessage:
-        'The app will disappear from Tessera and get its normal window back. The program itself is not uninstalled.',
+        'The app will disappear from Tessera and be closed. The program itself is not uninstalled.',
       openWith: 'Open with',
       tessera: 'Tessera (built-in tab)',
       browserHint:

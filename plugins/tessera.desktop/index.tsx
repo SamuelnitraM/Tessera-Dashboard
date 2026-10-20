@@ -12,6 +12,7 @@ export default definePlugin({
         'La vraie fenêtre de l’application s’affiche dans ce bloc : elle garde sa connexion, ses messages et ses notifications.',
       add: 'Ajouter une application installée…',
       change: 'Changer d’application',
+      takeOut: 'Sortir la fenêtre de Tessera (sur le bureau)',
       cancel: 'Annuler',
       missing: 'Cette application a été supprimée de Tessera.'
     },
@@ -21,6 +22,7 @@ export default definePlugin({
         'The app’s real window is shown in this block: it keeps its sign-in, messages and notifications.',
       add: 'Add an installed app…',
       change: 'Change app',
+      takeOut: 'Take the window out of Tessera (to the desktop)',
       cancel: 'Cancel',
       missing: 'This app was removed from Tessera.'
     }

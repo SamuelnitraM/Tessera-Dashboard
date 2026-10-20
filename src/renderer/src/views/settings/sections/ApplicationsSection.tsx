@@ -16,13 +16,15 @@ import type { UserApp } from '@shared/user-apps'
 import { normalizeWebUrl, OPEN_IN_TESSERA, WEB_APP_PRESETS, type WebApp } from '@shared/web-apps'
 import { AppIcon } from '../../../components/AppIcon'
 import { Button } from '../../../components/ui/Button'
+import { Select } from '../../../components/ui/Select'
+import { useDeleteApp } from '../../../hooks/useDeleteApp'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { useBrowsers } from '../../../hooks/useBrowsers'
 import { useNavigationStore } from '../../../stores/navigation'
 import { pickInstalledApp } from '../../../stores/programPicker'
 import { useSettingsStore } from '../../../stores/settings'
 import styles from '../settings.module.css'
-import { SettingsCard } from '../SettingRow'
+import { SettingRow, SettingsCard } from '../SettingRow'
 
 /**
  * Applications de l'utilisateur, dans l'ordre du menu latéral : applications web (sites) et
@@ -33,7 +35,6 @@ export function ApplicationsSection(): React.JSX.Element {
   const apps = useSettingsStore((state) => state.settings.apps.items)
   const update = useSettingsStore((state) => state.update)
   const navigate = useNavigationStore((state) => state.navigate)
-  const closeApp = useNavigationStore((state) => state.closeApp)
   const [toDelete, setToDelete] = useState<UserApp | null>(null)
   const [pickError, setPickError] = useState<string | null>(null)
   const browsers = useBrowsers()
@@ -62,13 +63,9 @@ export function ApplicationsSection(): React.JSX.Element {
     save(items)
   }
 
-  const deleteApp = async (app: UserApp): Promise<void> => {
-    closeApp(app.id)
-    // Une application installée retrouve sa fenêtre normale (processus principal)
-    save(apps.filter((item) => item.id !== app.id))
-    // Connexion, cookies et autorisations d'une application web sont effacés avec elle
-    if (app.kind === 'web') await window.tessera.web.clearAppData(app.id)
-  }
+  // Application installée fermée, connexion d'une application web effacée
+  const deleteApp = useDeleteApp()
+  const onQuit = useSettingsStore((state) => state.settings.apps.onQuit)
 
   /** Application installée choisie avec la fenêtre de sélection de Windows. */
   const pickExe = async (): Promise<void> => {
@@ -178,6 +175,25 @@ export function ApplicationsSection(): React.JSX.Element {
           ))}
         </ul>
       )}
+
+      <SettingsCard>
+        <SettingRow
+          label={t('settings.applications.onQuit.label')}
+          description={t('settings.applications.onQuit.description')}
+        >
+          {({ labelId }) => (
+            <Select
+              aria-labelledby={labelId}
+              value={onQuit}
+              onChange={(value) => void update({ apps: { onQuit: value } })}
+              options={[
+                { value: 'close', label: t('settings.applications.onQuit.close') },
+                { value: 'restore', label: t('settings.applications.onQuit.restore') }
+              ]}
+            />
+          )}
+        </SettingRow>
+      </SettingsCard>
 
       <SettingsCard title={t('settings.applications.addInstalledTitle')}>
         <p className={styles.cardIntro}>{t('settings.applications.installedIntro')}</p>

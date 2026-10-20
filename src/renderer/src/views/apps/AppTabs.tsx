@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ExternalLink,
   House,
+  LogOut,
   LoaderCircle,
   RotateCw,
   TriangleAlert,
@@ -13,7 +14,7 @@ import { useTranslation } from 'react-i18next'
 import type { DesktopApp } from '@shared/desktop-apps'
 import { appPartition, parseUnreadCount, type WebApp } from '@shared/web-apps'
 import { AppIcon } from '../../components/AppIcon'
-import { DesktopAppHost } from '../../components/desktop/DesktopAppHost'
+import { DesktopAppHost, type PanOffset } from '../../components/desktop/DesktopAppHost'
 import { WebFrame, type WebFrameHandle } from '../../components/web/WebFrame'
 import { useNavigationStore } from '../../stores/navigation'
 import { useSettingsStore } from '../../stores/settings'
@@ -158,6 +159,9 @@ function AppTab({ app, active }: { app: WebApp; active: boolean }): React.JSX.El
 function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): React.JSX.Element {
   const { t } = useTranslation()
   const closeApp = useNavigationStore((state) => state.closeApp)
+  // La barre de l'onglet sert de poignée pour déplacer le contenu d'une fenêtre rognée
+  const toolbar = useRef<HTMLElement>(null)
+  const [offset, setOffset] = useState<PanOffset>({ x: 0, y: 0 })
 
   return (
     <section
@@ -166,12 +170,17 @@ function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): R
       aria-hidden={!active}
       aria-label={app.name}
     >
-      <header className={styles.toolbar}>
+      <header ref={toolbar} className={styles.toolbar}>
         <div className={styles.address}>
           <AppIcon app={app} size={14} />
           <span className={styles.appName}>{app.name}</span>
           <span className={styles.host}>{app.processName}</span>
         </div>
+        <ToolbarButton
+          icon={LogOut}
+          label={t('desktopApps.takeOut')}
+          onClick={() => void window.tessera.desktopApps.takeOut(app.id)}
+        />
         <ToolbarButton
           icon={X}
           label={t('desktopApps.closeTab')}
@@ -179,7 +188,14 @@ function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): R
         />
       </header>
       <div className={styles.page}>
-        <DesktopAppHost app={app} hostId={`tab:${app.id}`} active={active} />
+        <DesktopAppHost
+          app={app}
+          hostId={`tab:${app.id}`}
+          active={active}
+          offset={offset}
+          onOffsetChange={setOffset}
+          panHandle={toolbar}
+        />
       </div>
     </section>
   )

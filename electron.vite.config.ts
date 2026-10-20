@@ -10,6 +10,16 @@ export default defineConfig({
   main: {
     resolve: {
       alias: { '@shared': resolve('src/shared') }
+    },
+    build: {
+      rolldownOptions: {
+        input: {
+          index: resolve('src/main/index.ts'),
+          // Hébergeur des cadres des applications installées (processus séparé) et son fil
+          'frame-host': resolve('src/main/frame-host/index.ts'),
+          'frame-worker': resolve('src/main/frame-host/worker.ts')
+        }
+      }
     }
   },
   preload: {

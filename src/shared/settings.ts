@@ -9,6 +9,7 @@ import {
   sanitizeNotificationSettings,
   type NotificationSettings
 } from './notifications'
+import { QUIT_MODES, type QuitMode } from './desktop-apps'
 import { sanitizeUserApps, type UserApp } from './user-apps'
 
 export const LANGUAGES = ['fr', 'en'] as const
@@ -54,6 +55,8 @@ export interface Settings {
   apps: {
     /** Applications web et installées (Discord…), dans l'ordre du menu latéral. */
     items: UserApp[]
+    /** À la fermeture de Tessera : fermer les applications installées, ou les rendre au bureau. */
+    onQuit: QuitMode
   }
   /** Notifications : bannières, sons, Ne pas déranger, réglages par source. */
   notifications: NotificationSettings
@@ -99,7 +102,8 @@ export const DEFAULT_SETTINGS: Settings = {
     disabled: []
   },
   apps: {
-    items: []
+    items: [],
+    onQuit: 'close'
   },
   notifications: DEFAULT_NOTIFICATION_SETTINGS
 }
@@ -157,7 +161,8 @@ export function sanitizeSettings(input: unknown): Settings {
         : defaults.plugins.disabled
     },
     apps: {
-      items: sanitizeUserApps(asRecord(root.apps).items)
+      items: sanitizeUserApps(asRecord(root.apps).items),
+      onQuit: pick(asRecord(root.apps).onQuit, QUIT_MODES, defaults.apps.onQuit)
     },
     notifications: sanitizeNotificationSettings(root.notifications)
   }

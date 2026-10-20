@@ -64,45 +64,6 @@ export function findFreeSpot(
   return null
 }
 
-/**
- * Agrandit les blocs plus petits que leur taille minimale (ex. application installée qui
- * impose sa taille), puis pousse vers le bas les blocs qu'ils recouvrent.
- * Renvoie `null` si aucun bloc n'est trop petit.
- */
-export function enforceMinSizes(
-  layout: readonly GridItem[],
-  minSizes: ReadonlyMap<string, GridSize>,
-  cols: number
-): GridItem[] | null {
-  const result = layout.map((item) => ({ ...item }))
-  const grown = new Set<string>()
-  for (const item of result) {
-    const min = minSizes.get(item.i)
-    if (!min) continue
-    const w = Math.min(cols, Math.max(item.w, min.w))
-    const h = Math.max(item.h, min.h)
-    if (w === item.w && h === item.h) continue
-    Object.assign(item, { w, h, x: Math.min(item.x, cols - w) })
-    grown.add(item.i)
-  }
-  if (grown.size === 0) return null
-
-  // Chaque collision descend un bloc sous l'autre : la boucle se termine forcément
-  for (let moved = true; moved;) {
-    moved = false
-    for (const a of result) {
-      for (const b of result) {
-        if (a === b || !collides(a, b)) continue
-        const lower = grown.has(a.i) && !grown.has(b.i) ? b : grown.has(b.i) ? a : a.y > b.y ? a : b
-        const upper = lower === a ? b : a
-        lower.y = upper.y + upper.h
-        moved = true
-      }
-    }
-  }
-  return result
-}
-
 /** Ne garde que x, y, w, h (la grille ajoute ses propres champs : minW, moved…). */
 export function normalizeLayout(layout: readonly GridItem[]): GridItem[] {
   return layout.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))

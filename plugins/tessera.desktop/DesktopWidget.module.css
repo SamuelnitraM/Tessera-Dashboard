@@ -17,6 +17,15 @@
   font-weight: 600;
 }
 
+/* Fenêtre rognée : la barre se glisse pour choisir la partie affichée */
+.header[data-pan='true'] {
+  cursor: grab;
+}
+
+.header[data-pan='true']:active {
+  cursor: grabbing;
+}
+
 .header img {
   flex-shrink: 0;
   object-fit: contain;
