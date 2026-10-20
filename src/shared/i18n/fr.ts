@@ -187,6 +187,31 @@ export const fr = {
     error: 'Ce bloc a rencontré une erreur.',
     retry: 'Réessayer'
   },
+  mail: {
+    oauth: {
+      successTitle: 'Connexion réussie',
+      successText: 'Tu peux fermer cet onglet et revenir dans Tessera.',
+      failedTitle: 'Connexion impossible',
+      failedText: 'La connexion a été refusée ou annulée. Reviens dans Tessera pour réessayer.'
+    },
+    newMessages: '{{count}} nouveaux mails',
+    providers: {
+      gmail: 'Gmail',
+      outlook: 'Outlook',
+      imap: 'IMAP'
+    },
+    errors: {
+      'not-configured': 'Identifiant de connexion manquant : renseigne-le dans Paramètres → Mails.',
+      auth: 'Connexion refusée ou expirée : reconnecte le compte.',
+      cancelled: 'Connexion annulée.',
+      network: 'Serveur injoignable. Vérifie ta connexion à internet.',
+      'not-found': 'Mail ou compte introuvable.',
+      'no-folder': 'Dossier introuvable sur le serveur (Archives ou Corbeille).',
+      permission: 'Ce widget n’a pas accès aux mails.',
+      invalid: 'Informations invalides.',
+      unknown: 'Erreur inattendue.'
+    }
+  },
   settings: {
     title: 'Paramètres',
     sections: {
@@ -195,6 +220,7 @@ export const fr = {
       appearance: 'Apparence',
       notifications: 'Notifications',
       applications: 'Applications',
+      mail: 'Mails',
       about: 'À propos'
     },
     language: {
@@ -337,6 +363,67 @@ export const fr = {
       deleteMessage:
         'L’application disparaîtra de Tessera, et sa connexion (cookies, données enregistrées) sera effacée.'
     },
+    mail: {
+      intro:
+        'Tes boîtes mail dans des blocs « Mails » : Gmail et Outlook par leur connexion officielle, les autres fournisseurs par IMAP. Jetons de connexion et mots de passe sont chiffrés par Windows et ne sont envoyés qu’à ton fournisseur.',
+      accountsTitle: 'Comptes',
+      noAccounts: 'Aucun compte pour l’instant.',
+      addGmail: 'Ajouter Gmail',
+      addOutlook: 'Ajouter Outlook',
+      addImap: 'Ajouter un compte IMAP…',
+      needsGoogle: 'Gmail : renseigne d’abord ton identifiant Google (plus bas).',
+      needsMicrosoft: 'Outlook : renseigne d’abord ton identifiant Microsoft (plus bas).',
+      connecting: 'Connexion en cours dans ton navigateur…',
+      cancel: 'Annuler',
+      reconnect: 'Reconnecter',
+      remove: 'Supprimer le compte',
+      name: 'Nom affiché',
+      unread: '{{count}} non lus',
+      removeTitle: 'Supprimer « {{name}} » ?',
+      removeMessage:
+        'Le compte disparaîtra de Tessera et sa connexion sera effacée. Tes mails restent chez ton fournisseur.',
+      notificationsHint:
+        'Les notifications de chaque compte se règlent dans Paramètres → Notifications.',
+      googleTitle: 'Identifiant Google (Gmail)',
+      googleIntro:
+        'Google demande à chacun de créer son propre identifiant de connexion : c’est gratuit et prend cinq minutes. Suis le guide, puis colle ici l’ID client et le code secret du client.',
+      microsoftTitle: 'Identifiant Microsoft (Outlook)',
+      microsoftIntro:
+        'Crée une application gratuite dans Microsoft Entra en suivant le guide, puis colle ici son ID d’application (client).',
+      clientId: 'ID client',
+      clientSecret: 'Code secret du client',
+      applicationId: 'ID d’application (client)',
+      secretSaved: 'Enregistré (chiffré)',
+      secretPlaceholder: 'Coller le code secret',
+      save: 'Enregistrer',
+      clearSecret: 'Effacer',
+      guide: 'Ouvrir le guide',
+      checkTitle: 'Vérification',
+      checkMinutes: {
+        label: 'Nouveaux mails',
+        description: 'Fréquence de vérification des boîtes de réception.',
+        option: 'Toutes les {{count}} min'
+      },
+      imap: {
+        title: 'Ajouter un compte IMAP',
+        reconnectTitle: 'Reconnecter « {{name}} »',
+        provider: 'Fournisseur',
+        custom: 'Autre (réglages manuels)',
+        address: 'Adresse mail',
+        name: 'Nom affiché (facultatif)',
+        username: 'Identifiant (souvent l’adresse)',
+        password: 'Mot de passe',
+        passwordHint:
+          'Gmail, Yahoo, iCloud… demandent un « mot de passe d’application », créé dans les réglages de sécurité du compte.',
+        incoming: 'Réception (IMAP)',
+        outgoing: 'Envoi (SMTP)',
+        host: 'Serveur',
+        port: 'Port',
+        secure: 'SSL/TLS',
+        checking: 'Vérification des serveurs…',
+        add: 'Vérifier et ajouter'
+      }
+    },
     extensions: {
       intro:
         'Les widgets sont fournis avec Tessera ; les modules sont développés par d’autres et ajoutent leurs propres blocs. Désactivé, un widget ou un module disparaît de la liste d’ajout ; ses blocs déjà placés restent en attente sur tes pages.',
@@ -350,7 +437,8 @@ export const fr = {
       processesPermission: 'Peut lancer et arrêter les programmes que tu choisis toi-même',
       webPermission: 'Peut afficher des pages web',
       appsPermission: 'Peut afficher la fenêtre de tes applications installées',
-      notificationsPermission: 'Peut t’envoyer des notifications'
+      notificationsPermission: 'Peut t’envoyer des notifications',
+      mailPermission: 'Peut lire, classer et envoyer les mails de tes comptes'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

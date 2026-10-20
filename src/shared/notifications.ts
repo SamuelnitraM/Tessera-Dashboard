@@ -13,6 +13,7 @@
  * - `app:<id>` : une application web de l'utilisateur
  * - `web` : une page web hors application (bloc « Application web » vers un autre site)
  * - `plugin:<id>` : un widget ou un module
+ * - `mail:<id>` : un compte mail (nouveaux mails)
  * - `tessera` : Tessera elle-même (notification de test…)
  */
 export type NotificationSource = string
@@ -101,6 +102,8 @@ export interface TesseraNotification {
   createdAt: number
   read: boolean
   priority: NotificationPriority
+  /** Ce que le clic ouvre dans la source (ex. identifiant d'un mail), ou `null`. */
+  target: string | null
 }
 
 /** Ce qu'un widget, un module ou une page web demande d'afficher. */
@@ -111,6 +114,8 @@ export interface NotifyInput {
   icon?: string | null
   /** Une notification avec la même étiquette remplace la précédente (même source). */
   tag?: string
+  /** Ce que le clic ouvre dans la source (sources internes de Tessera). */
+  target?: string
 }
 
 /** Nombre maximal de notifications gardées dans l'historique. */
@@ -154,7 +159,7 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {}
 }
 
-const SOURCE = /^(tessera|web|app:[a-z0-9-]{1,64}|plugin:[a-z0-9.-]{1,64})$/
+const SOURCE = /^(tessera|web|app:[a-z0-9-]{1,64}|plugin:[a-z0-9.-]{1,64}|mail:[a-z0-9-]{1,64})$/
 const SOUND = /^(system|none|chime|pop|bell|custom:[a-z0-9-]{1,64})$/
 
 const isSound = (value: unknown): value is SoundId => typeof value === 'string' && SOUND.test(value)
@@ -249,7 +254,8 @@ export function sanitizeNotifications(input: unknown): TesseraNotification[] {
           : null,
       createdAt: item.createdAt,
       read: item.read === true,
-      priority: item.priority === 'high' ? 'high' : 'normal'
+      priority: item.priority === 'high' ? 'high' : 'normal',
+      target: typeof item.target === 'string' ? item.target.slice(0, 500) : null
     })
   }
   return result.sort((a, b) => b.createdAt - a.createdAt).slice(0, MAX_NOTIFICATIONS)

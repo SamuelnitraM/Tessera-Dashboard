@@ -1,0 +1,115 @@
+import { simpleParser, type AddressObject, type ParsedMail } from 'mailparser'
+import MailComposer from 'nodemailer/lib/mail-composer'
+import type { MailAddress, MailAttachment, MailDraft, MailMessage, MailSummary } from '@shared/mail'
+
+/**
+ * Format des mails (MIME) : lecture d'un mail brut (Gmail, Outlook et IMAP le donnent tous
+ * ainsi) et composition d'un mail à envoyer.
+ */
+
+const MAX_TEXT = 500_000
+
+function addresses(value: AddressObject | AddressObject[] | undefined): MailAddress[] {
+  const list = Array.isArray(value) ? value : value ? [value] : []
+  return list.flatMap((group) =>
+    group.value.flatMap((entry) =>
+      entry.group
+        ? entry.group.map((member) => ({ name: member.name, address: member.address ?? '' }))
+        : [{ name: entry.name, address: entry.address ?? '' }]
+    )
+  )
+}
+
+/** Pièces jointes à lister : les images intégrées au texte (`cid:`) n'en font pas partie. */
+const listedAttachments = (mail: ParsedMail): ParsedMail['attachments'] =>
+  mail.attachments.filter((attachment) => !attachment.related)
+
+export const parseRaw = (raw: Buffer): Promise<ParsedMail> =>
+  simpleParser(raw, { skipTextToHtml: true })
+
+/** Mail brut -> mail à lire. `known` : ce que le fournisseur sait déjà (lu, fil…). */
+export async function toMessage(
+  raw: Buffer,
+  known: Pick<MailSummary, 'id' | 'threadId' | 'unread'> & { date?: number }
+): Promise<MailMessage> {
+  const mail = await parseRaw(raw)
+  const from = addresses(mail.from)[0] ?? { name: '', address: '' }
+  const text = (mail.text ?? '').slice(0, MAX_TEXT)
+  const attachments: MailAttachment[] = listedAttachments(mail).map((attachment, index) => ({
+    index,
+    filename: attachment.filename || `piece-jointe-${index + 1}`,
+    contentType: attachment.contentType,
+    size: attachment.size
+  }))
+  const references = Array.isArray(mail.references)
+    ? mail.references
+    : mail.references
+      ? [mail.references]
+      : []
+  return {
+    ...known,
+    from,
+    subject: mail.subject ?? '',
+    snippet: text.replace(/\s+/g, ' ').trim().slice(0, 200),
+    date: known.date ?? mail.date?.getTime() ?? Date.now(),
+    hasAttachments: attachments.length > 0,
+    to: addresses(mail.to),
+    cc: addresses(mail.cc),
+    replyTo: addresses(mail.replyTo),
+    html: typeof mail.html === 'string' ? mail.html : null,
+    text,
+    attachments,
+    messageId: mail.messageId ?? null,
+    references
+  }
+}
+
+/** Toutes les pièces jointes listées d'un mail (transfert). */
+export async function extractAttachments(
+  raw: Buffer
+): Promise<{ filename: string; content: Buffer; contentType: string }[]> {
+  return listedAttachments(await parseRaw(raw)).map((attachment, index) => ({
+    filename: attachment.filename || `piece-jointe-${index + 1}`,
+    content: attachment.content,
+    contentType: attachment.contentType
+  }))
+}
+
+/** Contenu d'une pièce jointe (index de `MailMessage.attachments`). */
+export async function extractAttachment(
+  raw: Buffer,
+  index: number
+): Promise<{ filename: string; content: Buffer } | null> {
+  const attachment = listedAttachments(await parseRaw(raw))[index]
+  if (!attachment) return null
+  return {
+    filename: attachment.filename || `piece-jointe-${index + 1}`,
+    content: attachment.content
+  }
+}
+
+/** Mail à envoyer, au format brut. `keepBcc` : le fournisseur lit lui-même l'en-tête Cci. */
+export async function compose(
+  draft: MailDraft,
+  from: MailAddress,
+  files: ({ filename: string; path: string } | { filename: string; content: Buffer })[],
+  keepBcc: boolean
+): Promise<Buffer> {
+  const reply = draft.replyTo
+  const node = new MailComposer({
+    from: { name: from.name, address: from.address },
+    to: draft.to || undefined,
+    cc: draft.cc || undefined,
+    bcc: draft.bcc || undefined,
+    subject: draft.subject,
+    text: draft.text,
+    html: draft.html || undefined,
+    inReplyTo: reply?.messageId ?? undefined,
+    references: reply
+      ? [...reply.references, ...(reply.messageId ? [reply.messageId] : [])]
+      : undefined,
+    attachments: files
+  }).compile()
+  node.keepBcc = keepBcc
+  return node.build()
+}

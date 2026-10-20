@@ -182,6 +182,31 @@ export const en: Translation = {
     error: 'This block ran into an error.',
     retry: 'Try again'
   },
+  mail: {
+    oauth: {
+      successTitle: 'Signed in',
+      successText: 'You can close this tab and go back to Tessera.',
+      failedTitle: 'Sign-in failed',
+      failedText: 'Sign-in was denied or cancelled. Go back to Tessera to try again.'
+    },
+    newMessages: '{{count}} new emails',
+    providers: {
+      gmail: 'Gmail',
+      outlook: 'Outlook',
+      imap: 'IMAP'
+    },
+    errors: {
+      'not-configured': 'Sign-in ID missing: enter it in Settings → Email.',
+      auth: 'Sign-in denied or expired: reconnect the account.',
+      cancelled: 'Sign-in cancelled.',
+      network: 'Server unreachable. Check your internet connection.',
+      'not-found': 'Email or account not found.',
+      'no-folder': 'Folder not found on the server (Archive or Trash).',
+      permission: 'This widget has no access to email.',
+      invalid: 'Invalid information.',
+      unknown: 'Unexpected error.'
+    }
+  },
   settings: {
     title: 'Settings',
     sections: {
@@ -190,6 +215,7 @@ export const en: Translation = {
       appearance: 'Appearance',
       notifications: 'Notifications',
       applications: 'Apps',
+      mail: 'Email',
       about: 'About'
     },
     language: {
@@ -330,6 +356,66 @@ export const en: Translation = {
       deleteMessage:
         'The app will be removed from Tessera, and its sign-in (cookies, saved data) will be erased.'
     },
+    mail: {
+      intro:
+        'Your mailboxes in “Email” blocks: Gmail and Outlook through their official sign-in, other providers through IMAP. Sign-in tokens and passwords are encrypted by Windows and only ever sent to your provider.',
+      accountsTitle: 'Accounts',
+      noAccounts: 'No account yet.',
+      addGmail: 'Add Gmail',
+      addOutlook: 'Add Outlook',
+      addImap: 'Add an IMAP account…',
+      needsGoogle: 'Gmail: first enter your Google ID (below).',
+      needsMicrosoft: 'Outlook: first enter your Microsoft ID (below).',
+      connecting: 'Signing in through your browser…',
+      cancel: 'Cancel',
+      reconnect: 'Reconnect',
+      remove: 'Remove account',
+      name: 'Display name',
+      unread: '{{count}} unread',
+      removeTitle: 'Remove “{{name}}”?',
+      removeMessage:
+        'The account will disappear from Tessera and its sign-in will be erased. Your emails stay with your provider.',
+      notificationsHint: 'Notifications of each account are set in Settings → Notifications.',
+      googleTitle: 'Google ID (Gmail)',
+      googleIntro:
+        'Google asks everyone to create their own sign-in ID: it is free and takes five minutes. Follow the guide, then paste the client ID and client secret here.',
+      microsoftTitle: 'Microsoft ID (Outlook)',
+      microsoftIntro:
+        'Create a free application in Microsoft Entra by following the guide, then paste its application (client) ID here.',
+      clientId: 'Client ID',
+      clientSecret: 'Client secret',
+      applicationId: 'Application (client) ID',
+      secretSaved: 'Saved (encrypted)',
+      secretPlaceholder: 'Paste the client secret',
+      save: 'Save',
+      clearSecret: 'Clear',
+      guide: 'Open the guide',
+      checkTitle: 'Checking',
+      checkMinutes: {
+        label: 'New emails',
+        description: 'How often inboxes are checked.',
+        option: 'Every {{count}} min'
+      },
+      imap: {
+        title: 'Add an IMAP account',
+        reconnectTitle: 'Reconnect “{{name}}”',
+        provider: 'Provider',
+        custom: 'Other (manual settings)',
+        address: 'Email address',
+        name: 'Display name (optional)',
+        username: 'Username (often the address)',
+        password: 'Password',
+        passwordHint:
+          'Gmail, Yahoo, iCloud… require an “app password”, created in the account’s security settings.',
+        incoming: 'Incoming (IMAP)',
+        outgoing: 'Outgoing (SMTP)',
+        host: 'Server',
+        port: 'Port',
+        secure: 'SSL/TLS',
+        checking: 'Checking the servers…',
+        add: 'Check and add'
+      }
+    },
     extensions: {
       intro:
         'Widgets come with Tessera; modules are made by others and add their own blocks. When disabled, a widget or module disappears from the add list; its blocks already placed stay on hold on your pages.',
@@ -343,7 +429,8 @@ export const en: Translation = {
       processesPermission: 'Can start and stop the programs you choose yourself',
       webPermission: 'Can show web pages',
       appsPermission: 'Can show the window of your installed apps',
-      notificationsPermission: 'Can send you notifications'
+      notificationsPermission: 'Can send you notifications',
+      mailPermission: 'Can read, sort and send the emails of your accounts'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

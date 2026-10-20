@@ -95,6 +95,7 @@ Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peu
 | `web`           | Afficher des pages web (composant `WebView`), isolées de Tessera, avec la session partagée des pages web ou celle d'une application de l'utilisateur                | `"permissions": ["web"]`                                   |
 | `notifications` | Envoyer des notifications (`useNotifications`), soumises aux réglages de l'utilisateur (par extension) et à Ne pas déranger                                         | `"permissions": ["notifications"]`                         |
 | `apps`          | Afficher la fenêtre d'une application installée de l'utilisateur (composant `InstalledAppView`), **uniquement** parmi celles qu'il a ajoutées à Tessera             | `"permissions": ["apps"]`                                  |
+| `mail`          | Lire, classer et envoyer les mails des comptes de l'utilisateur (`useMail`). Jamais ses jetons ni ses mots de passe, qui restent dans le processus principal        | `"permissions": ["mail"]`                                  |
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -152,6 +153,7 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous     |
 | `useNotifications()`                                                        | Notifications (permission `notifications`), voir ci-dessous                                    |
 | `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                       |
+| `useMail()`, `useMailAccounts()`                                            | Mails des comptes de l'utilisateur (permission `mail`), voir ci-dessous                        |
 | `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
 | `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
 | `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                        |
@@ -268,6 +270,38 @@ Une fenêtre rognée a aussi ses barres de défilement dans l'emplacement, et le
 `takeOutInstalledApp(appId)` sort la fenêtre de Tessera (sur le bureau). Quand plus aucun emplacement n'affiche l'application (bloc retiré, onglet fermé), Tessera la ferme.
 
 Une application ne s'affiche qu'à un endroit à la fois : un deuxième emplacement propose « L'afficher ici ». Une extension ne peut ni ajouter de programme sans passer par la fenêtre d'ajout (choix de l'utilisateur), ni changer le programme lancé. L'extension **Application installée** (`plugins/tessera.desktop`) est un exemple complet.
+
+### Mails (`useMail`)
+
+Avec la permission `mail`, une extension accède aux comptes ajoutés par l'utilisateur dans Paramètres → Mails :
+
+```tsx
+const { accounts, states } = useMailAccounts() // comptes, non lus et erreur de connexion
+const mail = useMail()
+const page = await mail.list(accountId) // boîte de réception ; page.next pour la suite
+const message = await mail.get(accountId, page.messages[0].id)
+await mail.act(accountId, message.id, 'archive') // 'read', 'unread', 'archive', 'trash'
+await mail.send(accountId, {
+  to: 'a@b.fr',
+  cc: '',
+  bcc: '',
+  subject: 'Bonjour',
+  html: '<p>…</p>',
+  text: '…',
+  attachments: []
+})
+```
+
+| Fonction                                                              | Rôle                                                                                                 |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `list`, `get`, `act`, `send`                                          | Boîte de réception, mail complet, classement, envoi (réponse : `replyTo`, transfert : `forwardFrom`) |
+| `pickUploads()`                                                       | Fichiers à joindre, choisis par l'utilisateur                                                        |
+| `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                           |
+| `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                     |
+| `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée                           |
+| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Mails ; message d'erreur traduit                                                        |
+
+Le HTML d'un mail (`message.html`) n'est **pas nettoyé** : l'afficher sans précaution exposerait Tessera. L'extension **Mails** (`plugins/tessera.mail`) montre comment le nettoyer (DOMPurify) et l'isoler dans un cadre sans scripts, images distantes bloquées. Les notifications des nouveaux mails sont envoyées par Tessera elle-même (source par compte).
 
 ### Bonnes pratiques
 

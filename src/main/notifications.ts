@@ -180,7 +180,8 @@ export async function notify(
     icon: await loadIcon(input.icon, page?.contents),
     createdAt: Date.now(),
     read: false,
-    priority: own.priority
+    priority: own.priority,
+    target: typeof input.target === 'string' ? input.target.slice(0, 500) : null
   }
 
   // Même étiquette : la précédente disparaît (ex. compteur de messages mis à jour)

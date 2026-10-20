@@ -1,0 +1,36 @@
+{
+  "id": "tessera.mail",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Mails", "en": "Email" },
+  "description": {
+    "fr": "Ta boîte de réception Gmail, Outlook ou IMAP : lire, classer, écrire et répondre.",
+    "en": "Your Gmail, Outlook or IMAP inbox: read, sort, write and reply."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["mail"],
+  "widgets": [
+    {
+      "type": "inbox",
+      "name": { "fr": "Mails", "en": "Email" },
+      "description": {
+        "fr": "La boîte de réception d’un compte, avec lecture et écriture des mails.",
+        "en": "An account’s inbox, to read and write emails."
+      },
+      "icon": "mail",
+      "defaultSize": { "w": 8, "h": 6 },
+      "minSize": { "w": 4, "h": 3 },
+      "settings": [
+        {
+          "key": "remoteImages",
+          "type": "boolean",
+          "label": {
+            "fr": "Toujours afficher les images des mails (l’expéditeur peut savoir que tu l’as ouvert)",
+            "en": "Always show images in emails (the sender may learn that you opened it)"
+          },
+          "default": false
+        }
+      ]
+    }
+  ]
+}

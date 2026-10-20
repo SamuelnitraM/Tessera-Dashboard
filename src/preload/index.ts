@@ -3,6 +3,16 @@ import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type {
+  ImapAccountInput,
+  MailAccount,
+  MailAccountState,
+  MailAction,
+  MailDraft,
+  MailMessage,
+  MailPage,
+  MailUpload
+} from '@shared/mail'
+import type {
   DesktopApp,
   DesktopAppPan,
   DesktopAppSnapshot,
@@ -180,6 +190,55 @@ const api = {
     },
     onActivated: (callback: (notification: TesseraNotification) => void) =>
       subscribe(IpcChannels.notificationsActivated, callback)
+  },
+  /** Mails : comptes (Paramètres) et mails des widgets (permission `mail`). */
+  mail: {
+    getConfig: (): Promise<{ googleSecretSet: boolean }> =>
+      ipcRenderer.invoke(IpcChannels.mailGetConfig),
+    setGoogleSecret: (secret: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailSetGoogleSecret, secret),
+    connectOAuth: (provider: 'gmail' | 'outlook', reconnectId?: string): Promise<MailAccount> =>
+      ipcRenderer.invoke(IpcChannels.mailConnectOAuth, provider, reconnectId),
+    cancelConnect: (): Promise<void> => ipcRenderer.invoke(IpcChannels.mailCancelConnect),
+    addImap: (input: ImapAccountInput, reconnectId?: string): Promise<MailAccount> =>
+      ipcRenderer.invoke(IpcChannels.mailAddImap, input, reconnectId),
+    removeAccount: (accountId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailRemoveAccount, accountId),
+    getStates: (): Promise<Record<string, MailAccountState>> =>
+      ipcRenderer.invoke(IpcChannels.mailGetStates),
+    list: (pluginId: string, accountId: string, page: string | null): Promise<MailPage> =>
+      ipcRenderer.invoke(IpcChannels.mailList, pluginId, accountId, page),
+    get: (pluginId: string, accountId: string, id: string): Promise<MailMessage> =>
+      ipcRenderer.invoke(IpcChannels.mailGet, pluginId, accountId, id),
+    act: (pluginId: string, accountId: string, id: string, action: MailAction): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailAct, pluginId, accountId, id, action),
+    send: (pluginId: string, accountId: string, draft: MailDraft): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailSend, pluginId, accountId, draft),
+    pickUploads: (pluginId: string): Promise<MailUpload[]> =>
+      ipcRenderer.invoke(IpcChannels.mailPickUploads, pluginId),
+    saveAttachment: (
+      pluginId: string,
+      accountId: string,
+      id: string,
+      index: number
+    ): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.mailSaveAttachment, pluginId, accountId, id, index),
+    checkNow: (pluginId: string, accountId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailCheckNow, pluginId, accountId),
+    reconnect: (pluginId: string, accountId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailReconnect, pluginId, accountId),
+    openLink: (pluginId: string, url: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mailOpenLink, pluginId, url),
+    onChange: (callback: (accountId: string, state: MailAccountState, fresh: boolean) => void) => {
+      const listener = (
+        _event: IpcRendererEvent,
+        accountId: string,
+        state: MailAccountState,
+        fresh: boolean
+      ): void => callback(accountId, state, fresh)
+      ipcRenderer.on(IpcChannels.mailChanged, listener)
+      return () => ipcRenderer.removeListener(IpcChannels.mailChanged, listener)
+    }
   },
   /** Navigateurs installés sur le PC. */
   browsers: {

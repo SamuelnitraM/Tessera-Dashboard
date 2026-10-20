@@ -7,6 +7,7 @@ import {
   WEB_SOURCE,
   type NotificationSource
 } from '@shared/notifications'
+import { mailSource } from '@shared/mail'
 import { localize } from '@shared/plugins'
 import { getPlugins } from '../plugins/registry'
 import { useResolvedLanguage, useSettingsStore } from '../stores/settings'
@@ -21,8 +22,8 @@ export interface SourceInfo {
 }
 
 /**
- * Sources de notifications (nom et icône) : applications web, pages web, widgets et modules
- * autorisés, et Tessera.
+ * Sources de notifications (nom et icône) : applications web, pages web, comptes mail,
+ * widgets et modules autorisés, et Tessera.
  */
 export function useNotificationSources(): {
   sources: SourceInfo[]
@@ -31,6 +32,7 @@ export function useNotificationSources(): {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
   const apps = useSettingsStore((state) => state.settings.apps.items)
+  const mailAccounts = useSettingsStore((state) => state.settings.mail.accounts)
 
   const sources = useMemo<SourceInfo[]>(() => {
     const list: SourceInfo[] = apps
@@ -47,6 +49,15 @@ export function useNotificationSources(): {
       icon: null,
       pluginIcon: 'globe'
     })
+    // Chaque compte mail est une source (nouveaux mails)
+    for (const account of mailAccounts) {
+      list.push({
+        source: mailSource(account.id),
+        name: account.name,
+        icon: null,
+        pluginIcon: 'mail'
+      })
+    }
     for (const plugin of getPlugins()) {
       if (!plugin.manifest?.permissions.includes('notifications')) continue
       list.push({
@@ -63,7 +74,7 @@ export function useNotificationSources(): {
       pluginIcon: null
     })
     return list
-  }, [apps, language, t])
+  }, [apps, mailAccounts, language, t])
 
   const describe = useCallback(
     (source: NotificationSource): SourceInfo =>

@@ -6,6 +6,7 @@ export const SETTINGS_SECTIONS = [
   'appearance',
   'notifications',
   'applications',
+  'mail',
   'extensions',
   'about'
 ] as const

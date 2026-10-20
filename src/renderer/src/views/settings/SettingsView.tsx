@@ -1,4 +1,4 @@
-import { Bell, Info, LayoutGrid, Palette, Puzzle, SlidersHorizontal } from 'lucide-react'
+import { Bell, Info, LayoutGrid, Mail, Palette, Puzzle, SlidersHorizontal } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '../../components/PageHeader'
@@ -12,6 +12,7 @@ import { AppearanceSection } from './sections/AppearanceSection'
 import { ApplicationsSection } from './sections/ApplicationsSection'
 import { ExtensionsSection } from './sections/ExtensionsSection'
 import { GeneralSection } from './sections/GeneralSection'
+import { MailSection } from './sections/MailSection'
 import { NotificationsSection } from './sections/NotificationsSection'
 import styles from './settings.module.css'
 
@@ -20,6 +21,7 @@ const SECTION_ICONS: Record<SettingsSection, LucideIcon> = {
   appearance: Palette,
   notifications: Bell,
   applications: LayoutGrid,
+  mail: Mail,
   extensions: Puzzle,
   about: Info
 }
@@ -62,6 +64,7 @@ export function SettingsView({ section }: SettingsViewProps): React.JSX.Element 
           {section === 'appearance' && <AppearanceSection />}
           {section === 'notifications' && <NotificationsSection />}
           {section === 'applications' && <ApplicationsSection />}
+          {section === 'mail' && <MailSection />}
           {section === 'extensions' && <ExtensionsSection />}
           {section === 'about' && <AboutSection />}
         </div>

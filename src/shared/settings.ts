@@ -10,6 +10,7 @@ import {
   type NotificationSettings
 } from './notifications'
 import { QUIT_MODES, type QuitMode } from './desktop-apps'
+import { DEFAULT_MAIL_SETTINGS, sanitizeMailSettings, type MailSettings } from './mail'
 import { sanitizeUserApps, type UserApp } from './user-apps'
 
 export const LANGUAGES = ['fr', 'en'] as const
@@ -60,6 +61,8 @@ export interface Settings {
   }
   /** Notifications : bannières, sons, Ne pas déranger, réglages par source. */
   notifications: NotificationSettings
+  /** Mails : identifiants de connexion Google et Microsoft, comptes, vérification. */
+  mail: MailSettings
 }
 
 type SettingsSections = Omit<Settings, 'schemaVersion'>
@@ -105,7 +108,8 @@ export const DEFAULT_SETTINGS: Settings = {
     items: [],
     onQuit: 'close'
   },
-  notifications: DEFAULT_NOTIFICATION_SETTINGS
+  notifications: DEFAULT_NOTIFICATION_SETTINGS,
+  mail: DEFAULT_MAIL_SETTINGS
 }
 
 export function isHexColor(value: unknown): value is HexColor {
@@ -164,7 +168,8 @@ export function sanitizeSettings(input: unknown): Settings {
       items: sanitizeUserApps(asRecord(root.apps).items),
       onQuit: pick(asRecord(root.apps).onQuit, QUIT_MODES, defaults.apps.onQuit)
     },
-    notifications: sanitizeNotificationSettings(root.notifications)
+    notifications: sanitizeNotificationSettings(root.notifications),
+    mail: sanitizeMailSettings(root.mail)
   }
 }
 
@@ -177,7 +182,8 @@ export function applySettingsPatch(current: Settings, patch: SettingsPatch): Set
     window: { ...current.window, ...patch.window },
     plugins: { ...current.plugins, ...patch.plugins },
     apps: { ...current.apps, ...patch.apps },
-    notifications: { ...current.notifications, ...patch.notifications }
+    notifications: { ...current.notifications, ...patch.notifications },
+    mail: { ...current.mail, ...patch.mail }
   })
 }
 

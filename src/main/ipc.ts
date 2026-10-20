@@ -54,6 +54,26 @@ import {
   startProcess,
   stopProcess
 } from './plugins/processes'
+import {
+  actOnMessage,
+  addImapAccount,
+  cancelConnect,
+  checkNow,
+  connectOAuthAccount,
+  getAccountStates,
+  getMailConfig,
+  getMessage,
+  listMessages,
+  openMailLink,
+  pickUploads,
+  protectMailAccounts,
+  reconnectFromPlugin,
+  removeAccount,
+  saveAttachment,
+  sendMessage,
+  setGoogleClientSecret
+} from './mail'
+import type { ImapAccountInput, MailAction, MailDraft } from '@shared/mail'
 import { getSettings, updateSettings } from './settings-store'
 import { getSystemPreferences } from './system'
 import { clearAppData, fetchSiteIcon, resetAppPermissions } from './web'
@@ -77,7 +97,7 @@ export function registerIpcHandlers(): void {
   // Le patch vient de l'interface : il est entièrement revalidé par `updateSettings`, et ne
   // peut pas changer le programme lancé par une application installée
   ipcMain.handle(IpcChannels.settingsUpdate, (_event, patch: SettingsPatch) =>
-    updateSettings(protectDesktopApps(patch))
+    updateSettings(protectMailAccounts(protectDesktopApps(patch)))
   )
 
   ipcMain.handle(IpcChannels.dashboardGet, () => getDashboard())
@@ -198,6 +218,65 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.notificationsBannersBlocked, () => areBannersBlocked())
   ipcMain.handle(IpcChannels.notificationsOpenSystemSettings, () =>
     openSystemNotificationSettings()
+  )
+
+  // Mails : comptes (Paramètres), puis mails des widgets (permission `mail`, vérifiée)
+  ipcMain.handle(IpcChannels.mailGetConfig, () => getMailConfig())
+  ipcMain.handle(IpcChannels.mailSetGoogleSecret, (_event, secret: string) =>
+    setGoogleClientSecret(secret)
+  )
+  ipcMain.handle(
+    IpcChannels.mailConnectOAuth,
+    (_event, provider: 'gmail' | 'outlook', reconnectId?: string) => {
+      if (provider !== 'gmail' && provider !== 'outlook') throw new Error('mail-error:invalid')
+      return connectOAuthAccount(
+        provider,
+        typeof reconnectId === 'string' ? reconnectId : undefined
+      )
+    }
+  )
+  ipcMain.handle(IpcChannels.mailCancelConnect, () => cancelConnect())
+  ipcMain.handle(IpcChannels.mailAddImap, (_event, input: ImapAccountInput, reconnectId?: string) =>
+    addImapAccount(input, typeof reconnectId === 'string' ? reconnectId : undefined)
+  )
+  ipcMain.handle(IpcChannels.mailRemoveAccount, (_event, accountId: string) =>
+    removeAccount(accountId)
+  )
+  ipcMain.handle(IpcChannels.mailGetStates, () => getAccountStates())
+  ipcMain.handle(
+    IpcChannels.mailList,
+    (_event, pluginId: string, accountId: string, page: string | null) =>
+      listMessages(pluginId, accountId, page)
+  )
+  ipcMain.handle(IpcChannels.mailGet, (_event, pluginId: string, accountId: string, id: string) =>
+    getMessage(pluginId, accountId, id)
+  )
+  ipcMain.handle(
+    IpcChannels.mailAct,
+    (_event, pluginId: string, accountId: string, id: string, action: MailAction) =>
+      actOnMessage(pluginId, accountId, id, action)
+  )
+  ipcMain.handle(
+    IpcChannels.mailSend,
+    (_event, pluginId: string, accountId: string, draft: MailDraft) =>
+      sendMessage(pluginId, accountId, draft)
+  )
+  ipcMain.handle(IpcChannels.mailPickUploads, (event, pluginId: string) =>
+    pickUploads(pluginId, BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle(
+    IpcChannels.mailSaveAttachment,
+    (event, pluginId: string, accountId: string, id: string, index: number) =>
+      saveAttachment(pluginId, accountId, id, index, BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle(IpcChannels.mailCheckNow, (_event, pluginId: string, accountId: string) =>
+    checkNow(pluginId, accountId)
+  )
+  ipcMain.handle(IpcChannels.mailReconnect, (_event, pluginId: string, accountId: string) =>
+    reconnectFromPlugin(pluginId, accountId)
+  )
+  ipcMain.handle(IpcChannels.mailOpenLink, (_event, pluginId: string, url: string) =>
+    openMailLink(pluginId, url)
   )
 
   // Navigateurs installés (ouverture d'applications web hors de Tessera)

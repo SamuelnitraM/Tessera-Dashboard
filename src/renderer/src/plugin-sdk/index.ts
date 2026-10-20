@@ -239,6 +239,34 @@ export { InstalledAppView, type InstalledAppViewProps, type PanOffset } from './
 export { pickInstalledApp as addInstalledApp } from '../stores/programPicker'
 
 // ---------------------------------------------------------------------------
+// Mails (permission `mail`)
+// ---------------------------------------------------------------------------
+
+export type {
+  MailAccount,
+  MailAccountState,
+  MailAction,
+  MailAddress,
+  MailAttachment,
+  MailDraft,
+  MailErrorCode,
+  MailMessage,
+  MailPage,
+  MailSummary,
+  MailUpload
+} from '@shared/mail'
+export { formatAddress, getMailErrorCode, parseAddressList } from '@shared/mail'
+export {
+  openMailSettings,
+  useMail,
+  useMailAccounts,
+  useMailArrivals,
+  useMailOpenRequest,
+  type PluginMail
+} from './mail'
+export { mailErrorMessage } from '../stores/mail'
+
+// ---------------------------------------------------------------------------
 // Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera
 // ---------------------------------------------------------------------------
 

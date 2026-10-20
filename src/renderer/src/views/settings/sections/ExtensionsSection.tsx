@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { AppWindow, Bell, FolderLock, Globe, SquareTerminal, TriangleAlert } from 'lucide-react'
+import {
+  AppWindow,
+  Bell,
+  FolderLock,
+  Globe,
+  Mail,
+  SquareTerminal,
+  TriangleAlert
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { localize } from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
@@ -122,6 +130,12 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                 <p className={styles.extensionPermission}>
                   <Bell size={13} aria-hidden />
                   {t('settings.extensions.notificationsPermission')}
+                </p>
+              )}
+              {manifest.permissions.includes('mail') && (
+                <p className={styles.extensionPermission}>
+                  <Mail size={13} aria-hidden />
+                  {t('settings.extensions.mailPermission')}
                 </p>
               )}
             </>

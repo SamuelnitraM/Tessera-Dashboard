@@ -114,8 +114,14 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
   - Statut en direct : en cours (depuis quand), arrêté, terminé, terminé avec erreur, ou « déjà ouvert hors de Tessera ».
   - **Journaux** de la console dans le bloc, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
   - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des modules dédiés viendront à l'étape 14.
+- **Mails** ✅ ([guide de connexion](docs/mails.md))
+  - Comptes **Gmail** (API Google), **Outlook** (Microsoft Graph) et **IMAP/SMTP** (OVH, Orange, Free, iCloud, Yahoo…, réglages proposés ; serveur local comme Proton Mail Bridge), ajoutés dans Paramètres → Mails. Gmail et Outlook se connectent dans le navigateur, avec l'identifiant de connexion que l'utilisateur crée lui-même (gratuit, guide pas à pas).
+  - Jetons et mots de passe **chiffrés par Windows**, jamais visibles par l'interface.
+  - Boîte de réception (non lus, pièces jointes, mails plus anciens), **lecture** dans le bloc : contenu nettoyé, sans scripts, **images distantes bloquées** jusqu'à « Afficher les images » (ou toujours, au choix), liens ouverts dans le navigateur, pièces jointes à enregistrer.
+  - **Actions** : lu / non lu, archiver, corbeille (au survol, au clic droit ou dans le mail).
+  - **Écrire, répondre, répondre à tous, transférer** (pièces jointes d'origine comprises), texte mis en forme, Cc / Cci, fichiers joints.
+  - **Notification** à chaque nouveau mail (vérification toutes les 2 minutes par défaut, même sans bloc affiché), réglable par compte ; un clic ouvre le mail. Plusieurs comptes : un sélecteur dans le bloc.
 - **Prévus** :
-  - **Mails** : Outlook (Microsoft Graph), Gmail (API Google, avec un identifiant de connexion fourni par l'utilisateur), autres fournisseurs via IMAP ;
   - **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct) ;
   - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC » ;
   - **Flux RSS**.
@@ -124,6 +130,7 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 
 - **Sources** :
   - les **applications web** (Discord web, Gmail…) : leurs notifications passent par Tessera, avec leur icône (avatar…). Un clic ouvre l'application et la bonne conversation ;
+  - les **comptes mail** : un nouveau mail donne une notification (expéditeur, objet) ; un clic l'ouvre dans le bloc Mails ;
   - les **widgets et modules** (permission « notifications ») : le **Lanceur** prévient quand un programme s'arrête avec une erreur, même si son bloc n'est pas affiché ;
   - Tessera elle-même (notification de test).
 - **Centre de notifications** : bouton cloche du menu latéral (avec le nombre de non-lues), panneau à droite, clic pour ouvrir la source, suppression, « Tout marquer comme lu », « Tout effacer ». Historique conservé (200 dernières).
@@ -161,10 +168,17 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 - **Taille minimale** : la fenêtre ne devient jamais plus petite que ce que l'application autorise ; dans un bloc plus petit, elle est rognée.
 - **Version installée de Tessera** (étape 15) : l'hébergeur des cadres utilise le mode Node d'Electron (fusible `RunAsNode`), qui devra rester activé.
 
+### Limites connues des mails
+
+- **Gmail en mode « Test »** : tant que l'application Google de l'utilisateur n'est pas publiée, la connexion expire au bout de 7 jours (voir le [guide](docs/mails.md#gmail)).
+- **IMAP** : la liste n'affiche pas l'aperçu du texte (seulement l'expéditeur et l'objet).
+- Seule la **boîte de réception** est affichée (pas encore de dossiers, de recherche ni de brouillons).
+- **Outlook** : écrit d'après la documentation de Microsoft Graph, pas encore essayé avec un vrai compte.
+
 ### Limites connues des pages web
 
 - **Contenus protégés (DRM)** : Spotify, Netflix, Deezer… ne peuvent pas lire leurs morceaux ou vidéos. Electron n'inclut pas le module Widevine.
-- **Connexion Google** : Google refuse parfois les connexions depuis un navigateur intégré (« ce navigateur n'est peut-être pas sécurisé »). Pour les mails, les widgets par API de l'étape 10 contourneront ce problème.
+- **Connexion Google** : Google refuse parfois les connexions depuis un navigateur intégré (« ce navigateur n'est peut-être pas sécurisé »). Pour les mails, le widget **Mails** (connexion dans le navigateur) contourne ce problème.
 - **Partage d'écran** (appels Discord…) : pas encore pris en charge.
 - **Clés d'accès (passkeys)** : la proposition automatique au chargement d'une page est désactivée (Electron l'affichait dans une fenêtre « Sécurité Windows » bloquante). La connexion par clé d'accès reste possible en la choisissant.
 
@@ -234,6 +248,7 @@ src/
 │   ├── desktop/              #   Applications installées : API Windows (koffi), programmes du menu Démarrer,
 │   │                         #   cadres sur les blocs (docking.ts), lien avec l'hébergeur (frames.ts)
 │   ├── frame-host/           #   Hébergeur des cadres : processus séparé (mode Node) et son fil de fenêtres
+│   ├── mail/                 #   Mails : Gmail, Outlook, IMAP/SMTP, connexion OAuth, secrets chiffrés, vérification
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
 │   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
@@ -274,7 +289,8 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 ├── tessera.notes/            #   Bloc-notes (permission « files »)
 ├── tessera.launcher/         #   Lanceur de programmes (permissions « processes » et « notifications »)
 ├── tessera.web/              #   Page web dans la grille (permission « web »)
-└── tessera.desktop/          #   Application installée dans la grille (permission « apps »)
+├── tessera.desktop/          #   Application installée dans la grille (permission « apps »)
+└── tessera.mail/             #   Mails : boîte de réception, lecture, écriture (permission « mail »)
 docs/
 └── plugins.md                # Guide de création d'une extension
 ```
@@ -373,7 +389,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 ### Phase 2 : intégrations API
 
-- [ ] **Étape 10 :** mails (Outlook, Gmail, IMAP).
+- [x] **Étape 10 : mails.** Comptes Gmail (API Google), Outlook (Microsoft Graph) et IMAP/SMTP, identifiants de connexion fournis par l'utilisateur (guide), secrets chiffrés, boîte de réception, lecture sécurisée, actions, écriture, réponse et transfert, notifications par compte.
 - [ ] **Étape 11 :** YouTube et Twitch (lecteurs et connexion au compte).
 - [ ] **Étape 12 :** lecteur vidéo local.
 
