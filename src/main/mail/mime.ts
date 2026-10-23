@@ -3,7 +3,7 @@ import MailComposer from 'nodemailer/lib/mail-composer'
 import type { MailAddress, MailAttachment, MailDraft, MailMessage, MailSummary } from '@shared/mail'
 
 /**
- * Format des mails (MIME) : lecture d'un mail brut (Gmail, Outlook et IMAP le donnent tous
+ * Format des mails (MIME) : lecture d'un mail brut (Gmail et IMAP le donnent tous les deux
  * ainsi) et composition d'un mail à envoyer.
  */
 
@@ -30,7 +30,7 @@ export const parseRaw = (raw: Buffer): Promise<ParsedMail> =>
 /** Mail brut -> mail à lire. `known` : ce que le fournisseur sait déjà (lu, fil…). */
 export async function toMessage(
   raw: Buffer,
-  known: Pick<MailSummary, 'id' | 'threadId' | 'unread'> & { date?: number }
+  known: Pick<MailSummary, 'id' | 'threadId' | 'unread'> & { date?: number; starred?: boolean }
 ): Promise<MailMessage> {
   const mail = await parseRaw(raw)
   const from = addresses(mail.from)[0] ?? { name: '', address: '' }
@@ -48,6 +48,7 @@ export async function toMessage(
       : []
   return {
     ...known,
+    starred: known.starred ?? false,
     from,
     subject: mail.subject ?? '',
     snippet: text.replace(/\s+/g, ' ').trim().slice(0, 200),

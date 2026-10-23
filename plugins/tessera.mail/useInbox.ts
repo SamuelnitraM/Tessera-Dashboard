@@ -5,6 +5,7 @@ import {
   useMailArrivals,
   type MailAction,
   type MailPage,
+  type MailQuery,
   type MailSummary
 } from '@tessera/plugin-sdk'
 
@@ -20,8 +21,12 @@ export interface Inbox {
   act: (id: string, action: MailAction) => Promise<void>
 }
 
-/** Boîte de réception d'un compte : rechargée à l'arrivée de nouveaux mails. */
-export function useInbox(accountId: string): Inbox {
+/**
+ * Mails d'un dossier (filtrés, recherchés) : rechargés quand la requête change et à
+ * l'arrivée de nouveaux mails. `starredFolder` : le dossier des mails suivis (un mail qui
+ * n'est plus suivi en disparaît).
+ */
+export function useInbox(accountId: string, query: MailQuery, starredFolder: boolean): Inbox {
   const mail = useMail()
   const arrivals = useMailArrivals(accountId)
   const [messages, setMessages] = useState<MailSummary[]>([])
@@ -48,16 +53,18 @@ export function useInbox(accountId: string): Inbox {
     setError(null)
   }, [])
 
+  // La requête est un objet : comparée par son contenu
+  const queryKey = JSON.stringify(query)
   const fetchPage = useCallback(
     (page: string | null): Promise<void> => {
       const id = ++request.current
-      return mail.list(accountId, page).then(
+      return mail.list(accountId, JSON.parse(queryKey) as MailQuery, page).then(
         (result) => settle(id, page, result),
         (failure: unknown) =>
           settle(id, page, failure instanceof Error ? failure : new Error(String(failure)))
       )
     },
-    [mail, accountId, settle]
+    [mail, accountId, queryKey, settle]
   )
 
   // Compte choisi, ou nouveaux mails arrivés : la liste repart du début (sans indicateur)
@@ -73,11 +80,22 @@ export function useInbox(accountId: string): Inbox {
   const act = useCallback(
     async (id: string, action: MailAction) => {
       const before = messages
+      // Le mail quitte la liste s'il ne correspond plus à ce qu'elle montre
+      const leaves =
+        action === 'archive' ||
+        action === 'trash' ||
+        (action === 'read' && query.filter === 'unread') ||
+        (action === 'unread' && query.filter === 'read') ||
+        (action === 'unstar' && starredFolder)
       setMessages((list) =>
-        action === 'archive' || action === 'trash'
+        leaves
           ? list.filter((message) => message.id !== id)
           : list.map((message) =>
-              message.id === id ? { ...message, unread: action === 'unread' } : message
+              message.id !== id
+                ? message
+                : action === 'star' || action === 'unstar'
+                  ? { ...message, starred: action === 'star' }
+                  : { ...message, unread: action === 'unread' }
             )
       )
       try {
@@ -87,7 +105,7 @@ export function useInbox(accountId: string): Inbox {
         throw failure
       }
     },
-    [mail, accountId, messages]
+    [mail, accountId, messages, query.filter, starredFolder]
   )
 
   return {

@@ -1,0 +1,36 @@
+{
+  "id": "tessera.twitch",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Twitch", "en": "Twitch" },
+  "description": {
+    "fr": "Un lecteur Twitch avec son chat, et tes chaînes suivies en direct (notification à chaque début de direct).",
+    "en": "A Twitch player with its chat, and your followed channels that are live (notified when a stream starts)."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["web", "media", "notifications"],
+  "widgets": [
+    {
+      "type": "twitch",
+      "name": { "fr": "Twitch", "en": "Twitch" },
+      "description": {
+        "fr": "Lecteur et chat d’une chaîne, chaînes suivies en direct.",
+        "en": "A channel’s player and chat, followed channels that are live."
+      },
+      "icon": "radio",
+      "defaultSize": { "w": 10, "h": 7 },
+      "minSize": { "w": 4, "h": 3 },
+      "settings": [
+        {
+          "key": "showChat",
+          "type": "boolean",
+          "label": {
+            "fr": "Afficher le chat à côté du lecteur",
+            "en": "Show the chat next to the player"
+          },
+          "default": true
+        }
+      ]
+    }
+  ]
+}

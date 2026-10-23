@@ -59,21 +59,34 @@ import {
   addImapAccount,
   cancelConnect,
   checkNow,
-  connectOAuthAccount,
   getAccountStates,
   getMailConfig,
   getMessage,
+  listFolders,
   listMessages,
   openMailLink,
   pickUploads,
   protectMailAccounts,
-  reconnectFromPlugin,
   removeAccount,
   saveAttachment,
   sendMessage,
   setGoogleClientSecret
 } from './mail'
-import type { ImapAccountInput, MailAction, MailDraft } from '@shared/mail'
+import type { ImapAccountInput, MailAction, MailDraft, MailQuery } from '@shared/mail'
+import {
+  disconnectMedia,
+  getMediaStatus,
+  protectMediaAccounts,
+  twitchLive,
+  twitchRefresh,
+  twitchSearch,
+  youtubeFeed,
+  youtubePlaylist,
+  youtubeSearch,
+  youtubePlaylists
+} from './media'
+import type { GoogleService } from '@shared/accounts'
+import { connectGoogle, connectTwitch, getAccountProviders, reconnectMailAccount } from './accounts'
 import { getSettings, updateSettings } from './settings-store'
 import { getSystemPreferences } from './system'
 import { clearAppData, fetchSiteIcon, resetAppPermissions } from './web'
@@ -97,7 +110,7 @@ export function registerIpcHandlers(): void {
   // Le patch vient de l'interface : il est entièrement revalidé par `updateSettings`, et ne
   // peut pas changer le programme lancé par une application installée
   ipcMain.handle(IpcChannels.settingsUpdate, (_event, patch: SettingsPatch) =>
-    updateSettings(protectMailAccounts(protectDesktopApps(patch)))
+    updateSettings(protectMediaAccounts(protectMailAccounts(protectDesktopApps(patch))))
   )
 
   ipcMain.handle(IpcChannels.dashboardGet, () => getDashboard())
@@ -220,20 +233,17 @@ export function registerIpcHandlers(): void {
     openSystemNotificationSettings()
   )
 
+  // Comptes : « Se connecter avec Google / Twitch » (Paramètres → Comptes)
+  ipcMain.handle(IpcChannels.accountsProviders, () => getAccountProviders())
+  ipcMain.handle(IpcChannels.accountsConnectGoogle, (_event, services: GoogleService[]) =>
+    connectGoogle(Array.isArray(services) ? services : [])
+  )
+  ipcMain.handle(IpcChannels.accountsConnectTwitch, () => connectTwitch())
+
   // Mails : comptes (Paramètres), puis mails des widgets (permission `mail`, vérifiée)
   ipcMain.handle(IpcChannels.mailGetConfig, () => getMailConfig())
   ipcMain.handle(IpcChannels.mailSetGoogleSecret, (_event, secret: string) =>
     setGoogleClientSecret(secret)
-  )
-  ipcMain.handle(
-    IpcChannels.mailConnectOAuth,
-    (_event, provider: 'gmail' | 'outlook', reconnectId?: string) => {
-      if (provider !== 'gmail' && provider !== 'outlook') throw new Error('mail-error:invalid')
-      return connectOAuthAccount(
-        provider,
-        typeof reconnectId === 'string' ? reconnectId : undefined
-      )
-    }
   )
   ipcMain.handle(IpcChannels.mailCancelConnect, () => cancelConnect())
   ipcMain.handle(IpcChannels.mailAddImap, (_event, input: ImapAccountInput, reconnectId?: string) =>
@@ -243,10 +253,13 @@ export function registerIpcHandlers(): void {
     removeAccount(accountId)
   )
   ipcMain.handle(IpcChannels.mailGetStates, () => getAccountStates())
+  ipcMain.handle(IpcChannels.mailFolders, (_event, pluginId: string, accountId: string) =>
+    listFolders(pluginId, accountId)
+  )
   ipcMain.handle(
     IpcChannels.mailList,
-    (_event, pluginId: string, accountId: string, page: string | null) =>
-      listMessages(pluginId, accountId, page)
+    (_event, pluginId: string, accountId: string, query: MailQuery, page: string | null) =>
+      listMessages(pluginId, accountId, query, page)
   )
   ipcMain.handle(IpcChannels.mailGet, (_event, pluginId: string, accountId: string, id: string) =>
     getMessage(pluginId, accountId, id)
@@ -273,10 +286,43 @@ export function registerIpcHandlers(): void {
     checkNow(pluginId, accountId)
   )
   ipcMain.handle(IpcChannels.mailReconnect, (_event, pluginId: string, accountId: string) =>
-    reconnectFromPlugin(pluginId, accountId)
+    reconnectMailAccount(pluginId, accountId)
   )
   ipcMain.handle(IpcChannels.mailOpenLink, (_event, pluginId: string, url: string) =>
     openMailLink(pluginId, url)
+  )
+
+  // YouTube et Twitch : comptes (Paramètres), puis données des widgets (permission `media`)
+  ipcMain.handle(IpcChannels.mediaGetStatus, () => getMediaStatus())
+  ipcMain.handle(IpcChannels.mediaDisconnect, (_event, service: string, accountId?: string) => {
+    if (service === 'youtube' || service === 'twitch') {
+      disconnectMedia(service, typeof accountId === 'string' ? accountId : undefined)
+    }
+  })
+  ipcMain.handle(
+    IpcChannels.mediaYoutubeFeed,
+    (_event, pluginId: string, accountId: string, refresh: boolean) =>
+      youtubeFeed(pluginId, accountId, refresh)
+  )
+  ipcMain.handle(IpcChannels.mediaYoutubePlaylists, (_event, pluginId: string, accountId: string) =>
+    youtubePlaylists(pluginId, accountId)
+  )
+  ipcMain.handle(
+    IpcChannels.mediaYoutubePlaylist,
+    (_event, pluginId: string, accountId: string, id: string) =>
+      youtubePlaylist(pluginId, accountId, id)
+  )
+  ipcMain.handle(
+    IpcChannels.mediaYoutubeSearch,
+    (_event, pluginId: string, accountId: string, query: string, page: string | null) =>
+      youtubeSearch(pluginId, accountId, query, page)
+  )
+  ipcMain.handle(IpcChannels.mediaTwitchSearch, (_event, pluginId: string, query: string) =>
+    twitchSearch(pluginId, query)
+  )
+  ipcMain.handle(IpcChannels.mediaTwitchLive, (_event, pluginId: string) => twitchLive(pluginId))
+  ipcMain.handle(IpcChannels.mediaTwitchRefresh, (_event, pluginId: string) =>
+    twitchRefresh(pluginId)
   )
 
   // Navigateurs installés (ouverture d'applications web hors de Tessera)

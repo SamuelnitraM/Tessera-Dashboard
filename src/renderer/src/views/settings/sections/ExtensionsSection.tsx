@@ -6,7 +6,8 @@ import {
   Globe,
   Mail,
   SquareTerminal,
-  TriangleAlert
+  TriangleAlert,
+  TvMinimalPlay
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { localize } from '@shared/plugins'
@@ -136,6 +137,12 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                 <p className={styles.extensionPermission}>
                   <Mail size={13} aria-hidden />
                   {t('settings.extensions.mailPermission')}
+                </p>
+              )}
+              {manifest.permissions.includes('media') && (
+                <p className={styles.extensionPermission}>
+                  <TvMinimalPlay size={13} aria-hidden />
+                  {t('settings.extensions.mediaPermission')}
                 </p>
               )}
             </>

@@ -250,12 +250,23 @@ export type {
   MailAttachment,
   MailDraft,
   MailErrorCode,
+  MailFilter,
+  MailFolder,
+  MailFolderKind,
   MailMessage,
   MailPage,
+  MailQuery,
   MailSummary,
   MailUpload
 } from '@shared/mail'
-export { formatAddress, getMailErrorCode, parseAddressList } from '@shared/mail'
+export {
+  DEFAULT_QUERY,
+  FOLDER_ORDER,
+  formatAddress,
+  getMailErrorCode,
+  INBOX,
+  parseAddressList
+} from '@shared/mail'
 export {
   openMailSettings,
   useMail,
@@ -265,6 +276,37 @@ export {
   type PluginMail
 } from './mail'
 export { mailErrorMessage } from '../stores/mail'
+
+// ---------------------------------------------------------------------------
+// Lecteurs vidéo (permission `web`) et comptes YouTube / Twitch (permission `media`)
+// ---------------------------------------------------------------------------
+
+export type {
+  MediaStatus,
+  MediaTarget,
+  QueueItem,
+  TwitchChannel,
+  TwitchStream,
+  YouTubeAccount,
+  YouTubePlaylist,
+  YouTubeSearch,
+  YouTubeVideo
+} from '@shared/media'
+export { MEDIA_REFERRER, parseMediaLink, playerUrl, twitchChatUrl } from '@shared/media'
+export { MediaView, type MediaViewProps } from './MediaView'
+export {
+  closeMediaView,
+  openMediaSettings,
+  useMedia,
+  useMediaPlaying,
+  useMediaQueue,
+  useMediaReveal,
+  useMediaStatus,
+  useNotificationTarget,
+  useTwitchLive,
+  useYouTubeAccounts,
+  type PluginMedia
+} from './media'
 
 // ---------------------------------------------------------------------------
 // Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera

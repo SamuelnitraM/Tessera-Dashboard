@@ -93,7 +93,8 @@ export const PLUGIN_PERMISSIONS = [
   'web',
   'apps',
   'notifications',
-  'mail'
+  'mail',
+  'media'
 ] as const
 export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number]
 

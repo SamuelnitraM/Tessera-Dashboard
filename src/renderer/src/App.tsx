@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
 import { AppDialogs } from './components/AppDialogs'
 import { ProgramPickerHost } from './components/desktop/ProgramPicker'
+import { MediaLayer } from './components/media/MediaLayer'
 import { NotificationCenter } from './components/notifications/NotificationCenter'
 import { PageDialogs } from './components/PageDialogs'
 import { Sidebar } from './components/Sidebar'
@@ -77,6 +78,7 @@ export function App(): React.JSX.Element {
       <AppDialogs />
       <ContextMenuHost />
       <ProgramPickerHost />
+      <MediaLayer />
       <NotificationCenter />
     </div>
   )

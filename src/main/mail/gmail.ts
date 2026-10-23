@@ -1,32 +1,21 @@
-import { mailError, type MailAccount, type MailSummary } from '@shared/mail'
-import { getSettings } from '../settings-store'
+import {
+  INBOX,
+  type MailAccount,
+  type MailFolder,
+  type MailFolderKind,
+  type MailSummary
+} from '@shared/mail'
 import type { MailConnection } from './connection'
-import { apiFetch, apiJson, createTokenSource, jsonBody } from './http'
-import type { OAuthClient } from './oauth'
-import { getSecret, GOOGLE_SECRET } from './secrets'
+import { apiFetch, apiJson, createTokenSource, jsonBody } from '../auth/http'
+import { googleClient } from '../auth/providers'
 
 /**
- * Gmail, par l'API Google, avec le client OAuth de l'utilisateur (Paramètres → Mails).
+ * Gmail, par l'API Google (« Se connecter avec Google », Paramètres → Comptes).
  * Une seule autorisation : `gmail.modify` (lire, classer, mettre à la corbeille, envoyer ;
  * jamais de suppression définitive).
  */
 
 const API = 'https://gmail.googleapis.com/gmail/v1/users/me'
-
-export function googleClient(): OAuthClient {
-  const { googleClientId } = getSettings().mail
-  const clientSecret = getSecret(GOOGLE_SECRET)
-  if (!googleClientId || !clientSecret) throw mailError('not-configured', 'google')
-  return {
-    authorizeUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    tokenUrl: 'https://oauth2.googleapis.com/token',
-    clientId: googleClientId,
-    clientSecret,
-    scopes: ['https://www.googleapis.com/auth/gmail.modify'],
-    // Jeton de rafraîchissement à chaque connexion, et choix du compte
-    extraParams: { access_type: 'offline', prompt: 'consent select_account' }
-  }
-}
 
 /** Adresse du compte qui vient de se connecter. */
 export async function fetchGmailAddress(accessToken: string): Promise<string> {
@@ -54,6 +43,26 @@ function parseFrom(value: string): { name: string; address: string } {
   return match ? { name: match[1], address: match[2] } : { name: '', address: value.trim() }
 }
 
+/** Liste d'adresses d'un en-tête (virgules hors des noms entre guillemets). */
+const parseList = (value: string): { name: string; address: string }[] =>
+  value
+    .split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map(parseFrom)
+
+/** Libellés système de Gmail affichés comme des dossiers habituels. */
+const SYSTEM_LABELS: Record<string, MailFolderKind> = {
+  INBOX: 'inbox',
+  STARRED: 'starred',
+  SENT: 'sent',
+  DRAFT: 'drafts',
+  SPAM: 'spam',
+  TRASH: 'trash'
+}
+/** « Tous les messages » n'est pas un libellé : aucun filtre de libellé. */
+const ALL_MAIL = 'ALL'
+
 /** Le texte de l'aperçu Gmail contient des entités HTML (&#39;…). */
 function decodeEntities(text: string): string {
   return text
@@ -75,30 +84,62 @@ function toSummary(message: GmailMessage): MailSummary {
     snippet: decodeEntities(message.snippet ?? ''),
     date: Number(message.internalDate) || Date.now(),
     unread: message.labelIds?.includes('UNREAD') ?? false,
-    hasAttachments: message.payload?.mimeType === 'multipart/mixed'
+    starred: message.labelIds?.includes('STARRED') ?? false,
+    hasAttachments: message.payload?.mimeType === 'multipart/mixed',
+    to: parseList(header('to'))
   }
 }
 
 export function connectGmail(account: MailAccount): MailConnection {
-  const token = createTokenSource(account.id, googleClient)
+  const token = createTokenSource(account.id, () => googleClient())
   const modify = (id: string, change: { addLabelIds?: string[]; removeLabelIds?: string[] }) =>
     apiFetch(token, `${API}/messages/${encodeURIComponent(id)}/modify`, jsonBody(change))
 
   return {
     readsBcc: true,
 
-    async list(page, limit) {
-      const query = new URLSearchParams({ labelIds: 'INBOX', maxResults: String(limit) })
-      if (page) query.set('pageToken', page)
+    async folders() {
+      const result = await apiJson<{
+        labels?: { id: string; name: string; type: 'system' | 'user' }[]
+      }>(token, `${API}/labels`)
+      const inbox = await apiJson<{ messagesUnread?: number }>(token, `${API}/labels/INBOX`)
+      const folders: MailFolder[] = []
+      for (const label of result.labels ?? []) {
+        const kind = SYSTEM_LABELS[label.id]
+        if (kind) {
+          folders.push({
+            id: label.id,
+            name: label.name,
+            kind,
+            unread: label.id === 'INBOX' ? (inbox.messagesUnread ?? 0) : null
+          })
+        } else if (label.type === 'user') {
+          folders.push({ id: label.id, name: label.name, kind: 'label', unread: null })
+        }
+      }
+      folders.push({ id: ALL_MAIL, name: 'All Mail', kind: 'all', unread: null })
+      return folders
+    },
+
+    async list(query, page, limit) {
+      const folder = query.folder === INBOX ? 'INBOX' : query.folder
+      const params = new URLSearchParams({ maxResults: String(limit) })
+      if (folder !== ALL_MAIL) params.set('labelIds', folder)
+      const terms = [
+        query.filter === 'unread' ? 'is:unread' : query.filter === 'read' ? 'is:read' : '',
+        query.search
+      ].filter(Boolean)
+      if (terms.length) params.set('q', terms.join(' '))
+      if (page) params.set('pageToken', page)
       const [list, inbox] = await Promise.all([
         apiJson<{ messages?: { id: string }[]; nextPageToken?: string }>(
           token,
-          `${API}/messages?${query}`
+          `${API}/messages?${params}`
         ),
         apiJson<{ messagesUnread?: number }>(token, `${API}/labels/INBOX`)
       ])
       const fields = new URLSearchParams({ format: 'metadata' })
-      for (const name of ['From', 'Subject', 'Date']) fields.append('metadataHeaders', name)
+      for (const name of ['From', 'To', 'Subject', 'Date']) fields.append('metadataHeaders', name)
       const messages = await Promise.all(
         (list.messages ?? []).map((item) =>
           apiJson<GmailMessage>(token, `${API}/messages/${item.id}?${fields}`)
@@ -122,6 +163,7 @@ export function connectGmail(account: MailAccount): MailConnection {
           id: message.id,
           threadId: message.threadId,
           unread: message.labelIds?.includes('UNREAD') ?? false,
+          starred: message.labelIds?.includes('STARRED') ?? false,
           date: Number(message.internalDate) || Date.now()
         }
       }
@@ -130,6 +172,8 @@ export function connectGmail(account: MailAccount): MailConnection {
     async act(id, action) {
       if (action === 'read') await modify(id, { removeLabelIds: ['UNREAD'] })
       else if (action === 'unread') await modify(id, { addLabelIds: ['UNREAD'] })
+      else if (action === 'star') await modify(id, { addLabelIds: ['STARRED'] })
+      else if (action === 'unstar') await modify(id, { removeLabelIds: ['STARRED'] })
       else if (action === 'archive') await modify(id, { removeLabelIds: ['INBOX'] })
       else
         await apiFetch(token, `${API}/messages/${encodeURIComponent(id)}/trash`, { method: 'POST' })

@@ -281,7 +281,8 @@ export function notifyFromPlugin(
     body: input?.body,
     icon:
       typeof input?.icon === 'string' && input.icon.startsWith('data:image/') ? input.icon : null,
-    tag: typeof input?.tag === 'string' ? input.tag : undefined
+    tag: typeof input?.tag === 'string' ? input.tag : undefined,
+    target: typeof input?.target === 'string' ? input.target : undefined
   })
 }
 

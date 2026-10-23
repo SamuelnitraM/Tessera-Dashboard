@@ -3,6 +3,7 @@ import type { TesseraNotification } from '@shared/notifications'
 import { playSound } from '../lib/sounds'
 import { useDashboardStore } from './dashboard'
 import { MAIL_WIDGET_TYPE, useMailStore } from './mail'
+import { useMediaStatusStore } from './mediaStatus'
 import { useNavigationStore } from './navigation'
 import { useSettingsStore } from './settings'
 
@@ -44,6 +45,10 @@ export function openNotificationSource(notification: TesseraNotification): void 
         candidate.widgets.some((widget) => widget.type.startsWith(`${id}/`))
       )
     if (page) navigate({ type: 'page', pageId: page.id })
+    // Ce que la notification désigne (chaîne d'un direct…) : l'extension l'ouvre
+    if (notification.target) {
+      useMediaStatusStore.setState({ target: { pluginId: id, target: notification.target } })
+    }
   } else if (kind === 'mail') {
     // Page d'un bloc Mails du compte (sinon d'un autre bloc Mails), puis le mail lui-même
     const pages = useDashboardStore.getState().dashboard.pages

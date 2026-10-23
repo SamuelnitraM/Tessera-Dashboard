@@ -6,7 +6,8 @@ import { flushDashboard, loadDashboard } from './dashboard-store'
 import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
 import { flushMailState, initMail, stopMail } from './mail'
-import { flushMailSecrets, loadMailSecrets } from './mail/secrets'
+import { initMedia, stopMedia } from './media'
+import { flushSecrets, loadSecrets } from './auth/secrets'
 import {
   flushNotifications,
   loadNotifications,
@@ -41,9 +42,10 @@ if (!app.requestSingleInstanceLock()) {
     flushProcessApprovals()
     flushWebPermissions()
     flushNotifications()
-    flushMailSecrets()
+    flushSecrets()
     flushMailState()
     stopMail()
+    stopMedia()
     stopCapturedProcesses()
   })
 
@@ -63,7 +65,7 @@ if (!app.requestSingleInstanceLock()) {
     loadProcessApprovals()
     loadWebPermissions()
     loadNotifications()
-    loadMailSecrets()
+    loadSecrets()
     watchWebContents()
     watchWebNotifications()
 
@@ -110,6 +112,10 @@ if (!app.requestSingleInstanceLock()) {
     initMail({
       changed: (accountId, state, fresh) =>
         broadcast(IpcChannels.mailChanged, accountId, state, fresh)
+    })
+    initMedia({
+      status: (status) => broadcast(IpcChannels.mediaStatusChanged, status),
+      live: (streams) => broadcast(IpcChannels.mediaLiveChanged, streams)
     })
     setProcessListeners({
       changed: (pluginId, run) => broadcast(IpcChannels.processesChanged, pluginId, run),

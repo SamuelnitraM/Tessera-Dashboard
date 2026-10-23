@@ -192,11 +192,10 @@ export const en: Translation = {
     newMessages: '{{count}} new emails',
     providers: {
       gmail: 'Gmail',
-      outlook: 'Outlook',
       imap: 'IMAP'
     },
     errors: {
-      'not-configured': 'Sign-in ID missing: enter it in Settings → Email.',
+      'not-configured': 'Sign-in unavailable: see Settings → Accounts.',
       auth: 'Sign-in denied or expired: reconnect the account.',
       cancelled: 'Sign-in cancelled.',
       network: 'Server unreachable. Check your internet connection.',
@@ -204,7 +203,19 @@ export const en: Translation = {
       'no-folder': 'Folder not found on the server (Archive or Trash).',
       permission: 'This widget has no access to email.',
       invalid: 'Invalid information.',
+      quota: 'Daily limit of the service reached: try again tomorrow.',
       unknown: 'Unexpected error.'
+    }
+  },
+  media: {
+    liveTitle: '{{name}} is live',
+    backToBlock: 'Back to the block',
+    closePlayer: 'Close the player',
+    next: 'Next video',
+    notConfigured: {
+      google: 'Google sign-in unavailable: see Settings → Accounts.',
+      twitch: 'Twitch sign-in unavailable: see Settings → Accounts.',
+      youtube: 'YouTube account not connected: Settings → Accounts → Sign in with Google.'
     }
   },
   settings: {
@@ -214,8 +225,8 @@ export const en: Translation = {
       extensions: 'Widgets and modules',
       appearance: 'Appearance',
       notifications: 'Notifications',
+      accounts: 'Accounts',
       applications: 'Apps',
-      mail: 'Email',
       about: 'About'
     },
     language: {
@@ -356,46 +367,55 @@ export const en: Translation = {
       deleteMessage:
         'The app will be removed from Tessera, and its sign-in (cookies, saved data) will be erased.'
     },
-    mail: {
+    accounts: {
       intro:
-        'Your mailboxes in “Email” blocks: Gmail and Outlook through their official sign-in, other providers through IMAP. Sign-in tokens and passwords are encrypted by Windows and only ever sent to your provider.',
-      accountsTitle: 'Accounts',
-      noAccounts: 'No account yet.',
+        'Connect your accounts: your emails, YouTube subscriptions and Twitch streams show up in your blocks. You sign in on the official Google or Twitch page, in your browser (often already signed in: one click). Tessera never sees your password.',
+      googleIntro:
+        'One sign-in for Gmail and YouTube: tick the services you want, then pick your Google account.',
+      googleServices: 'Services:',
+      withGoogle: 'Sign in with Google',
       addGmail: 'Add Gmail',
-      addOutlook: 'Add Outlook',
-      addImap: 'Add an IMAP account…',
-      needsGoogle: 'Gmail: first enter your Google ID (below).',
-      needsMicrosoft: 'Outlook: first enter your Microsoft ID (below).',
-      connecting: 'Signing in through your browser…',
+      addYouTube: 'Add YouTube',
+      twitchIntro:
+        'Your followed channels that are live, and a notification each time a stream starts. Twitch shows a pre-filled code: just accept.',
+      withTwitch: 'Sign in with Twitch',
+      reconnectTwitch: 'Reconnect Twitch',
+      imapTitle: 'Other email providers',
+      imapIntro: 'OVH, Orange, iCloud, Yahoo…: address and password (often an app password).',
+      addImap: 'Add an email account…',
+      waiting: 'Signing in through your browser…',
+      twitchWaiting: 'Accept the sign-in in your browser (the code is already filled in)…',
       cancel: 'Cancel',
       reconnect: 'Reconnect',
-      remove: 'Remove account',
-      name: 'Display name',
+      disconnect: 'Disconnect',
+      disconnectTitle: 'Disconnect “{{name}}”?',
+      disconnectMessage:
+        'Tessera forgets this connection. Your data stays with the provider; you can reconnect at any time.',
       unread: '{{count}} unread',
-      removeTitle: 'Remove “{{name}}”?',
-      removeMessage:
-        'The account will disappear from Tessera and its sign-in will be erased. Your emails stay with your provider.',
-      notificationsHint: 'Notifications of each account are set in Settings → Notifications.',
-      googleTitle: 'Google ID (Gmail)',
-      googleIntro:
-        'Google asks everyone to create their own sign-in ID: it is free and takes five minutes. Follow the guide, then paste the client ID and client secret here.',
-      microsoftTitle: 'Microsoft ID (Outlook)',
-      microsoftIntro:
-        'Create a free application in Microsoft Entra by following the guide, then paste its application (client) ID here.',
-      clientId: 'Client ID',
-      clientSecret: 'Client secret',
-      applicationId: 'Application (client) ID',
+      unavailable:
+        'Sign-in unavailable in this version of Tessera: enter your own IDs in “Advanced”.',
+      checkTitle: 'Checking',
+      mailCheck: {
+        label: 'New emails',
+        description: 'How often inboxes are checked.'
+      },
+      liveCheck: {
+        label: 'Twitch streams',
+        description: 'How often followed channels are checked.'
+      },
+      every: 'Every {{count}} min',
+      notificationsHint: 'Notifications (new emails, streams) are set in Settings → Notifications.',
+      advanced: 'Advanced: your own IDs',
+      advancedIntro:
+        'Optional. Tessera has its own IDs at Google and Twitch; you can use yours instead (leave empty: Tessera’s).',
+      guide: 'Create your own IDs',
+      googleClientId: 'Google: client ID',
+      googleClientSecret: 'Google: client secret',
+      twitchClientId: 'Twitch: client ID (“Public” type)',
       secretSaved: 'Saved (encrypted)',
       secretPlaceholder: 'Paste the client secret',
       save: 'Save',
       clearSecret: 'Clear',
-      guide: 'Open the guide',
-      checkTitle: 'Checking',
-      checkMinutes: {
-        label: 'New emails',
-        description: 'How often inboxes are checked.',
-        option: 'Every {{count}} min'
-      },
       imap: {
         title: 'Add an IMAP account',
         reconnectTitle: 'Reconnect “{{name}}”',
@@ -430,7 +450,9 @@ export const en: Translation = {
       webPermission: 'Can show web pages',
       appsPermission: 'Can show the window of your installed apps',
       notificationsPermission: 'Can send you notifications',
-      mailPermission: 'Can read, sort and send the emails of your accounts'
+      mailPermission: 'Can read, sort and send the emails of your accounts',
+      mediaPermission:
+        'Can read your YouTube subscriptions and playlists and your followed Twitch channels'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

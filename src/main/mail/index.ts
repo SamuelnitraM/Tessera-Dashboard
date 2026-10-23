@@ -8,12 +8,16 @@ import {
   mailError,
   mailSource,
   parseAddressList,
+  sanitizeMailQuery,
+  DEFAULT_QUERY,
   sanitizeMailServer,
   type ImapAccountInput,
   type MailAccount,
   type MailAccountState,
   type MailAction,
   type MailDraft,
+  type MailFolder,
+  type MailQuery,
   type MailMessage,
   type MailPage,
   type MailProvider,
@@ -25,18 +29,17 @@ import { notify } from '../notifications'
 import { hasPermission } from '../plugins/manifests'
 import { getSettings, onSettingsChange, updateSettings } from '../settings-store'
 import type { MailConnection } from './connection'
-import { connectGmail, fetchGmailAddress, googleClient } from './gmail'
+import { connectGmail } from './gmail'
 import { connectImap, verifyImapAccount, type ImapSecret } from './imap'
 import { compose, extractAttachment, extractAttachments, toMessage } from './mime'
-import { authorize, cancelAuthorization } from './oauth'
-import { connectOutlook, fetchOutlookAddress, microsoftClient } from './outlook'
+import { cancelAuthorization } from '../auth/oauth'
 import {
   GOOGLE_SECRET,
   hasSecret,
   pruneAccountSecrets,
   setAccountSecret,
   setSecret
-} from './secrets'
+} from '../auth/secrets'
 
 /**
  * Mails : comptes, connexions aux fournisseurs, vérification des nouveaux mails (et leurs
@@ -85,12 +88,7 @@ function findAccount(accountId: string): MailAccount {
 function connect(account: MailAccount): MailConnection {
   let connection = connections.get(account.id)
   if (!connection) {
-    connection =
-      account.provider === 'gmail'
-        ? connectGmail(account)
-        : account.provider === 'outlook'
-          ? connectOutlook(account)
-          : connectImap(account)
+    connection = account.provider === 'gmail' ? connectGmail(account) : connectImap(account)
     connections.set(account.id, connection)
   }
   return connection
@@ -138,7 +136,7 @@ function ensurePermission(pluginId: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Comptes (Paramètres → Mails)
+// Comptes (Paramètres → Comptes)
 // ---------------------------------------------------------------------------
 
 export function getMailConfig(): { googleSecretSet: boolean } {
@@ -166,33 +164,22 @@ function saveAccount(account: MailAccount): MailAccount {
   return account
 }
 
-/** Connexion à Gmail ou Outlook dans le navigateur (nouveau compte, ou reconnexion). */
-export async function connectOAuthAccount(
+/**
+ * Compte Gmail qui vient de se connecter (Paramètres → Comptes). Même adresse
+ * qu'un compte existant : c'est une reconnexion, le compte garde ses réglages.
+ */
+export function saveOAuthAccount(
   provider: Exclude<MailProvider, 'imap'>,
-  reconnectId?: string
-): Promise<MailAccount> {
-  const previous = reconnectId ? findAccount(reconnectId) : null
-  const client = provider === 'gmail' ? googleClient() : microsoftClient()
-  const tokens = await authorize(client, previous?.address)
-  if (!tokens.refreshToken) throw mailError('auth', 'no-refresh-token')
-  const address = (
-    provider === 'gmail'
-      ? await fetchGmailAddress(tokens.accessToken)
-      : await fetchOutlookAddress(tokens.accessToken)
-  ).trim()
-  if (!isMailAddress(address)) throw mailError('invalid', 'address')
-
-  // Même adresse qu'un compte existant : c'est une reconnexion
-  const existing =
-    previous ??
-    accounts().find(
-      (item) => item.provider === provider && item.address.toLowerCase() === address.toLowerCase()
-    )
-  if (previous && previous.address.toLowerCase() !== address.toLowerCase()) {
-    throw mailError('invalid', address)
-  }
-  const account = existing ?? { id: randomUUID(), provider, name: address, address }
-  setAccountSecret(account.id, { refreshToken: tokens.refreshToken })
+  address: string,
+  refreshToken: string
+): MailAccount {
+  const clean = address.trim()
+  if (!isMailAddress(clean)) throw mailError('invalid', 'address')
+  const existing = accounts().find(
+    (item) => item.provider === provider && item.address.toLowerCase() === clean.toLowerCase()
+  )
+  const account = existing ?? { id: randomUUID(), provider, name: clean, address: clean }
+  setAccountSecret(account.id, { refreshToken })
   disconnect(account.id)
   saveAccount(account)
   void checkAccount(account.id)
@@ -261,14 +248,21 @@ export function protectMailAccounts<T extends { mail?: { accounts?: unknown } }>
 // Mails (widgets, permission `mail`)
 // ---------------------------------------------------------------------------
 
+/** Dossiers et libellés d'un compte. */
+export async function listFolders(pluginId: string, accountId: string): Promise<MailFolder[]> {
+  ensurePermission(pluginId)
+  return withAccount(accountId, (connection) => connection.folders())
+}
+
 export async function listMessages(
   pluginId: string,
   accountId: string,
+  query: MailQuery,
   page: string | null
 ): Promise<MailPage> {
   ensurePermission(pluginId)
   const result = await withAccount(accountId, (connection) =>
-    connection.list(typeof page === 'string' ? page : null, PAGE_SIZE)
+    connection.list(sanitizeMailQuery(query), typeof page === 'string' ? page : null, PAGE_SIZE)
   )
   setState(accountId, { unread: result.unread })
   return result
@@ -296,7 +290,9 @@ export async function actOnMessage(
   action: MailAction
 ): Promise<void> {
   ensurePermission(pluginId)
-  if (!['read', 'unread', 'archive', 'trash'].includes(action)) throw mailError('invalid')
+  if (!['read', 'unread', 'star', 'unstar', 'archive', 'trash'].includes(action)) {
+    throw mailError('invalid')
+  }
   await withAccount(accountId, (connection) => connection.act(String(id), action))
   // Compteur de non-lus exact (le mail archivé ou supprimé était peut-être non lu)
   void checkAccount(accountId)
@@ -409,13 +405,6 @@ export async function openMailLink(pluginId: string, url: string): Promise<void>
 
 export const cancelConnect = (): void => cancelAuthorization()
 
-export async function reconnectFromPlugin(pluginId: string, accountId: string): Promise<void> {
-  ensurePermission(pluginId)
-  const account = findAccount(accountId)
-  if (account.provider === 'imap') throw mailError('invalid', 'imap')
-  await connectOAuthAccount(account.provider, account.id)
-}
-
 // ---------------------------------------------------------------------------
 // Vérification des nouveaux mails
 // ---------------------------------------------------------------------------
@@ -427,7 +416,9 @@ async function checkAccount(accountId: string): Promise<void> {
   if (checking.has(accountId)) return
   checking.add(accountId)
   try {
-    const page = await withAccount(accountId, (connection) => connection.list(null, PAGE_SIZE))
+    const page = await withAccount(accountId, (connection) =>
+      connection.list(DEFAULT_QUERY, null, PAGE_SIZE)
+    )
     const known = seen.get(accountId)
     const since = lastChecks.get()[accountId] ?? Date.now()
     // Premier passage : seuls les mails arrivés depuis la dernière vérification sont nouveaux
@@ -500,11 +491,6 @@ export function initMail(next: MailListeners): void {
     if (settings.mail.googleClientId !== previous.mail.googleClientId) {
       for (const account of settings.mail.accounts) {
         if (account.provider === 'gmail') disconnect(account.id)
-      }
-    }
-    if (settings.mail.microsoftClientId !== previous.mail.microsoftClientId) {
-      for (const account of settings.mail.accounts) {
-        if (account.provider === 'outlook') disconnect(account.id)
       }
     }
     // Comptes retirés : connexion fermée et secrets effacés

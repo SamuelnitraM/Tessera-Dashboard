@@ -1,6 +1,23 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
+
+/**
+ * Identifiants des applications de Tessera chez Google et Twitch (« Se connecter
+ * avec… »), injectés dans le processus principal : fichier local non versionné, ou variable
+ * d'environnement (intégration continue). Voir docs/applications-oauth.md.
+ */
+function oauthClients(): unknown {
+  const file = resolve('oauth-clients.local.json')
+  try {
+    if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8'))
+    if (process.env.TESSERA_OAUTH_CLIENTS) return JSON.parse(process.env.TESSERA_OAUTH_CLIENTS)
+  } catch (error) {
+    throw new Error(`Identifiants OAuth illisibles : ${(error as Error).message}`, { cause: error })
+  }
+  return {}
+}
 
 // Configuration des trois cibles de build Electron :
 // - main     : processus principal (Node.js)
@@ -8,6 +25,7 @@ import react from '@vitejs/plugin-react'
 // - renderer : interface React (Chromium)
 export default defineConfig({
   main: {
+    define: { __OAUTH_CLIENTS__: JSON.stringify(oauthClients()) },
     resolve: {
       alias: { '@shared': resolve('src/shared') }
     },

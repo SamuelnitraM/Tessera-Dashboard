@@ -1,4 +1,4 @@
-import { Archive, LoaderCircle, Mail, MailOpen, Paperclip, Trash2 } from 'lucide-react'
+import { Archive, LoaderCircle, Mail, MailOpen, Paperclip, Star, Trash2 } from 'lucide-react'
 import {
   Button,
   mailErrorMessage,
@@ -14,13 +14,23 @@ import styles from './MailWidget.module.css'
 
 interface MailListProps {
   inbox: Inbox
+  /** Envoyés, brouillons : les destinataires remplacent l'expéditeur. */
+  showRecipients: boolean
+  /** Texte d'une liste vide (dossier vide, aucun non lu, aucun résultat). */
+  emptyText: string
   onOpen: (message: MailSummary) => void
   /** Erreur d'une action (affichée par le bloc). */
   onError: (message: string) => void
 }
 
 /** Boîte de réception : expéditeur, objet, aperçu, date ; actions au survol et au clic droit. */
-export function MailList({ inbox, onOpen, onError }: MailListProps): React.JSX.Element {
+export function MailList({
+  inbox,
+  showRecipients,
+  emptyText,
+  onOpen,
+  onError
+}: MailListProps): React.JSX.Element {
   const t = usePluginTranslation()
   const language = useLanguage()
 
@@ -46,7 +56,7 @@ export function MailList({ inbox, onOpen, onError }: MailListProps): React.JSX.E
     return (
       <div className={styles.state}>
         <MailOpen size={22} aria-hidden />
-        <p>{t('empty')}</p>
+        <p>{emptyText}</p>
       </div>
     )
   }
@@ -64,6 +74,11 @@ export function MailList({ inbox, onOpen, onError }: MailListProps): React.JSX.E
               icon: message.unread ? MailOpen : Mail,
               onSelect: () => act(message, message.unread ? 'read' : 'unread')
             },
+            {
+              label: message.starred ? t('actions.unstar') : t('actions.star'),
+              icon: Star,
+              onSelect: () => act(message, message.starred ? 'unstar' : 'star')
+            },
             { label: t('actions.archive'), icon: Archive, onSelect: () => act(message, 'archive') },
             {
               label: t('actions.trash'),
@@ -73,10 +88,23 @@ export function MailList({ inbox, onOpen, onError }: MailListProps): React.JSX.E
             }
           ])}
         >
+          <button
+            type="button"
+            className={styles.star}
+            data-on={message.starred}
+            title={message.starred ? t('actions.unstar') : t('actions.star')}
+            aria-label={message.starred ? t('actions.unstar') : t('actions.star')}
+            aria-pressed={message.starred}
+            onClick={() => act(message, message.starred ? 'unstar' : 'star')}
+          >
+            <Star size={15} aria-hidden />
+          </button>
           <button type="button" className={styles.itemButton} onClick={() => onOpen(message)}>
             <span className={styles.itemTop}>
               <span className={styles.itemFrom}>
-                {senderName(message.from) || t('unknownSender')}
+                {showRecipients
+                  ? `${t('reader.to')} : ${message.to.map(senderName).join(', ') || '—'}`
+                  : senderName(message.from) || t('unknownSender')}
               </span>
               {message.hasAttachments && (
                 <Paperclip size={12} className={styles.itemClip} aria-label={t('attachment')} />

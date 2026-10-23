@@ -197,11 +197,10 @@ export const fr = {
     newMessages: '{{count}} nouveaux mails',
     providers: {
       gmail: 'Gmail',
-      outlook: 'Outlook',
       imap: 'IMAP'
     },
     errors: {
-      'not-configured': 'Identifiant de connexion manquant : renseigne-le dans Paramètres → Mails.',
+      'not-configured': 'Connexion indisponible : voir Paramètres → Comptes.',
       auth: 'Connexion refusée ou expirée : reconnecte le compte.',
       cancelled: 'Connexion annulée.',
       network: 'Serveur injoignable. Vérifie ta connexion à internet.',
@@ -209,7 +208,19 @@ export const fr = {
       'no-folder': 'Dossier introuvable sur le serveur (Archives ou Corbeille).',
       permission: 'Ce widget n’a pas accès aux mails.',
       invalid: 'Informations invalides.',
+      quota: 'Limite quotidienne du service atteinte : réessaie demain.',
       unknown: 'Erreur inattendue.'
+    }
+  },
+  media: {
+    liveTitle: '{{name}} est en direct',
+    backToBlock: 'Revenir au bloc',
+    closePlayer: 'Fermer le lecteur',
+    next: 'Vidéo suivante',
+    notConfigured: {
+      google: 'Connexion Google indisponible : voir Paramètres → Comptes.',
+      twitch: 'Connexion Twitch indisponible : voir Paramètres → Comptes.',
+      youtube: 'Compte YouTube non connecté : Paramètres → Comptes → Se connecter avec Google.'
     }
   },
   settings: {
@@ -219,8 +230,8 @@ export const fr = {
       extensions: 'Widgets et modules',
       appearance: 'Apparence',
       notifications: 'Notifications',
+      accounts: 'Comptes',
       applications: 'Applications',
-      mail: 'Mails',
       about: 'À propos'
     },
     language: {
@@ -363,47 +374,57 @@ export const fr = {
       deleteMessage:
         'L’application disparaîtra de Tessera, et sa connexion (cookies, données enregistrées) sera effacée.'
     },
-    mail: {
+    accounts: {
       intro:
-        'Tes boîtes mail dans des blocs « Mails » : Gmail et Outlook par leur connexion officielle, les autres fournisseurs par IMAP. Jetons de connexion et mots de passe sont chiffrés par Windows et ne sont envoyés qu’à ton fournisseur.',
-      accountsTitle: 'Comptes',
-      noAccounts: 'Aucun compte pour l’instant.',
+        'Connecte tes comptes : tes mails, tes abonnements YouTube et les directs Twitch arrivent dans tes blocs. La connexion se fait sur la page officielle de Google ou de Twitch, dans ton navigateur (souvent déjà connecté : un clic suffit). Tessera ne voit jamais ton mot de passe.',
+      googleIntro:
+        'Une seule connexion pour Gmail et YouTube : coche les services voulus, puis choisis ton compte Google.',
+      googleServices: 'Services :',
+      withGoogle: 'Se connecter avec Google',
       addGmail: 'Ajouter Gmail',
-      addOutlook: 'Ajouter Outlook',
-      addImap: 'Ajouter un compte IMAP…',
-      needsGoogle: 'Gmail : renseigne d’abord ton identifiant Google (plus bas).',
-      needsMicrosoft: 'Outlook : renseigne d’abord ton identifiant Microsoft (plus bas).',
-      connecting: 'Connexion en cours dans ton navigateur…',
+      addYouTube: 'Ajouter YouTube',
+      twitchIntro:
+        'Tes chaînes suivies en direct, et une notification à chaque début de direct. Twitch affiche un code déjà rempli : il suffit d’accepter.',
+      withTwitch: 'Se connecter avec Twitch',
+      reconnectTwitch: 'Reconnecter Twitch',
+      imapTitle: 'Autres messageries',
+      imapIntro:
+        'OVH, Orange, Free, SFR, La Poste, iCloud, Yahoo… : adresse et mot de passe (souvent un mot de passe d’application).',
+      addImap: 'Ajouter un compte de messagerie…',
+      waiting: 'Connexion en cours dans ton navigateur…',
+      twitchWaiting: 'Accepte la connexion dans ton navigateur (le code est déjà rempli)…',
       cancel: 'Annuler',
       reconnect: 'Reconnecter',
-      remove: 'Supprimer le compte',
-      name: 'Nom affiché',
+      disconnect: 'Déconnecter',
+      disconnectTitle: 'Déconnecter « {{name}} » ?',
+      disconnectMessage:
+        'Tessera oublie cette connexion. Tes données restent chez le fournisseur ; tu peux te reconnecter à tout moment.',
       unread: '{{count}} non lus',
-      removeTitle: 'Supprimer « {{name}} » ?',
-      removeMessage:
-        'Le compte disparaîtra de Tessera et sa connexion sera effacée. Tes mails restent chez ton fournisseur.',
+      unavailable:
+        'Connexion indisponible dans cette version de Tessera : renseigne tes propres identifiants dans « Avancé ».',
+      checkTitle: 'Vérification',
+      mailCheck: {
+        label: 'Nouveaux mails',
+        description: 'Fréquence de vérification des boîtes de réception.'
+      },
+      liveCheck: {
+        label: 'Directs Twitch',
+        description: 'Fréquence de vérification des chaînes suivies.'
+      },
+      every: 'Toutes les {{count}} min',
       notificationsHint:
-        'Les notifications de chaque compte se règlent dans Paramètres → Notifications.',
-      googleTitle: 'Identifiant Google (Gmail)',
-      googleIntro:
-        'Google demande à chacun de créer son propre identifiant de connexion : c’est gratuit et prend cinq minutes. Suis le guide, puis colle ici l’ID client et le code secret du client.',
-      microsoftTitle: 'Identifiant Microsoft (Outlook)',
-      microsoftIntro:
-        'Crée une application gratuite dans Microsoft Entra en suivant le guide, puis colle ici son ID d’application (client).',
-      clientId: 'ID client',
-      clientSecret: 'Code secret du client',
-      applicationId: 'ID d’application (client)',
+        'Les notifications (nouveaux mails, directs) se règlent dans Paramètres → Notifications.',
+      advanced: 'Avancé : tes propres identifiants',
+      advancedIntro:
+        'Facultatif. Tessera a ses propres identifiants chez Google et Twitch ; tu peux utiliser les tiens à la place (laisser vide : ceux de Tessera).',
+      guide: 'Créer ses identifiants',
+      googleClientId: 'Google : ID client',
+      googleClientSecret: 'Google : code secret du client',
+      twitchClientId: 'Twitch : ID client (type « Public »)',
       secretSaved: 'Enregistré (chiffré)',
       secretPlaceholder: 'Coller le code secret',
       save: 'Enregistrer',
       clearSecret: 'Effacer',
-      guide: 'Ouvrir le guide',
-      checkTitle: 'Vérification',
-      checkMinutes: {
-        label: 'Nouveaux mails',
-        description: 'Fréquence de vérification des boîtes de réception.',
-        option: 'Toutes les {{count}} min'
-      },
       imap: {
         title: 'Ajouter un compte IMAP',
         reconnectTitle: 'Reconnecter « {{name}} »',
@@ -438,7 +459,9 @@ export const fr = {
       webPermission: 'Peut afficher des pages web',
       appsPermission: 'Peut afficher la fenêtre de tes applications installées',
       notificationsPermission: 'Peut t’envoyer des notifications',
-      mailPermission: 'Peut lire, classer et envoyer les mails de tes comptes'
+      mailPermission: 'Peut lire, classer et envoyer les mails de tes comptes',
+      mediaPermission:
+        'Peut lire tes abonnements et playlists YouTube et tes chaînes Twitch suivies'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

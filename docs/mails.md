@@ -1,62 +1,23 @@
-# Mails : connecter Gmail, Outlook ou un compte IMAP
+# Mails : connecter Gmail ou un compte IMAP
 
 Le bloc **Mails** affiche la boîte de réception d'un compte : lecture, classement (lu / non lu, archiver, corbeille), écriture, réponse et transfert, et une notification à l'arrivée de chaque nouveau mail.
 
-Les comptes s'ajoutent dans **Paramètres → Mails**. Trois façons de se connecter :
+Les comptes s'ajoutent dans **Paramètres → Comptes** :
 
-| Fournisseur                                | Connexion                        | À préparer                                              |
-| ------------------------------------------ | -------------------------------- | ------------------------------------------------------- |
-| Gmail                                      | Page de connexion Google (OAuth) | Ton propre identifiant Google (gratuit, 5 min)          |
-| Outlook, Hotmail, Microsoft 365            | Page de connexion Microsoft      | Ta propre application Microsoft Entra (gratuit)         |
-| Autres (OVH, Orange, Free, iCloud, Yahoo…) | IMAP et SMTP                     | Un mot de passe (souvent un mot de passe d'application) |
+| Fournisseur                                | Connexion                                      |
+| ------------------------------------------ | ---------------------------------------------- |
+| Gmail                                      | **Se connecter avec Google** (coche « Gmail ») |
+| Autres (OVH, Orange, Free, iCloud, Yahoo…) | Adresse et mot de passe (IMAP)                 |
 
-**Pourquoi un identifiant à créer soi-même ?** Tessera est un logiciel libre, sans serveur. Google et Microsoft demandent qu'une application qui lit les mails soit enregistrée chez eux. Chaque utilisateur enregistre donc la sienne : aucun intermédiaire, et tes mails ne passent que par ton PC et ton fournisseur.
+La page officielle de Google s'ouvre dans ton navigateur. Si tu y es déjà connecté, il suffit de choisir ton compte et d'accepter : Tessera ne voit jamais ton mot de passe. La même connexion Google peut aussi ouvrir YouTube (coche les deux services).
 
-**Sécurité** : les jetons de connexion et mots de passe sont chiffrés par Windows (liés à ta session) dans `%APPDATA%\Tessera Dashboard\mail-secrets.json`. L'interface de Tessera n'y a jamais accès. Supprimer un compte efface sa connexion.
+**Sécurité** : les jetons de connexion et mots de passe sont chiffrés par Windows (liés à ta session) dans `%APPDATA%\Tessera Dashboard\secrets.json`. L'interface de Tessera n'y a jamais accès. « Déconnecter » efface la connexion.
 
----
+**« Google n'a pas validé cette application »** : tant que Tessera n'a pas passé la validation de Google, cet écran apparaît à la connexion. Clique sur **Continuer**.
 
-## Gmail
+**Autorisations demandées** : Gmail `gmail.modify` (lire, classer, mettre à la corbeille, envoyer, sans suppression définitive).
 
-<a id="gmail"></a>
-
-1. Ouvre la [console Google Cloud](https://console.cloud.google.com/) avec ton compte Google, et crée un projet (ex. « Tessera »).
-2. **API et services → Bibliothèque** : cherche **Gmail API** et clique sur **Activer**.
-3. **API et services → Écran de consentement OAuth** (ou « Google Auth Platform ») :
-   - type d'utilisateur : **Externe** ;
-   - nom de l'application : « Tessera », ton adresse comme adresse d'assistance et de contact ;
-   - **Accès aux données** : ajoute le champ d'application `https://www.googleapis.com/auth/gmail.modify` ;
-   - **Audience** : ajoute ton adresse Gmail comme **utilisateur test**.
-4. **API et services → Identifiants → Créer des identifiants → ID client OAuth** :
-   - type d'application : **Application de bureau** ;
-   - nom : « Tessera ».
-5. Copie l'**ID client** et le **code secret du client** dans Tessera (Paramètres → Mails → Identifiant Google).
-6. Clique sur **Ajouter Gmail** : la page de connexion de Google s'ouvre dans ton navigateur.
-   - Google prévient que l'application n'est pas validée : c'est normal, c'est la tienne. Clique sur **Paramètres avancés → Accéder à Tessera**.
-   - Accepte l'accès à Gmail, puis reviens dans Tessera.
-
-**Connexion qui expire au bout de 7 jours** : tant que l'application est en mode « Test », Google limite la connexion à une semaine. Pour l'éviter, passe-la **en production** (Écran de consentement → Audience → **Publier l'application**). Sans validation par Google, elle reste réservée à 100 comptes, ce qui suffit pour un usage personnel. Sinon, reconnecte le compte (bouton ⟳ dans Paramètres → Mails, ou **Reconnecter** dans le bloc).
-
-**Autorisation demandée** : `gmail.modify` permet de lire, classer, mettre à la corbeille et envoyer. La suppression définitive n'en fait pas partie.
-
----
-
-## Outlook
-
-<a id="outlook"></a>
-
-Pour les comptes Microsoft personnels (Outlook.com, Hotmail, Live) et professionnels ou scolaires (Microsoft 365).
-
-1. Ouvre le [centre d'administration Microsoft Entra](https://entra.microsoft.com/) avec ton compte Microsoft. Si un annuaire t'est demandé, Microsoft en crée un gratuitement.
-2. **Identité → Applications → Inscriptions d'applications → Nouvelle inscription** :
-   - nom : « Tessera » ;
-   - types de comptes pris en charge : **Comptes dans un annuaire organisationnel et comptes Microsoft personnels** ;
-   - URI de redirection : plateforme **Client public/natif (mobile et bureau)**, adresse `http://localhost`.
-3. Après la création, copie l'**ID d'application (client)** dans Tessera (Paramètres → Mails → Identifiant Microsoft).
-4. Onglet **Authentification** : active **Autoriser les flux de clients publics**.
-5. Clique sur **Ajouter Outlook** : la page de connexion de Microsoft s'ouvre dans ton navigateur ; accepte l'accès, puis reviens dans Tessera.
-
-**Autorisations demandées** : `Mail.ReadWrite` (lire et classer), `Mail.Send` (envoyer), `User.Read` (ton adresse) et `offline_access` (rester connecté). Un compte professionnel peut demander l'accord de l'administrateur de l'entreprise.
+**Identifiants personnels** (facultatif) : Paramètres → Comptes → Avancé, voir le [guide des applications](applications-oauth.md).
 
 ---
 
@@ -80,7 +41,7 @@ Tessera vérifie la connexion (réception et envoi) avant d'ajouter le compte.
 
 ## Notifications
 
-Tessera vérifie les boîtes de réception régulièrement (**Paramètres → Mails → Vérification**, toutes les 2 minutes par défaut), même si aucun bloc Mails n'est affiché. Chaque nouveau mail non lu donne une notification (au-delà de trois, une seule notification les résume). Un clic ouvre le mail dans un bloc Mails du compte.
+Tessera vérifie les boîtes de réception régulièrement (**Paramètres → Comptes → Vérification**, toutes les 2 minutes par défaut), même si aucun bloc Mails n'est affiché. Chaque nouveau mail non lu donne une notification (au-delà de trois, une seule notification les résume). Un clic ouvre le mail dans un bloc Mails du compte.
 
 Chaque compte se règle à part dans **Paramètres → Notifications** : activation, son, priorité.
 

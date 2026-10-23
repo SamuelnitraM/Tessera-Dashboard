@@ -115,16 +115,30 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
   - **Journaux** de la console dans le bloc, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
   - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des modules dédiés viendront à l'étape 14.
 - **Mails** ✅ ([guide de connexion](docs/mails.md))
-  - Comptes **Gmail** (API Google), **Outlook** (Microsoft Graph) et **IMAP/SMTP** (OVH, Orange, Free, iCloud, Yahoo…, réglages proposés ; serveur local comme Proton Mail Bridge), ajoutés dans Paramètres → Mails. Gmail et Outlook se connectent dans le navigateur, avec l'identifiant de connexion que l'utilisateur crée lui-même (gratuit, guide pas à pas).
+  - Comptes **Gmail** (API Google) et **IMAP/SMTP** (OVH, Orange, Free, iCloud, Yahoo…, réglages proposés ; serveur local comme Proton Mail Bridge), ajoutés dans Paramètres → Comptes : **« Se connecter avec Google »** (page officielle dans le navigateur, un clic si l'on y est déjà connecté), adresse et mot de passe pour IMAP.
   - Jetons et mots de passe **chiffrés par Windows**, jamais visibles par l'interface.
-  - Boîte de réception (non lus, pièces jointes, mails plus anciens), **lecture** dans le bloc : contenu nettoyé, sans scripts, **images distantes bloquées** jusqu'à « Afficher les images » (ou toujours, au choix), liens ouverts dans le navigateur, pièces jointes à enregistrer.
-  - **Actions** : lu / non lu, archiver, corbeille (au survol, au clic droit ou dans le mail).
+  - **Comme Gmail** : menu des **dossiers et libellés** (boîte de réception, suivis, envoyés, brouillons, tous les messages, spam, corbeille, libellés Gmail, dossiers IMAP), filtres **Tous / Non lus / Lus**, **recherche**, **étoiles** (suivis). Bloc étroit : le menu se replie (bouton ☰).
+  - Liste (non lus, pièces jointes, mails plus anciens ; destinataires dans « Envoyés »), **lecture** dans le bloc : contenu nettoyé, sans scripts, **images distantes bloquées** jusqu'à « Afficher les images » (ou toujours, au choix), liens ouverts dans le navigateur, pièces jointes à enregistrer.
+  - **Actions** : lu / non lu, suivre, archiver, corbeille (au survol, au clic droit ou dans le mail).
   - **Écrire, répondre, répondre à tous, transférer** (pièces jointes d'origine comprises), texte mis en forme, Cc / Cci, fichiers joints.
   - **Notification** à chaque nouveau mail (vérification toutes les 2 minutes par défaut, même sans bloc affiché), réglable par compte ; un clic ouvre le mail. Plusieurs comptes : un sélecteur dans le bloc.
+- **YouTube** ✅ et **Twitch** ✅ ([guide de connexion](docs/youtube-twitch.md))
+  - **Comme les sites** : le bloc s'ouvre sur sa **page d'accueil** ; la vidéo ou le direct choisi s'affiche par-dessus, et **✕** ramène à l'accueil. Sans compte : coller un lien (vidéo, playlist YouTube, chaîne ou rediffusion Twitch) ou taper un nom de chaîne.
+  - **YouTube** : barre de **recherche**, grille de vidéos (durée, vues, date), abonnements en page d'accueil, playlists ; **photo du compte** en haut à droite pour passer d'un compte YouTube à l'autre. Choisir une vidéo pendant une lecture l'**ajoute à la suite** (bouton + sur chaque miniature) : la file **« À suivre »**, à côté du lecteur (seulement quand des vidéos attendent, et refermable), s'enchaîne toute seule, même en mini-lecteur.
+  - **Mini-lecteur** : en changeant de page (ou en revenant à l'accueil du bloc) pendant la lecture, la vidéo continue en bas à droite, sans se recharger ; un bouton ramène au bloc.
+  - **YouTube connecté** (« Se connecter avec Google », la même connexion que Gmail si l'on coche les deux, lecture seule) : fil des **abonnements**, **playlists** et **vidéos aimées** ; un clic lance la vidéo. Non connecté : lien **Se connecter** dans le bloc.
+  - **Twitch connecté** (« Se connecter avec Twitch », code déjà rempli à accepter) : **chaînes suivies en direct** en page d'accueil (titre, jeu, spectateurs, durée), **recherche de chaînes**, **notification** à chaque début de direct (un clic ouvre la chaîne dans le bloc).
+  - **Chat Twitch** à côté du lecteur (masquable), avec la connexion Twitch de l'utilisateur pour écrire.
 - **Prévus** :
-  - **YouTube / Twitch** : lecteurs intégrés, connexion au compte (playlists, abonnements, chaînes en direct) ;
   - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC » ;
   - **Flux RSS**.
+
+### Comptes ✅
+
+- **Paramètres → Comptes** : **« Se connecter avec Google »** (Gmail et YouTube en une seule connexion, services cochés), **« Se connecter avec Twitch »**, et comptes de messagerie IMAP (adresse et mot de passe).
+- La page officielle du fournisseur s'ouvre dans le **navigateur par défaut** : déjà connecté, un clic suffit pour choisir son compte. Tessera ne voit jamais le mot de passe ; les jetons sont **chiffrés par Windows**.
+- Les blocs Mails, YouTube et Twitch renvoient ici quand on n'est pas connecté.
+- **Avancé** : utiliser ses propres identifiants d'application ([guide](docs/applications-oauth.md)).
 
 ### Notifications ✅
 
@@ -170,10 +184,16 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 
 ### Limites connues des mails
 
-- **Gmail en mode « Test »** : tant que l'application Google de l'utilisateur n'est pas publiée, la connexion expire au bout de 7 jours (voir le [guide](docs/mails.md#gmail)).
+- **Application Google non validée** : l'écran « Google n'a pas validé cette application » s'affiche à la connexion (bouton Continuer), et 100 comptes Google au plus peuvent se connecter. La validation (et l'audit de sécurité qu'exige Gmail) viendra avec la distribution (étape 15).
 - **IMAP** : la liste n'affiche pas l'aperçu du texte (seulement l'expéditeur et l'objet).
 - Seule la **boîte de réception** est affichée (pas encore de dossiers, de recherche ni de brouillons).
-- **Outlook** : écrit d'après la documentation de Microsoft Graph, pas encore essayé avec un vrai compte.
+
+### Limites connues de YouTube et Twitch
+
+- Le lecteur YouTube intégré (`youtube-nocookie.com`) n'utilise pas la connexion YouTube : publicités affichées, même avec YouTube Premium.
+- Les **Shorts** apparaissent dans le fil des abonnements comme des vidéos.
+- **Recherche YouTube** : l'API de YouTube accorde environ 100 recherches par jour **pour toute l'application** (tous les utilisateurs de l'identifiant Google de Tessera). Au-delà : « Limite quotidienne atteinte », jusqu'au lendemain. Une augmentation du quota se demande à Google avec la validation de l'application (étape 15).
+- Pas de « À regarder plus tard » (inaccessible par l'API YouTube).
 
 ### Limites connues des pages web
 
@@ -248,7 +268,10 @@ src/
 │   ├── desktop/              #   Applications installées : API Windows (koffi), programmes du menu Démarrer,
 │   │                         #   cadres sur les blocs (docking.ts), lien avec l'hébergeur (frames.ts)
 │   ├── frame-host/           #   Hébergeur des cadres : processus séparé (mode Node) et son fil de fenêtres
-│   ├── mail/                 #   Mails : Gmail, Outlook, IMAP/SMTP, connexion OAuth, secrets chiffrés, vérification
+│   ├── accounts.ts           #   « Se connecter avec Google / Twitch » (Paramètres → Comptes)
+│   ├── auth/                 #   Connexion OAuth (navigateur, code d'appareil), identifiants intégrés, secrets chiffrés
+│   ├── mail/                 #   Mails : Gmail, IMAP/SMTP, vérification des nouveaux mails
+│   ├── media/                #   YouTube (abonnements, playlists) et Twitch (directs suivis, notifications)
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
 │   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
@@ -290,7 +313,9 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 ├── tessera.launcher/         #   Lanceur de programmes (permissions « processes » et « notifications »)
 ├── tessera.web/              #   Page web dans la grille (permission « web »)
 ├── tessera.desktop/          #   Application installée dans la grille (permission « apps »)
-└── tessera.mail/             #   Mails : boîte de réception, lecture, écriture (permission « mail »)
+├── tessera.mail/             #   Mails : boîte de réception, lecture, écriture (permission « mail »)
+├── tessera.youtube/          #   YouTube : lecteur, abonnements, playlists (permissions « web » et « media »)
+└── tessera.twitch/           #   Twitch : lecteur, chat, directs suivis (« web », « media », « notifications »)
 docs/
 └── plugins.md                # Guide de création d'une extension
 ```
@@ -349,6 +374,8 @@ npm run dev
 
 > Au premier lancement, Electron télécharge son exécutable (~100 Mo) : quelques secondes d'attente sont normales.
 
+> **« Se connecter avec Google / Twitch »** : ces boutons utilisent les identifiants des applications de Tessera, à placer dans `oauth-clients.local.json` (non versionné, modèle : `oauth-clients.example.json`). Sans ce fichier, les boutons sont désactivés, sauf avec ses propres identifiants (Paramètres → Comptes → Avancé). Voir le [guide des applications](docs/applications-oauth.md).
+
 | Commande               | Rôle                                                    |
 | ---------------------- | ------------------------------------------------------- |
 | `npm run dev`          | Lance l'app en développement avec rechargement à chaud  |
@@ -390,7 +417,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 ### Phase 2 : intégrations API
 
 - [x] **Étape 10 : mails.** Comptes Gmail (API Google), Outlook (Microsoft Graph) et IMAP/SMTP, identifiants de connexion fournis par l'utilisateur (guide), secrets chiffrés, boîte de réception, lecture sécurisée, actions, écriture, réponse et transfert, notifications par compte.
-- [ ] **Étape 11 :** YouTube et Twitch (lecteurs et connexion au compte).
+- [x] **Étape 11 : YouTube et Twitch.** Blocs ouverts sur leur page d'accueil, comme les sites, avec la vidéo ou le direct par-dessus ; lecteurs sans compte et mini-lecteur qui continue en changeant de page ; comptes connectés (YouTube : abonnements, recherche, playlists, vidéos aimées, plusieurs comptes ; Twitch : chaînes suivies en direct, recherche de chaînes, notifications), chat Twitch. Paramètres → Comptes : « Se connecter avec Google / Twitch » avec les identifiants de Tessera. Outlook retiré.
 - [ ] **Étape 12 :** lecteur vidéo local.
 
 ### Phase 3 : plugins

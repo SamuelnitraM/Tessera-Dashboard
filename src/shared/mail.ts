@@ -1,12 +1,12 @@
 /**
- * Mails : comptes Gmail (API Google), Outlook (Microsoft Graph) et IMAP/SMTP.
+ * Mails : comptes Gmail (API Google) et IMAP/SMTP.
  *
  * Les comptes (sans aucun secret) sont dans les réglages. Les jetons de connexion, mots de passe
  * IMAP et le secret du client Google sont chiffrés par Windows (`mail-secrets.json`), et ne
  * quittent jamais le processus principal.
  */
 
-export const MAIL_PROVIDERS = ['gmail', 'outlook', 'imap'] as const
+export const MAIL_PROVIDERS = ['gmail', 'imap'] as const
 export type MailProvider = (typeof MAIL_PROVIDERS)[number]
 
 /** Serveur IMAP ou SMTP. `secure` : TLS dès la connexion (sinon STARTTLS). */
@@ -31,8 +31,6 @@ export interface MailAccount {
 export interface MailSettings {
   /** Identifiant du client OAuth Google (type « Application de bureau »), fourni par l'utilisateur. */
   googleClientId: string
-  /** Identifiant d'application Microsoft Entra (client public), fourni par l'utilisateur. */
-  microsoftClientId: string
   /** Vérification des nouveaux mails, en minutes. */
   checkMinutes: number
   accounts: MailAccount[]
@@ -40,7 +38,6 @@ export interface MailSettings {
 
 export const DEFAULT_MAIL_SETTINGS: MailSettings = {
   googleClientId: '',
-  microsoftClientId: '',
   checkMinutes: 2,
   accounts: []
 }
@@ -58,7 +55,7 @@ export interface MailAddress {
 /** Mail dans une liste. */
 export interface MailSummary {
   id: string
-  /** Conversation (Gmail, Outlook), pour répondre dans le même fil. */
+  /** Conversation (Gmail), pour répondre dans le même fil. */
   threadId: string | null
   from: MailAddress
   subject: string
@@ -67,7 +64,11 @@ export interface MailSummary {
   /** Date de réception (ms). */
   date: number
   unread: boolean
+  /** Suivi (étoile Gmail, indicateur IMAP). */
+  starred: boolean
   hasAttachments: boolean
+  /** Destinataires (affichés dans « Envoyés » et « Brouillons »). */
+  to: MailAddress[]
 }
 
 export interface MailAttachment {
@@ -121,7 +122,58 @@ export interface MailDraft {
   attachments: MailUpload[]
 }
 
-export type MailAction = 'read' | 'unread' | 'archive' | 'trash'
+export type MailAction = 'read' | 'unread' | 'star' | 'unstar' | 'archive' | 'trash'
+
+/** Rôle d'un dossier : dossiers habituels (traduits par l'interface) ou libellé de l'utilisateur. */
+export type MailFolderKind =
+  'inbox' | 'starred' | 'sent' | 'drafts' | 'all' | 'archive' | 'spam' | 'trash' | 'label'
+
+/** Dossier (IMAP) ou libellé (Gmail). */
+export interface MailFolder {
+  id: string
+  name: string
+  kind: MailFolderKind
+  /** Non lus, si le fournisseur le donne. */
+  unread: number | null
+}
+
+/** Ordre d'affichage des dossiers habituels (les libellés suivent, par ordre alphabétique). */
+export const FOLDER_ORDER: MailFolderKind[] = [
+  'inbox',
+  'starred',
+  'sent',
+  'drafts',
+  'all',
+  'archive',
+  'spam',
+  'trash',
+  'label'
+]
+
+/** Dossier par défaut : la boîte de réception (chaque fournisseur le traduit). */
+export const INBOX = 'inbox'
+
+export const MAIL_FILTERS = ['all', 'unread', 'read'] as const
+export type MailFilter = (typeof MAIL_FILTERS)[number]
+
+/** Ce que la liste affiche : un dossier, filtré (lus, non lus) et éventuellement recherché. */
+export interface MailQuery {
+  folder: string
+  filter: MailFilter
+  search: string
+}
+
+export const DEFAULT_QUERY: MailQuery = { folder: INBOX, filter: 'all', search: '' }
+
+/** Requête reçue de l'interface, validée. */
+export function sanitizeMailQuery(input: unknown): MailQuery {
+  const raw = asRecord(input)
+  return {
+    folder: typeof raw.folder === 'string' && raw.folder ? raw.folder.slice(0, 500) : INBOX,
+    filter: MAIL_FILTERS.includes(raw.filter as MailFilter) ? (raw.filter as MailFilter) : 'all',
+    search: typeof raw.search === 'string' ? raw.search.trim().slice(0, 200) : ''
+  }
+}
 
 /** État d'un compte (compteur, erreur de connexion), suivi par le processus principal. */
 export interface MailAccountState {
@@ -227,6 +279,7 @@ export interface ImapAccountInput {
  * - `no-folder` : dossier Archives ou Corbeille introuvable (IMAP)
  * - `permission` : l'extension n'a pas la permission `mail`
  * - `invalid` : données invalides (adresse, serveur…)
+ * - `quota` : limite quotidienne du fournisseur atteinte (recherche YouTube…)
  * - `unknown`
  */
 export const MAIL_ERROR_CODES = [
@@ -238,6 +291,7 @@ export const MAIL_ERROR_CODES = [
   'no-folder',
   'permission',
   'invalid',
+  'quota',
   'unknown'
 ] as const
 export type MailErrorCode = (typeof MAIL_ERROR_CODES)[number]
@@ -324,7 +378,6 @@ export function sanitizeMailSettings(input: unknown): MailSettings {
     typeof value === 'string' && CLIENT_ID.test(value.trim()) ? value.trim() : ''
   return {
     googleClientId: clientId(raw.googleClientId),
-    microsoftClientId: clientId(raw.microsoftClientId),
     checkMinutes: CHECK_MINUTES.includes(raw.checkMinutes as (typeof CHECK_MINUTES)[number])
       ? (raw.checkMinutes as number)
       : defaults.checkMinutes,

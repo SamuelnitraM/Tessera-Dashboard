@@ -1,8 +1,16 @@
 import { ImapFlow, type FetchMessageObject, type MessageStructureObject } from 'imapflow'
 import nodemailer from 'nodemailer'
-import { mailError, type MailAccount, type MailServer, type MailSummary } from '@shared/mail'
+import {
+  INBOX as DEFAULT_FOLDER,
+  mailError,
+  type MailAccount,
+  type MailFolder,
+  type MailFolderKind,
+  type MailServer,
+  type MailSummary
+} from '@shared/mail'
 import type { MailConnection } from './connection'
-import { getAccountSecret } from './secrets'
+import { getAccountSecret } from '../auth/secrets'
 
 /**
  * Autres fournisseurs : IMAP pour lire et classer, SMTP pour envoyer, avec le mot de passe
@@ -102,18 +110,49 @@ function hasAttachment(node: MessageStructureObject | undefined): boolean {
   return node.childNodes?.some(hasAttachment) ?? false
 }
 
-function toSummary(message: FetchMessageObject): MailSummary {
+/**
+ * Identifiant d'un mail : son dossier et son numéro (UID), qui n'est unique que dans son
+ * dossier. Séparés par un saut de ligne (impossible dans un nom de dossier).
+ */
+const mailId = (path: string, uid: number): string => `${path}\n${uid}`
+
+function parseId(id: string): { path: string; uid: string } {
+  const index = id.lastIndexOf('\n')
+  // Identifiant de l'étape 10 (UID seul) : boîte de réception
+  if (index < 0) return { path: INBOX, uid: id }
+  return { path: id.slice(0, index), uid: id.slice(index + 1) }
+}
+
+/** Dossiers habituels, d'après le rôle annoncé par le serveur. */
+const SPECIAL_USE: Record<string, MailFolderKind> = {
+  '\\Sent': 'sent',
+  '\\Drafts': 'drafts',
+  '\\All': 'all',
+  '\\Archive': 'archive',
+  '\\Junk': 'spam',
+  '\\Trash': 'trash',
+  '\\Flagged': 'starred'
+}
+/** Dossier virtuel : mails suivis de la boîte de réception (serveur sans dossier « Suivis »). */
+const STARRED = '\u0000starred'
+
+function toSummary(path: string, message: FetchMessageObject): MailSummary {
   const from = message.envelope?.from?.[0]
   const date = message.internalDate ?? message.envelope?.date
   return {
-    id: String(message.uid),
+    id: mailId(path, message.uid),
     threadId: null,
     from: { name: from?.name ?? '', address: from?.address ?? '' },
     subject: message.envelope?.subject ?? '',
     snippet: '',
     date: date ? new Date(date).getTime() : Date.now(),
     unread: !message.flags?.has('\\Seen'),
-    hasAttachments: hasAttachment(message.bodyStructure)
+    starred: message.flags?.has('\\Flagged') ?? false,
+    hasAttachments: hasAttachment(message.bodyStructure),
+    to: (message.envelope?.to ?? []).map((item) => ({
+      name: item.name ?? '',
+      address: item.address ?? ''
+    }))
   }
 }
 
@@ -186,40 +225,73 @@ export function connectImap(account: MailAccount): MailConnection {
   return {
     readsBcc: false,
 
-    async list(page, limit) {
-      return inMailbox(INBOX, async (current) => {
+    async folders() {
+      const listed = await (await connection()).list({ statusQuery: { unseen: true } })
+      const folders: MailFolder[] = []
+      for (const folder of listed) {
+        if (folder.flags.has('\\Noselect') || folder.flags.has('\\NonExistent')) continue
+        const inbox = folder.path.toUpperCase() === INBOX
+        folders.push({
+          id: folder.path,
+          name: inbox ? 'Inbox' : folder.name,
+          kind: inbox
+            ? 'inbox'
+            : ((folder.specialUse ? SPECIAL_USE[folder.specialUse] : undefined) ?? 'label'),
+          unread: folder.status?.unseen ?? null
+        })
+      }
+      if (!folders.some((folder) => folder.kind === 'starred')) {
+        folders.push({ id: STARRED, name: 'Starred', kind: 'starred', unread: null })
+      }
+      return folders
+    },
+
+    async list(query, page, limit) {
+      const path =
+        query.folder === DEFAULT_FOLDER || query.folder === STARRED ? INBOX : query.folder
+      const result = await inMailbox(path, async (current) => {
         // Connexion gardée ouverte : le serveur n'annonce les nouveaux mails qu'à l'échange suivant
         await current.noop()
-        const mailbox = current.mailbox
-        const exists = mailbox ? mailbox.exists : 0
-        // Page : numéro du dernier mail à afficher (les plus récents ont les plus grands numéros)
-        const end = Math.min(exists, page ? Number(page) || exists : exists)
-        const start = Math.max(1, end - limit + 1)
+        const criteria: Record<string, unknown> = { all: true }
+        if (query.filter !== 'all') criteria.seen = query.filter === 'read'
+        if (query.folder === STARRED) criteria.flagged = true
+        if (query.search) {
+          criteria.or = [
+            { subject: query.search },
+            { from: query.search },
+            { to: query.search },
+            { body: query.search }
+          ]
+        }
+        const found = await current.search(criteria, { uid: true })
+        const uids = (Array.isArray(found) ? found : []).sort((a, b) => b - a)
+        // Page : position dans la liste (les plus récents d'abord)
+        const offset = Math.max(0, Number(page) || 0)
+        const slice = uids.slice(offset, offset + limit)
         const messages: MailSummary[] = []
-        if (end >= 1) {
-          for await (const message of current.fetch(`${start}:${end}`, {
-            uid: true,
-            flags: true,
-            envelope: true,
-            internalDate: true,
-            bodyStructure: true
-          })) {
-            messages.push(toSummary(message))
+        if (slice.length) {
+          for await (const message of current.fetch(
+            slice.join(','),
+            { uid: true, flags: true, envelope: true, internalDate: true, bodyStructure: true },
+            { uid: true }
+          )) {
+            messages.push(toSummary(path, message))
           }
         }
-        const status = await current.status(INBOX, { unseen: true })
         return {
           messages: messages.sort((a, b) => b.date - a.date),
-          unread: status ? (status.unseen ?? 0) : 0,
-          next: start > 1 ? String(start - 1) : null
+          next: offset + limit < uids.length ? String(offset + limit) : null
         }
       })
+      const status = await (await connection()).status(INBOX, { unseen: true })
+      return { ...result, unread: status ? (status.unseen ?? 0) : 0 }
     },
 
     async getRaw(id) {
-      return inMailbox(INBOX, async (current) => {
+      const { path, uid } = parseId(id)
+      return inMailbox(path, async (current) => {
         const message = await current.fetchOne(
-          id,
+          uid,
           { uid: true, flags: true, source: true, internalDate: true },
           { uid: true }
         )
@@ -230,6 +302,7 @@ export function connectImap(account: MailAccount): MailConnection {
             id,
             threadId: null,
             unread: !message.flags?.has('\\Seen'),
+            starred: message.flags?.has('\\Flagged') ?? false,
             date: message.internalDate ? new Date(message.internalDate).getTime() : Date.now()
           }
         }
@@ -237,17 +310,25 @@ export function connectImap(account: MailAccount): MailConnection {
     },
 
     async act(id, action) {
-      if (action === 'read' || action === 'unread') {
-        await inMailbox(INBOX, (current) =>
-          action === 'read'
-            ? current.messageFlagsAdd(id, ['\\Seen'], { uid: true })
-            : current.messageFlagsRemove(id, ['\\Seen'], { uid: true })
+      const { path, uid } = parseId(id)
+      const flags: Partial<Record<typeof action, [string, boolean]>> = {
+        read: ['\\Seen', true],
+        unread: ['\\Seen', false],
+        star: ['\\Flagged', true],
+        unstar: ['\\Flagged', false]
+      }
+      const flag = flags[action]
+      if (flag) {
+        await inMailbox(path, (current) =>
+          flag[1]
+            ? current.messageFlagsAdd(uid, [flag[0]], { uid: true })
+            : current.messageFlagsRemove(uid, [flag[0]], { uid: true })
         )
         return
       }
       const folder = await specialFolder(action === 'archive' ? '\\Archive' : '\\Trash')
       if (!folder) throw mailError('no-folder', action)
-      await inMailbox(INBOX, (current) => current.messageMove(id, folder, { uid: true }))
+      await inMailbox(path, (current) => current.messageMove(uid, folder, { uid: true }))
     },
 
     async send(raw, { recipients }) {

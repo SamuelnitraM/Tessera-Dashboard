@@ -114,7 +114,7 @@ export interface NotifyInput {
   icon?: string | null
   /** Une notification avec la même étiquette remplace la précédente (même source). */
   tag?: string
-  /** Ce que le clic ouvre dans la source (sources internes de Tessera). */
+  /** Ce que le clic ouvre dans la source (ex. une chaîne) : reçu par `useNotificationTarget`. */
   target?: string
 }
 

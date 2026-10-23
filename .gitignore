@@ -24,3 +24,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Identifiants des applications OAuth de Tessera (injectés à la compilation)
+oauth-clients.local.json

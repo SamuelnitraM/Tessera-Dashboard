@@ -12,7 +12,11 @@ interface WebviewElement extends HTMLElement {
   loadURL: (url: string) => Promise<void>
   getURL: () => string
   setZoomFactor: (factor: number) => void
+  executeJavaScript: (code: string) => Promise<unknown>
 }
+
+/** Message de console d'une page dont la vidéo est terminée. */
+const ENDED_SIGNAL = '__tessera_media_ended__'
 
 /** Commandes d'une page web, pour les barres d'outils. */
 export interface WebFrameHandle {
@@ -21,6 +25,8 @@ export interface WebFrameHandle {
   goForward: () => void
   load: (url: string) => void
   getURL: () => string
+  /** Une vidéo ou un son de la page est-il en cours de lecture ? */
+  isPlaying: () => Promise<boolean>
 }
 
 export interface WebFrameProps {
@@ -32,6 +38,12 @@ export interface WebFrameProps {
   zoom?: number
   /** Désactive la souris sur la page (ex. pendant le déplacement des widgets). */
   inert?: boolean
+  /** Site d'origine déclaré à la page (lecteur YouTube intégré). Fixé à la création. */
+  referrer?: string
+  /** Lecture d'un son ou d'une vidéo dans la page commencée (`true`) ou arrêtée. */
+  onMedia?: (playing: boolean) => void
+  /** Une vidéo ou un son de la page est arrivé à la fin. */
+  onEnded?: () => void
   onTitle?: (title: string) => void
   onFavicons?: (urls: string[]) => void
   onNavigate?: (url: string, canGoBack: boolean, canGoForward: boolean) => void
@@ -46,7 +58,7 @@ export interface WebFrameProps {
  * Le processus principal verrouille chaque <webview> (voir main/web.ts).
  */
 export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFrame(
-  { src, partition, zoom = 1, inert = false, ...events },
+  { src, partition, zoom = 1, inert = false, referrer, ...events },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -66,6 +78,7 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     webview.setAttribute('partition', partition)
     // Autorise les fenêtres de connexion (OAuth) ; main/web.ts décide de ce qui s'ouvre
     webview.setAttribute('allowpopups', 'true')
+    if (referrer) webview.setAttribute('httpreferrer', referrer)
     webview.setAttribute('src', src)
     webview.className = styles.webview
     webviewRef.current = webview
@@ -81,6 +94,22 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
         () => {
           readyRef.current = true
           webview.setZoomFactor(zoomRef.current)
+          // Fin d'une vidéo : la page le signale par un message de console (aucun accès à Tessera)
+          if (eventsRef.current.onEnded) {
+            void webview
+              .executeJavaScript(
+                `document.addEventListener('ended', () => console.log('${ENDED_SIGNAL}'), true)`
+              )
+              .catch(() => {})
+          }
+        }
+      ],
+      [
+        'console-message',
+        (e) => {
+          if ((e as Event & { message: string }).message === ENDED_SIGNAL) {
+            eventsRef.current.onEnded?.()
+          }
         }
       ],
       [
@@ -92,6 +121,8 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
         (e) => eventsRef.current.onFavicons?.((e as Event & { favicons: string[] }).favicons)
       ],
       ['did-navigate', navigated],
+      ['media-started-playing', () => eventsRef.current.onMedia?.(true)],
+      ['media-paused', () => eventsRef.current.onMedia?.(false)],
       ['did-navigate-in-page', navigated],
       ['did-start-loading', () => eventsRef.current.onLoading?.(true)],
       [
@@ -141,7 +172,19 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     goBack: () => webviewRef.current?.goBack(),
     goForward: () => webviewRef.current?.goForward(),
     load: (url) => void webviewRef.current?.loadURL(url),
-    getURL: () => (readyRef.current ? (webviewRef.current?.getURL() ?? '') : '')
+    getURL: () => (readyRef.current ? (webviewRef.current?.getURL() ?? '') : ''),
+    isPlaying: async () => {
+      const webview = webviewRef.current
+      if (!webview || !readyRef.current) return false
+      try {
+        const playing = await webview.executeJavaScript(
+          "[...document.querySelectorAll('video, audio')].some((media) => !media.paused && !media.ended)"
+        )
+        return playing === true
+      } catch {
+        return false
+      }
+    }
   }))
 
   return <div ref={containerRef} className={styles.frame} data-inert={inert} />

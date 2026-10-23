@@ -1,0 +1,645 @@
+.widget {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 0.8125rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem;
+  border-bottom: 1px solid var(--color-border);
+  overflow-x: auto;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Lecteur ---------- */
+
+.player {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #000000;
+}
+
+.linkRow {
+  display: flex;
+  gap: 0.5rem;
+  width: min(32rem, 100%);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.625rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input[data-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+/* ---------- États ---------- */
+
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.state p {
+  margin: 0;
+  max-width: 40ch;
+}
+
+.error {
+  color: var(--color-danger);
+}
+
+.note {
+  margin: 0;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  list-style: none;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+/* ---------- Listes ---------- */
+
+.listArea {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-height: 2.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.toolbarTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: auto;
+  padding: 0.25rem 0.375rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.back:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.back + .toolbarTitle {
+  margin-left: -0.25rem;
+}
+
+.grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  align-content: start;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0 0.75rem 0.75rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.cardThumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.card:hover .cardThumb {
+  outline: 2px solid var(--color-accent);
+}
+
+.cardTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 600;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.rowMeta {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0.25rem 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.row:hover {
+  background: var(--color-surface-hover);
+}
+
+.thumb,
+.thumbIcon {
+  flex-shrink: 0;
+  width: 5.5rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.thumbIcon {
+  display: grid;
+  place-items: center;
+  background: var(--color-surface-hover);
+  color: var(--color-text-muted);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Lien « Se connecter » de l'en-tête (compte non connecté) */
+.signIn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  padding: 0.25rem 0.625rem;
+  background: var(--color-accent);
+  border: none;
+  border-radius: 999px;
+  color: var(--color-on-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.signIn:hover {
+  filter: brightness(1.1);
+}
+
+/* ---------- Façon YouTube : recherche, cartes, file « À suivre » ---------- */
+
+.search {
+  flex: 1;
+  min-width: 6rem;
+  max-width: 34rem;
+  display: flex;
+  align-items: center;
+  height: 2rem;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+}
+
+.search:focus-within {
+  border-color: var(--color-accent);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0.875rem;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+}
+
+.searchClear {
+  display: grid;
+  place-items: center;
+  padding: 0 0.375rem;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+}
+
+.searchButton {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 100%;
+  padding: 0;
+  background: var(--color-surface-hover);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.searchButton:hover {
+  filter: brightness(1.15);
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-accent-soft);
+}
+
+.toast span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.textButton {
+  flex-shrink: 0;
+  padding: 0.125rem 0.5rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.textButton:hover {
+  background: var(--color-surface-hover);
+}
+
+/* Lecteur et file « À suivre » : côte à côte (bloc large) ou l'un sous l'autre */
+.watch {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.watch[data-wide='true'] {
+  flex-direction: row;
+}
+
+.watch .player {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.watch:not([data-wide='true']) .queue {
+  flex: 0 0 38%;
+}
+
+.watch[data-wide='true'] .queue {
+  flex: 0 0 clamp(15rem, 30%, 22rem);
+  border-top: none;
+  border-left: 1px solid var(--color-border);
+}
+
+.nowPlaying {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.nowLabel {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nowTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  font-weight: 600;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.queueHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.5rem 0.375rem 0.75rem;
+}
+
+.queueTitle {
+  flex: 1;
+  font-weight: 600;
+}
+
+/* File refermée : un bouton de l'en-tête la rouvre (nombre de vidéos à suivre) */
+.queueToggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  height: 28px;
+  padding: 0 0.5rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.queueToggle:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.queueList {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0 0.5rem;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.75rem;
+}
+
+.queueItem:hover {
+  background: var(--color-surface-hover);
+}
+
+.queueThumb {
+  flex-shrink: 0;
+  width: 6rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.queueText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.queueItemTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.75rem;
+  font-weight: 600;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Grille : défilement et actions au survol des miniatures */
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.scroll .grid {
+  overflow: visible;
+}
+
+.cardItem {
+  position: relative;
+}
+
+.thumbBox {
+  position: relative;
+  display: block;
+}
+
+.duration {
+  position: absolute;
+  right: 0.375rem;
+  bottom: 0.375rem;
+  padding: 0.0625rem 0.3125rem;
+  background: rgb(0 0 0 / 0.8);
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.cardActions {
+  position: absolute;
+  top: 0.375rem;
+  right: 0.375rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cardItem:hover .cardActions,
+.cardItem:focus-within .cardActions {
+  display: flex;
+}
+
+.cardAction {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: rgb(0 0 0 / 0.75);
+  border: none;
+  border-radius: 6px;
+  color: #ffffff;
+}
+
+.cardAction:hover {
+  background: rgb(0 0 0 / 0.95);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 1rem;
+}
+
+/* Vidéo en cours, quand l'accueil est affiché : un clic la réaffiche */
+.resume {
+  display: inline-flex;
+  flex-shrink: 1;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  max-width: 14rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-surface-hover);
+  border: none;
+  border-radius: 999px;
+  color: var(--color-text);
+}
+
+.resume span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.resume:hover {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* Compte YouTube (en haut à droite) : un clic pour en changer */
+.avatarButton {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+
+.avatarButton:hover {
+  border-color: var(--color-border);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.avatar[data-letter] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 600;
+}
+
+.or {
+  font-size: 0.75rem;
+}

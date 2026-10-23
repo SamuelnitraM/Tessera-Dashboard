@@ -4,10 +4,13 @@ import type {
   MailAccountState,
   MailAction,
   MailDraft,
+  MailFolder,
   MailMessage,
   MailPage,
+  MailQuery,
   MailUpload
 } from '@shared/mail'
+import { DEFAULT_QUERY } from '@shared/mail'
 import { useMailStore } from '../stores/mail'
 import { useNavigationStore } from '../stores/navigation'
 import { useSettingsStore } from '../stores/settings'
@@ -19,8 +22,13 @@ import { PluginContext } from './context'
  * `getMailErrorCode(error)`.
  */
 export interface PluginMail {
-  /** Boîte de réception, des plus récents aux plus anciens ; `page` : `next` de la page d'avant. */
-  list: (accountId: string, page?: string | null) => Promise<MailPage>
+  /** Dossiers et libellés du compte (boîte de réception, envoyés, libellés Gmail…). */
+  folders: (accountId: string) => Promise<MailFolder[]>
+  /**
+   * Mails d'un dossier, des plus récents aux plus anciens, filtrés (lus, non lus) et
+   * recherchés ; `page` : `next` de la page d'avant.
+   */
+  list: (accountId: string, query?: MailQuery, page?: string | null) => Promise<MailPage>
   /** Mail complet. Son HTML n'est pas nettoyé : l'afficher avec `MailBody`. */
   get: (accountId: string, id: string) => Promise<MailMessage>
   act: (accountId: string, id: string, action: MailAction) => Promise<void>
@@ -31,7 +39,7 @@ export interface PluginMail {
   saveAttachment: (accountId: string, id: string, index: number) => Promise<boolean>
   /** Vérifie les nouveaux mails tout de suite (notifications comprises). */
   checkNow: (accountId: string) => Promise<void>
-  /** Reconnecte un compte Gmail ou Outlook (page de connexion dans le navigateur). */
+  /** Reconnecte un compte Gmail (page de connexion dans le navigateur). */
   reconnect: (accountId: string) => Promise<void>
   /** Ouvre un lien d'un mail dans le navigateur par défaut (http, https, mailto). */
   openLink: (url: string) => Promise<void>
@@ -43,7 +51,9 @@ export function useMail(): PluginMail {
     if (!pluginId) throw new Error('useMail doit être utilisé dans un widget.')
     const api = window.tessera.mail
     return {
-      list: (accountId, page = null) => api.list(pluginId, accountId, page),
+      folders: (accountId) => api.folders(pluginId, accountId),
+      list: (accountId, query = DEFAULT_QUERY, page = null) =>
+        api.list(pluginId, accountId, query, page),
       get: (accountId, id) => api.get(pluginId, accountId, id),
       act: (accountId, id, action) => api.act(pluginId, accountId, id, action),
       send: (accountId, draft) => api.send(pluginId, accountId, draft),
@@ -93,7 +103,7 @@ export function useMailOpenRequest(accountId: string, onOpen: (messageId: string
 
 type MailStoreRequest = ReturnType<typeof useMailStore.getState>['openRequest']
 
-/** Ouvre Paramètres → Mails (ajout de compte, identifiants). */
+/** Ouvre Paramètres → Comptes (« Se connecter avec Google », comptes IMAP…). */
 export function openMailSettings(): void {
-  useNavigationStore.getState().navigate({ type: 'settings', section: 'mail' })
+  useNavigationStore.getState().navigate({ type: 'settings', section: 'accounts' })
 }

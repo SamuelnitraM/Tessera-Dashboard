@@ -96,6 +96,7 @@ Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peu
 | `notifications` | Envoyer des notifications (`useNotifications`), soumises aux réglages de l'utilisateur (par extension) et à Ne pas déranger                                         | `"permissions": ["notifications"]`                         |
 | `apps`          | Afficher la fenêtre d'une application installée de l'utilisateur (composant `InstalledAppView`), **uniquement** parmi celles qu'il a ajoutées à Tessera             | `"permissions": ["apps"]`                                  |
 | `mail`          | Lire, classer et envoyer les mails des comptes de l'utilisateur (`useMail`). Jamais ses jetons ni ses mots de passe, qui restent dans le processus principal        | `"permissions": ["mail"]`                                  |
+| `media`         | Lire les abonnements et playlists YouTube et les chaînes Twitch suivies en direct de l'utilisateur (`useMedia`), en lecture seule                                   | `"permissions": ["media"]`                                 |
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -154,6 +155,8 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `useNotifications()`                                                        | Notifications (permission `notifications`), voir ci-dessous                                    |
 | `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                       |
 | `useMail()`, `useMailAccounts()`                                            | Mails des comptes de l'utilisateur (permission `mail`), voir ci-dessous                        |
+| `MediaView`, `useMedia()`                                                   | Lecteur vidéo avec mini-lecteur (permission `web`), YouTube et Twitch (permission `media`)     |
+| `useNotificationTarget(onOpen)`                                             | Ce que désigne une notification cliquée (`target` de `notify`)                                 |
 | `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
 | `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
 | `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                        |
@@ -236,12 +239,13 @@ const { notify } = useNotifications()
 await notify({ title: 'Sauvegarde terminée', body: '12 fichiers copiés', tag: 'backup' })
 ```
 
-| Champ   | Rôle                                                           |
-| ------- | -------------------------------------------------------------- |
-| `title` | Titre (obligatoire)                                            |
-| `body`  | Texte                                                          |
-| `icon`  | Image `data:` (sinon, l'icône de Tessera)                      |
-| `tag`   | Une notification avec la même étiquette remplace la précédente |
+| Champ    | Rôle                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| `title`  | Titre (obligatoire)                                                                                |
+| `body`   | Texte                                                                                              |
+| `icon`   | Image `data:` (sinon, l'icône de Tessera)                                                          |
+| `tag`    | Une notification avec la même étiquette remplace la précédente                                     |
+| `target` | Ce que désigne la notification (ex. une chaîne) : reçu au clic par `useNotificationTarget(onOpen)` |
 
 Tessera applique les réglages de l'utilisateur pour l'extension (activée, son, priorité) et le mode Ne pas déranger, puis affiche la notification dans le centre, en bannière Windows et avec un son. Un clic dessus ouvre la page qui contient un bloc de l'extension.
 
@@ -273,14 +277,15 @@ Une application ne s'affiche qu'à un endroit à la fois : un deuxième emplacem
 
 ### Mails (`useMail`)
 
-Avec la permission `mail`, une extension accède aux comptes ajoutés par l'utilisateur dans Paramètres → Mails :
+Avec la permission `mail`, une extension accède aux comptes ajoutés par l'utilisateur dans Paramètres → Comptes :
 
 ```tsx
 const { accounts, states } = useMailAccounts() // comptes, non lus et erreur de connexion
 const mail = useMail()
-const page = await mail.list(accountId) // boîte de réception ; page.next pour la suite
+const folders = await mail.folders(accountId) // dossiers et libellés (kind : inbox, sent, label…)
+const page = await mail.list(accountId, { folder: 'inbox', filter: 'unread', search: '' }) // page.next : la suite
 const message = await mail.get(accountId, page.messages[0].id)
-await mail.act(accountId, message.id, 'archive') // 'read', 'unread', 'archive', 'trash'
+await mail.act(accountId, message.id, 'archive') // 'read', 'unread', 'star', 'unstar', 'archive', 'trash'
 await mail.send(accountId, {
   to: 'a@b.fr',
   cc: '',
@@ -299,9 +304,28 @@ await mail.send(accountId, {
 | `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                           |
 | `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                     |
 | `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée                           |
-| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Mails ; message d'erreur traduit                                                        |
+| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                      |
 
 Le HTML d'un mail (`message.html`) n'est **pas nettoyé** : l'afficher sans précaution exposerait Tessera. L'extension **Mails** (`plugins/tessera.mail`) montre comment le nettoyer (DOMPurify) et l'isoler dans un cadre sans scripts, images distantes bloquées. Les notifications des nouveaux mails sont envoyées par Tessera elle-même (source par compte).
+
+### Lecteurs vidéo (`MediaView`) et YouTube / Twitch (`useMedia`)
+
+Avec la permission `web`, `MediaView` affiche un lecteur (page web du lecteur YouTube, Twitch…) qui **continue de jouer quand on change de page** : il devient le mini-lecteur de Tessera. Le lecteur ne vit pas dans le bloc mais dans une couche de l'application, posée sur l'emplacement du bloc : aucun élément du bloc ne peut donc s'afficher par-dessus (mettre les boutons dans la barre du widget).
+
+```tsx
+const target = parseMediaLink('https://youtu.be/jNQXAC9IVRw', 'youtube') // vidéo, playlist, chaîne Twitch…
+<MediaView id={instanceId} src={playerUrl(target, true)} title="Me at the zoo" referrer={MEDIA_REFERRER} />
+```
+
+| Élément                                         | Rôle                                                                                                                         |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `parseMediaLink(lien, préférence)`, `playerUrl` | Lien YouTube ou Twitch (ou nom de chaîne) -> adresse du lecteur ; `twitchChatUrl` pour le chat                               |
+| `MEDIA_REFERRER`                                | Site d'origine exigé par le lecteur YouTube intégré (sans lui : « Erreur 153 »)                                              |
+| `useMediaPlaying(id)`, `closeMediaView(id)`     | Lecture en cours ; fermer le lecteur                                                                                         |
+| `useMediaQueue(id)`                             | File « À suivre » : `enqueue`, `unqueue`, `clear`, `next`, `current` (la vidéo suivante démarre seule, même en mini-lecteur) |
+| `useMediaReveal(id, fn)`                        | « Revenir au bloc » cliqué dans le mini-lecteur : le bloc réaffiche son lecteur                                              |
+
+Avec la permission `media`, `useMedia()` donne `youtubeFeed(compte)`, `youtubeSearch(compte, texte, page)` (quota limité : erreur `quota`), `youtubePlaylists(compte)`, `youtubePlaylist(compte, id)` (`'liked'` : vidéos aimées), `twitchSearch(texte)` (chaînes, nom exact puis directs d'abord), `twitchLive()` et `twitchRefresh()`. `compte` est l'identifiant d'un compte YouTube de `useYouTubeAccounts()` (photo, nom, adresse, erreur) ; vide : le premier compte. `useMediaStatus()` dit quels comptes sont connectés, `useTwitchLive()` suit les directs, `openMediaSettings()` ouvre Paramètres → Comptes. Les extensions **YouTube** et **Twitch** (`plugins/tessera.youtube`, `plugins/tessera.twitch`) sont des exemples complets.
 
 ### Bonnes pratiques
 

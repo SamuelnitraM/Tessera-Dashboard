@@ -46,6 +46,10 @@ export function mailErrorMessage(error: unknown): string {
   const code = getMailErrorCode(error)
   const text = i18n.t(`mail.errors.${code}`)
   const detail = getMailErrorDetail(error)
+  // Identifiant ou compte manquant pour YouTube et Twitch : le texte dit où le renseigner
+  if (code === 'not-configured' && (detail === 'twitch' || detail === 'youtube')) {
+    return i18n.t(`media.notConfigured.${detail}`)
+  }
   return code === 'unknown' || code === 'network' || code === 'auth'
     ? detail
       ? `${text} (${detail.slice(0, 160)})`

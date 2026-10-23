@@ -1,0 +1,25 @@
+{
+  "id": "tessera.youtube",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "YouTube", "en": "YouTube" },
+  "description": {
+    "fr": "Un lecteur YouTube, tes abonnements et tes playlists. La lecture continue en mini-lecteur quand tu changes de page.",
+    "en": "A YouTube player, your subscriptions and your playlists. Playback continues in a mini-player when you change pages."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["web", "media"],
+  "widgets": [
+    {
+      "type": "youtube",
+      "name": { "fr": "YouTube", "en": "YouTube" },
+      "description": {
+        "fr": "Lecteur, fil des abonnements et playlists.",
+        "en": "Player, subscription feed and playlists."
+      },
+      "icon": "square-play",
+      "defaultSize": { "w": 8, "h": 7 },
+      "minSize": { "w": 4, "h": 3 }
+    }
+  ]
+}

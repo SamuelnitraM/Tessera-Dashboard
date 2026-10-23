@@ -2,7 +2,7 @@ import { mailError } from '@shared/mail'
 import { refreshTokens, type OAuthClient } from './oauth'
 import { getAccountSecret, setAccountSecret } from './secrets'
 
-/** Secret d'un compte Gmail ou Outlook. */
+/** Secret d'un compte connecté par OAuth (Gmail, YouTube, Twitch). */
 export interface OAuthSecret {
   refreshToken: string
 }
@@ -25,7 +25,7 @@ export function createTokenSource(accountId: string, client: () => OAuthClient):
         const secret = getAccountSecret<OAuthSecret>(accountId)
         if (!secret?.refreshToken) throw mailError('auth', 'no-token')
         const tokens = await refreshTokens(client(), secret.refreshToken)
-        // Microsoft renouvelle aussi le jeton de rafraîchissement
+        // Twitch renouvelle aussi le jeton de rafraîchissement
         if (tokens.refreshToken && tokens.refreshToken !== secret.refreshToken) {
           setAccountSecret(accountId, { refreshToken: tokens.refreshToken })
         }
@@ -39,7 +39,7 @@ export function createTokenSource(accountId: string, client: () => OAuthClient):
   }
 }
 
-/** Appel d'une API (Gmail, Microsoft Graph) avec le jeton du compte. */
+/** Appel d'une API (Gmail, YouTube, Twitch) avec le jeton du compte. */
 export async function apiFetch(
   token: TokenSource,
   url: string,
@@ -60,6 +60,10 @@ export async function apiFetch(
   if (response.status === 401 && !retried) return apiFetch(token, url, init, true)
   if (response.ok) return response
   const body = (await response.text().catch(() => '')).slice(0, 300)
+  // Limite quotidienne de l'API (YouTube : 10 000 unités par jour)
+  if (response.status === 403 && /quotaExceeded|rateLimitExceeded|dailyLimitExceeded/.test(body)) {
+    throw mailError('quota', body)
+  }
   if (response.status === 401 || response.status === 403) throw mailError('auth', body)
   if (response.status === 404) throw mailError('not-found', body)
   throw mailError('unknown', `HTTP ${response.status} ${body}`)

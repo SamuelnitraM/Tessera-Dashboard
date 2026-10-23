@@ -2,14 +2,25 @@ import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
+import type { AccountProviders, GoogleService } from '@shared/accounts'
+import type {
+  MediaStatus,
+  TwitchChannel,
+  TwitchStream,
+  YouTubePlaylist,
+  YouTubeSearch,
+  YouTubeVideo
+} from '@shared/media'
 import type {
   ImapAccountInput,
   MailAccount,
   MailAccountState,
   MailAction,
   MailDraft,
+  MailFolder,
   MailMessage,
   MailPage,
+  MailQuery,
   MailUpload
 } from '@shared/mail'
 import type {
@@ -191,14 +202,23 @@ const api = {
     onActivated: (callback: (notification: TesseraNotification) => void) =>
       subscribe(IpcChannels.notificationsActivated, callback)
   },
+  /** Comptes : « Se connecter avec Google / Twitch » (Paramètres → Comptes). */
+  accounts: {
+    providers: (): Promise<AccountProviders> => ipcRenderer.invoke(IpcChannels.accountsProviders),
+    connectGoogle: (
+      services: GoogleService[]
+    ): Promise<{ email: string; services: GoogleService[] }> =>
+      ipcRenderer.invoke(IpcChannels.accountsConnectGoogle, services),
+    connectTwitch: (): Promise<void> => ipcRenderer.invoke(IpcChannels.accountsConnectTwitch),
+    /** Annule la connexion en cours (page de connexion laissée ouverte). */
+    cancel: (): Promise<void> => ipcRenderer.invoke(IpcChannels.mailCancelConnect)
+  },
   /** Mails : comptes (Paramètres) et mails des widgets (permission `mail`). */
   mail: {
     getConfig: (): Promise<{ googleSecretSet: boolean }> =>
       ipcRenderer.invoke(IpcChannels.mailGetConfig),
     setGoogleSecret: (secret: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.mailSetGoogleSecret, secret),
-    connectOAuth: (provider: 'gmail' | 'outlook', reconnectId?: string): Promise<MailAccount> =>
-      ipcRenderer.invoke(IpcChannels.mailConnectOAuth, provider, reconnectId),
     cancelConnect: (): Promise<void> => ipcRenderer.invoke(IpcChannels.mailCancelConnect),
     addImap: (input: ImapAccountInput, reconnectId?: string): Promise<MailAccount> =>
       ipcRenderer.invoke(IpcChannels.mailAddImap, input, reconnectId),
@@ -206,8 +226,15 @@ const api = {
       ipcRenderer.invoke(IpcChannels.mailRemoveAccount, accountId),
     getStates: (): Promise<Record<string, MailAccountState>> =>
       ipcRenderer.invoke(IpcChannels.mailGetStates),
-    list: (pluginId: string, accountId: string, page: string | null): Promise<MailPage> =>
-      ipcRenderer.invoke(IpcChannels.mailList, pluginId, accountId, page),
+    folders: (pluginId: string, accountId: string): Promise<MailFolder[]> =>
+      ipcRenderer.invoke(IpcChannels.mailFolders, pluginId, accountId),
+    list: (
+      pluginId: string,
+      accountId: string,
+      query: MailQuery,
+      page: string | null
+    ): Promise<MailPage> =>
+      ipcRenderer.invoke(IpcChannels.mailList, pluginId, accountId, query, page),
     get: (pluginId: string, accountId: string, id: string): Promise<MailMessage> =>
       ipcRenderer.invoke(IpcChannels.mailGet, pluginId, accountId, id),
     act: (pluginId: string, accountId: string, id: string, action: MailAction): Promise<void> =>
@@ -239,6 +266,35 @@ const api = {
       ipcRenderer.on(IpcChannels.mailChanged, listener)
       return () => ipcRenderer.removeListener(IpcChannels.mailChanged, listener)
     }
+  },
+  /** YouTube et Twitch : comptes (Paramètres) et données des widgets (permission `media`). */
+  media: {
+    getStatus: (): Promise<MediaStatus> => ipcRenderer.invoke(IpcChannels.mediaGetStatus),
+    disconnect: (service: 'youtube' | 'twitch', accountId?: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.mediaDisconnect, service, accountId),
+    youtubeFeed: (pluginId: string, accountId: string, refresh: boolean): Promise<YouTubeVideo[]> =>
+      ipcRenderer.invoke(IpcChannels.mediaYoutubeFeed, pluginId, accountId, refresh),
+    youtubePlaylists: (pluginId: string, accountId: string): Promise<YouTubePlaylist[]> =>
+      ipcRenderer.invoke(IpcChannels.mediaYoutubePlaylists, pluginId, accountId),
+    youtubePlaylist: (pluginId: string, accountId: string, id: string): Promise<YouTubeVideo[]> =>
+      ipcRenderer.invoke(IpcChannels.mediaYoutubePlaylist, pluginId, accountId, id),
+    youtubeSearch: (
+      pluginId: string,
+      accountId: string,
+      query: string,
+      page: string | null
+    ): Promise<YouTubeSearch> =>
+      ipcRenderer.invoke(IpcChannels.mediaYoutubeSearch, pluginId, accountId, query, page),
+    twitchSearch: (pluginId: string, query: string): Promise<TwitchChannel[]> =>
+      ipcRenderer.invoke(IpcChannels.mediaTwitchSearch, pluginId, query),
+    twitchLive: (pluginId: string): Promise<TwitchStream[]> =>
+      ipcRenderer.invoke(IpcChannels.mediaTwitchLive, pluginId),
+    twitchRefresh: (pluginId: string): Promise<TwitchStream[]> =>
+      ipcRenderer.invoke(IpcChannels.mediaTwitchRefresh, pluginId),
+    onStatus: (callback: (status: MediaStatus) => void) =>
+      subscribe(IpcChannels.mediaStatusChanged, callback),
+    onLive: (callback: (streams: TwitchStream[]) => void) =>
+      subscribe(IpcChannels.mediaLiveChanged, callback)
   },
   /** Navigateurs installés sur le PC. */
   browsers: {

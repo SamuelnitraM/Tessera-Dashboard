@@ -30,7 +30,6 @@ export const WEB_APP_PRESETS: { name: string; url: string }[] = [
   { name: 'Slack', url: 'https://app.slack.com/client' },
   { name: 'Microsoft Teams', url: 'https://teams.microsoft.com' },
   { name: 'Gmail', url: 'https://mail.google.com' },
-  { name: 'Outlook', url: 'https://outlook.live.com/mail/' },
   { name: 'Google Agenda', url: 'https://calendar.google.com' },
   { name: 'Notion', url: 'https://www.notion.so' },
   { name: 'GitHub', url: 'https://github.com' },

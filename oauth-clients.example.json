@@ -1,0 +1,7 @@
+{
+  "google": {
+    "clientId": "123456789-abc.apps.googleusercontent.com",
+    "clientSecret": "GOCSPX-..."
+  },
+  "twitch": { "clientId": "abcdefghijklmnopqrstuvwxyz0123" }
+}
