@@ -26,6 +26,8 @@ export interface MediaSession {
   queue: QueueItem[]
   /** Dernière activité (lecture, emplacement) : le plus récent devient le mini-lecteur. */
   touchedAt: number
+  /** Fichier du PC illisible (code `MediaError`), ou `null`. */
+  error: number | null
 }
 
 interface MediaStore {
@@ -42,6 +44,7 @@ interface MediaStore {
   /** Le bloc n'est plus affiché : mini-lecteur s'il joue, sinon fermé. */
   detach: (id: string, slot: HTMLElement) => void
   setPlaying: (id: string, playing: boolean) => void
+  setError: (id: string, code: number) => void
   /** Titre de la page du lecteur (titre de la vidéo), affiché par le mini-lecteur. */
   setPageTitle: (id: string, title: string) => void
   enqueue: (id: string, item: QueueItem) => void
@@ -75,9 +78,16 @@ function keepOneMini(sessions: Record<string, MediaSession>): Record<string, Med
   return next
 }
 
-/** Même contenu, quelle que soit la lecture automatique (le bloc rouvert ne relance rien). */
+/**
+ * Même contenu, quels que soient la lecture automatique et le point de départ (le bloc rouvert
+ * ne relance rien).
+ */
 function sameMedia(a: string, b: string): boolean {
-  const strip = (src: string): string => src.replace(/([?&])autoplay=[^&]*&?/, '$1')
+  const strip = (src: string): string =>
+    src
+      .replace(/#t=[\d.]+$/, '')
+      .replace(/([?&])autoplay=[^&#]*&?/, '$1')
+      .replace(/[?&]$/, '')
   return strip(a) === strip(b)
 }
 
@@ -115,7 +125,8 @@ export const useMediaStore = create<MediaStore>()((set, get) => {
               slot: current?.slot ?? null,
               playing: false,
               queue: current?.queue ?? [],
-              touchedAt: Date.now()
+              touchedAt: Date.now(),
+              error: null
             }
           }
         }
@@ -135,6 +146,7 @@ export const useMediaStore = create<MediaStore>()((set, get) => {
       update(id, (current) =>
         current.playing === playing ? {} : { playing, touchedAt: Date.now() }
       ),
+    setError: (id, code) => update(id, () => ({ error: code, playing: false })),
     setPageTitle: (id, title) =>
       update(id, (current) => {
         const clean = title.replace(/\s+-\s+YouTube$/, '').trim()
@@ -164,3 +176,21 @@ export const useMediaStore = create<MediaStore>()((set, get) => {
     close: (id) => set((state) => ({ sessions: without(state.sessions, id) }))
   }
 })
+
+/** Commandes d'un lecteur de fichier du PC (position, pause), pour son extension. */
+export interface MediaControls {
+  time: () => number
+  pause: () => void
+}
+
+const controls = new Map<string, MediaControls>()
+
+/** Enregistre les commandes d'un lecteur ; renvoie la fonction qui les retire. */
+export function registerMediaControls(id: string, value: MediaControls): () => void {
+  controls.set(id, value)
+  return () => {
+    if (controls.get(id) === value) controls.delete(id)
+  }
+}
+
+export const getMediaControls = (id: string): MediaControls | null => controls.get(id) ?? null

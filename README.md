@@ -129,9 +129,13 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
   - **YouTube connecté** (« Se connecter avec Google », la même connexion que Gmail si l'on coche les deux, lecture seule) : fil des **abonnements**, **playlists** et **vidéos aimées** ; un clic lance la vidéo. Non connecté : lien **Se connecter** dans le bloc.
   - **Twitch connecté** (« Se connecter avec Twitch », code déjà rempli à accepter) : **chaînes suivies en direct** en page d'accueil (titre, jeu, spectateurs, durée), **recherche de chaînes**, **notification** à chaque début de direct (un clic ouvre la chaîne dans le bloc).
   - **Chat Twitch** à côté du lecteur (masquable), avec la connexion Twitch de l'utilisateur pour écrire.
-- **Prévus** :
-  - **Lecteur vidéo local** pour les formats courants, avec un bouton « Ouvrir dans VLC » ;
-  - **Flux RSS**.
+- **Vidéo locale** ✅
+  - Lit les **vidéos et musiques du PC** : mp4, mkv, webm, mov, ogv, mp3, m4a, wav, flac, ogg… Fichier choisi dans la fenêtre de Windows, ou **déposé sur le bloc** (même pendant une lecture).
+  - **Reprise** là où la lecture s'était arrêtée ; liste des **fichiers récents** avec leur avancement (fichier déplacé ou supprimé signalé).
+  - **Mini-lecteur** en changeant de page, comme YouTube.
+  - **« Ouvrir dans VLC »** au même moment ; c'est aussi la solution proposée pour les formats que Tessera ne lit pas (avi, wmv…). Sans VLC : le lecteur de Windows.
+  - Tessera ne lit que les fichiers choisis par l'utilisateur.
+- **Prévu** : **Flux RSS**.
 
 ### Comptes ✅
 
@@ -186,7 +190,6 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 
 - **Application Google non validée** : l'écran « Google n'a pas validé cette application » s'affiche à la connexion (bouton Continuer), et 100 comptes Google au plus peuvent se connecter. La validation (et l'audit de sécurité qu'exige Gmail) viendra avec la distribution (étape 15).
 - **IMAP** : la liste n'affiche pas l'aperçu du texte (seulement l'expéditeur et l'objet).
-- Seule la **boîte de réception** est affichée (pas encore de dossiers, de recherche ni de brouillons).
 
 ### Limites connues de YouTube et Twitch
 
@@ -194,6 +197,11 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 - Les **Shorts** apparaissent dans le fil des abonnements comme des vidéos.
 - **Recherche YouTube** : l'API de YouTube accorde environ 100 recherches par jour **pour toute l'application** (tous les utilisateurs de l'identifiant Google de Tessera). Au-delà : « Limite quotidienne atteinte », jusqu'au lendemain. Une augmentation du quota se demande à Google avec la validation de l'application (étape 15).
 - Pas de « À regarder plus tard » (inaccessible par l'API YouTube).
+
+### Limites connues de la vidéo locale
+
+- Formats lus par le lecteur intégré (Chromium) : mp4 / mov (H.264, HEVC si la carte graphique le permet), webm, mkv (codecs courants), ogv, et les musiques courantes. Les autres (avi, wmv, flv, certains mkv…) s'ouvrent dans VLC.
+- Pas de sous-titres externes (`.srt`) dans le lecteur intégré : VLC les charge.
 
 ### Limites connues des pages web
 
@@ -271,7 +279,7 @@ src/
 │   ├── accounts.ts           #   « Se connecter avec Google / Twitch » (Paramètres → Comptes)
 │   ├── auth/                 #   Connexion OAuth (navigateur, code d'appareil), identifiants intégrés, secrets chiffrés
 │   ├── mail/                 #   Mails : Gmail, IMAP/SMTP, vérification des nouveaux mails
-│   ├── media/                #   YouTube (abonnements, playlists) et Twitch (directs suivis, notifications)
+│   ├── media/                #   YouTube, Twitch (directs suivis, notifications), vidéos du PC (tessera-file://)
 │   └── plugins/              #   Côté système des extensions : manifestes, permissions, fichiers, programmes
 ├── preload/
 │   ├── index.ts              #   Pont sécurisé main <-> interface (window.tessera)
@@ -418,7 +426,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 - [x] **Étape 10 : mails.** Comptes Gmail (API Google), Outlook (Microsoft Graph) et IMAP/SMTP, identifiants de connexion fournis par l'utilisateur (guide), secrets chiffrés, boîte de réception, lecture sécurisée, actions, écriture, réponse et transfert, notifications par compte.
 - [x] **Étape 11 : YouTube et Twitch.** Blocs ouverts sur leur page d'accueil, comme les sites, avec la vidéo ou le direct par-dessus ; lecteurs sans compte et mini-lecteur qui continue en changeant de page ; comptes connectés (YouTube : abonnements, recherche, playlists, vidéos aimées, plusieurs comptes ; Twitch : chaînes suivies en direct, recherche de chaînes, notifications), chat Twitch. Paramètres → Comptes : « Se connecter avec Google / Twitch » avec les identifiants de Tessera. Outlook retiré.
-- [ ] **Étape 12 :** lecteur vidéo local.
+- [x] **Étape 12 : lecteur vidéo local.** Bloc « Vidéo locale » : vidéos et musiques du PC (fenêtre de Windows ou glisser-déposer), reprise de la lecture, fichiers récents, mini-lecteur, « Ouvrir dans VLC » au même moment (et pour les formats non lus). Seuls les fichiers choisis sont lisibles (adresse `tessera-file://`).
 
 ### Phase 3 : plugins
 

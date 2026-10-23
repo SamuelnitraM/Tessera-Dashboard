@@ -86,6 +86,8 @@ export interface PluginManifest {
  * - `processes` : lancer et arrêter des programmes, uniquement ceux que l'utilisateur
  *   a choisis lui-même dans la fenêtre de sélection de Windows.
  * - `web` : afficher des pages web (composant `WebView` du SDK).
+ * - `videos` : lire les vidéos et musiques du PC, uniquement celles que l'utilisateur a
+ *   choisies (fenêtre de Windows ou glisser-déposer).
  */
 export const PLUGIN_PERMISSIONS = [
   'files',
@@ -94,7 +96,8 @@ export const PLUGIN_PERMISSIONS = [
   'apps',
   'notifications',
   'mail',
-  'media'
+  'media',
+  'videos'
 ] as const
 export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number]
 

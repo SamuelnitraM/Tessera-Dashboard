@@ -11,6 +11,8 @@ export const en: Translation = {
   },
   dialogs: {
     pickProgram: 'Choose a program',
+    pickMedia: 'Open a video or a song',
+    mediaFilter: 'Videos and music',
     programFilter: 'Programs (.exe, .bat, .cmd, .lnk)',
     importFiles: 'Import files',
     acceptedFiles: 'Accepted files',
@@ -452,7 +454,8 @@ export const en: Translation = {
       notificationsPermission: 'Can send you notifications',
       mailPermission: 'Can read, sort and send the emails of your accounts',
       mediaPermission:
-        'Can read your YouTube subscriptions and playlists and your followed Twitch channels'
+        'Can read your YouTube subscriptions and playlists and your followed Twitch channels',
+      videosPermission: 'Can play the videos and music you pick on your PC'
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

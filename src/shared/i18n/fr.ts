@@ -13,6 +13,8 @@ export const fr = {
   },
   dialogs: {
     pickProgram: 'Choisir un programme',
+    pickMedia: 'Ouvrir une vidéo ou une musique',
+    mediaFilter: 'Vidéos et musiques',
     programFilter: 'Programmes (.exe, .bat, .cmd, .lnk)',
     importFiles: 'Importer des fichiers',
     acceptedFiles: 'Fichiers acceptés',
@@ -461,7 +463,8 @@ export const fr = {
       notificationsPermission: 'Peut t’envoyer des notifications',
       mailPermission: 'Peut lire, classer et envoyer les mails de tes comptes',
       mediaPermission:
-        'Peut lire tes abonnements et playlists YouTube et tes chaînes Twitch suivies'
+        'Peut lire tes abonnements et playlists YouTube et tes chaînes Twitch suivies',
+      videosPermission: 'Peut lire les vidéos et musiques que tu choisis sur ton PC'
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

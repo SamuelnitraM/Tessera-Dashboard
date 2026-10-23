@@ -1,8 +1,9 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
 import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type { AccountProviders, GoogleService } from '@shared/accounts'
+import type { ExternalPlayer, LocalMediaFile } from '@shared/local-media'
 import type {
   MediaStatus,
   TwitchChannel,
@@ -295,6 +296,26 @@ const api = {
       subscribe(IpcChannels.mediaStatusChanged, callback),
     onLive: (callback: (streams: TwitchStream[]) => void) =>
       subscribe(IpcChannels.mediaLiveChanged, callback)
+  },
+  /** Vidéos et musiques du PC choisies par l'utilisateur (permission `videos`). */
+  localMedia: {
+    open: (pluginId: string): Promise<LocalMediaFile | null> =>
+      ipcRenderer.invoke(IpcChannels.localMediaOpen, pluginId),
+    /** Fichier déposé : son chemin est lu ici, la page ne peut pas en donner un autre. */
+    addDropped: (pluginId: string, file: File): Promise<LocalMediaFile> =>
+      ipcRenderer.invoke(IpcChannels.localMediaDropped, pluginId, webUtils.getPathForFile(file)),
+    recent: (pluginId: string): Promise<LocalMediaFile[]> =>
+      ipcRenderer.invoke(IpcChannels.localMediaRecent, pluginId),
+    get: (pluginId: string, id: string): Promise<LocalMediaFile | null> =>
+      ipcRenderer.invoke(IpcChannels.localMediaGet, pluginId, id),
+    forget: (pluginId: string, id: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.localMediaForget, pluginId, id),
+    savePosition: (id: string, position: number, duration: number): void =>
+      ipcRenderer.send(IpcChannels.localMediaPosition, id, position, duration),
+    hasVlc: (pluginId: string): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.localMediaHasVlc, pluginId),
+    openExternally: (pluginId: string, id: string, position: number): Promise<ExternalPlayer> =>
+      ipcRenderer.invoke(IpcChannels.localMediaOpenExternally, pluginId, id, position)
   },
   /** Navigateurs installés sur le PC. */
   browsers: {

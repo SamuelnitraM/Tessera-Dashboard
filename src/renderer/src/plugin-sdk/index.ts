@@ -307,6 +307,19 @@ export {
   useYouTubeAccounts,
   type PluginMedia
 } from './media'
+export {
+  getMediaPosition,
+  pauseMedia,
+  useLocalMedia,
+  useMediaError,
+  type PluginLocalMedia
+} from './localMedia'
+export {
+  isLocalMediaUrl,
+  localMediaUrl,
+  type ExternalPlayer,
+  type LocalMediaFile
+} from '@shared/local-media'
 
 // ---------------------------------------------------------------------------
 // Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera

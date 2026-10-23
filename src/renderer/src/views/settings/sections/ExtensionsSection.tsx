@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   AppWindow,
   Bell,
+  Film,
   FolderLock,
   Globe,
   Mail,
@@ -143,6 +144,12 @@ function ExtensionCard({ plugin }: { plugin: LoadedPlugin }): React.JSX.Element 
                 <p className={styles.extensionPermission}>
                   <TvMinimalPlay size={13} aria-hidden />
                   {t('settings.extensions.mediaPermission')}
+                </p>
+              )}
+              {manifest.permissions.includes('videos') && (
+                <p className={styles.extensionPermission}>
+                  <Film size={13} aria-hidden />
+                  {t('settings.extensions.videosPermission')}
                 </p>
               )}
             </>

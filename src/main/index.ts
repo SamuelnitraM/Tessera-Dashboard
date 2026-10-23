@@ -7,6 +7,12 @@ import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking
 import { registerIpcHandlers } from './ipc'
 import { flushMailState, initMail, stopMail } from './mail'
 import { initMedia, stopMedia } from './media'
+import {
+  flushLocalMedia,
+  handleLocalMediaProtocol,
+  loadLocalMedia,
+  registerLocalMediaScheme
+} from './media/local'
 import { flushSecrets, loadSecrets } from './auth/secrets'
 import {
   flushNotifications,
@@ -28,6 +34,9 @@ import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web
 import { createMainWindow, getMainWindow, markAppAsQuitting, showMainWindow } from './window'
 
 // Une seule instance de l'app à la fois : un second lancement réaffiche la fenêtre existante
+// Adresse des vidéos du PC (tessera-file://) : à déclarer avant que l'app soit prête
+registerLocalMediaScheme()
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
@@ -43,6 +52,7 @@ if (!app.requestSingleInstanceLock()) {
     flushWebPermissions()
     flushNotifications()
     flushSecrets()
+    flushLocalMedia()
     flushMailState()
     stopMail()
     stopMedia()
@@ -66,6 +76,8 @@ if (!app.requestSingleInstanceLock()) {
     loadWebPermissions()
     loadNotifications()
     loadSecrets()
+    loadLocalMedia()
+    handleLocalMediaProtocol()
     watchWebContents()
     watchWebNotifications()
 

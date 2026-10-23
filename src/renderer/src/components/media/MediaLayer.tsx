@@ -1,12 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CornerUpLeft, SkipForward, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { isLocalMediaUrl } from '@shared/local-media'
 import { SHARED_WEB_PARTITION } from '@shared/web-apps'
 import { measure } from '../../lib/visibleRect'
 import { useDashboardStore } from '../../stores/dashboard'
 import { useMediaStore, type MediaSession } from '../../stores/media'
 import { useNavigationStore } from '../../stores/navigation'
 import { WebFrame, type WebFrameHandle } from '../web/WebFrame'
+import { LocalVideo, type LocalVideoHandle } from './LocalVideo'
 import styles from './MediaLayer.module.css'
 
 /**
@@ -17,8 +19,9 @@ import styles from './MediaLayer.module.css'
 export function MediaLayer(): React.JSX.Element {
   const sessions = useMediaStore((state) => state.sessions)
   const editing = useNavigationStore((state) => state.editing)
+  const fileDrag = useFileDrag()
   return (
-    <div className={styles.layer} data-editing={editing}>
+    <div className={styles.layer} data-editing={editing} data-file-drag={fileDrag}>
       {Object.values(sessions).map((session) => (
         <Player key={session.id} session={session} />
       ))}
@@ -26,10 +29,46 @@ export function MediaLayer(): React.JSX.Element {
   )
 }
 
+/**
+ * Un fichier du PC est-il en train d'être glissé sur la fenêtre ? Les lecteurs laissent alors
+ * passer la souris : le fichier est déposé sur le bloc en dessous (bloc Vidéo locale).
+ */
+function useFileDrag(): boolean {
+  const [dragging, setDragging] = useState(false)
+  useEffect(() => {
+    let depth = 0
+    const enter = (event: DragEvent): void => {
+      if (!event.dataTransfer?.types.includes('Files')) return
+      depth += 1
+      setDragging(true)
+    }
+    const leave = (): void => {
+      depth = Math.max(0, depth - 1)
+      if (depth === 0) setDragging(false)
+    }
+    const end = (): void => {
+      depth = 0
+      setDragging(false)
+    }
+    window.addEventListener('dragenter', enter)
+    window.addEventListener('dragleave', leave)
+    window.addEventListener('drop', end)
+    window.addEventListener('dragend', end)
+    return () => {
+      window.removeEventListener('dragenter', enter)
+      window.removeEventListener('dragleave', leave)
+      window.removeEventListener('drop', end)
+      window.removeEventListener('dragend', end)
+    }
+  }, [])
+  return dragging
+}
+
 function Player({ session }: { session: MediaSession }): React.JSX.Element {
   const { t } = useTranslation()
   const wrapper = useRef<HTMLDivElement>(null)
   const frame = useRef<WebFrameHandle>(null)
+  const local = useRef<LocalVideoHandle>(null)
   const setPlaying = useMediaStore((state) => state.setPlaying)
   const close = useMediaStore((state) => state.close)
   // Sans bloc : mini-lecteur s'il joue ; sinon caché, le temps de vérifier
@@ -42,7 +81,8 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
     if (session.slot) return
     let active = true
     void (async () => {
-      const playing = session.playing || ((await frame.current?.isPlaying()) ?? false)
+      const player = frame.current ?? local.current
+      const playing = session.playing || ((await player?.isPlaying()) ?? false)
       if (!active) return
       if (playing) setPlaying(session.id, true)
       else close(session.id)
@@ -134,16 +174,27 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
         </header>
       )}
       <div className={styles.screen}>
-        <WebFrame
-          ref={frame}
-          src={session.src}
-          partition={SHARED_WEB_PARTITION}
-          referrer={session.referrer}
-          onMedia={(playing) => setPlaying(session.id, playing)}
-          onTitle={(title) => useMediaStore.getState().setPageTitle(session.id, title)}
-          // Fin de la vidéo : la suivante de la file « À suivre » démarre
-          onEnded={() => useMediaStore.getState().playNext(session.id)}
-        />
+        {isLocalMediaUrl(session.src) ? (
+          <LocalVideo
+            ref={local}
+            id={session.id}
+            src={session.src}
+            onMedia={(playing) => setPlaying(session.id, playing)}
+            onEnded={() => setPlaying(session.id, false)}
+            onError={(code) => useMediaStore.getState().setError(session.id, code)}
+          />
+        ) : (
+          <WebFrame
+            ref={frame}
+            src={session.src}
+            partition={SHARED_WEB_PARTITION}
+            referrer={session.referrer}
+            onMedia={(playing) => setPlaying(session.id, playing)}
+            onTitle={(title) => useMediaStore.getState().setPageTitle(session.id, title)}
+            // Fin de la vidéo : la suivante de la file « À suivre » démarre
+            onEnded={() => useMediaStore.getState().playNext(session.id)}
+          />
+        )}
       </div>
     </div>
   )

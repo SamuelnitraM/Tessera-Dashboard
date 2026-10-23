@@ -88,6 +88,16 @@ import {
 import type { GoogleService } from '@shared/accounts'
 import { connectGoogle, connectTwitch, getAccountProviders, reconnectMailAccount } from './accounts'
 import { getSettings, updateSettings } from './settings-store'
+import {
+  addDroppedMedia,
+  forgetLocalMedia,
+  getLocalMedia,
+  hasVlc,
+  openLocalMedia,
+  openLocalMediaExternally,
+  recentLocalMedia,
+  saveLocalMediaPosition
+} from './media/local'
 import { getSystemPreferences } from './system'
 import { clearAppData, fetchSiteIcon, resetAppPermissions } from './web'
 
@@ -319,6 +329,34 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IpcChannels.mediaTwitchSearch, (_event, pluginId: string, query: string) =>
     twitchSearch(pluginId, query)
+  )
+
+  // Vidéos et musiques du PC (permission `videos`)
+  ipcMain.handle(IpcChannels.localMediaOpen, (event, pluginId: string) =>
+    openLocalMedia(pluginId, BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle(IpcChannels.localMediaDropped, (_event, pluginId: string, path: string) =>
+    addDroppedMedia(pluginId, path)
+  )
+  ipcMain.handle(IpcChannels.localMediaRecent, (_event, pluginId: string) =>
+    recentLocalMedia(pluginId)
+  )
+  ipcMain.handle(IpcChannels.localMediaGet, (_event, pluginId: string, id: string) =>
+    getLocalMedia(pluginId, id)
+  )
+  ipcMain.handle(IpcChannels.localMediaForget, (_event, pluginId: string, id: string) =>
+    forgetLocalMedia(pluginId, id)
+  )
+  ipcMain.on(
+    IpcChannels.localMediaPosition,
+    (_event, id: string, position: number, duration: number) =>
+      saveLocalMediaPosition(id, position, duration)
+  )
+  ipcMain.handle(IpcChannels.localMediaHasVlc, (_event, pluginId: string) => hasVlc(pluginId))
+  ipcMain.handle(
+    IpcChannels.localMediaOpenExternally,
+    (_event, pluginId: string, id: string, position: number) =>
+      openLocalMediaExternally(pluginId, id, position)
   )
   ipcMain.handle(IpcChannels.mediaTwitchLive, (_event, pluginId: string) => twitchLive(pluginId))
   ipcMain.handle(IpcChannels.mediaTwitchRefresh, (_event, pluginId: string) =>

@@ -1,0 +1,247 @@
+.widget {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font-size: 0.8125rem;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.375rem 0.375rem 0.75rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.iconButton {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+/* « VLC » : bouton texte de l'en-tête */
+.textButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+  height: 28px;
+  padding: 0 0.625rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.textButton:hover {
+  background: var(--color-surface-hover);
+}
+
+.notice {
+  margin: 0;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-accent-soft);
+}
+
+.notice[data-error='true'] {
+  color: var(--color-danger);
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- États (introuvable, format non lu) ---------- */
+
+.state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.state p {
+  margin: 0;
+  max-width: 44ch;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+/* ---------- Accueil : choisir un fichier, récents ---------- */
+
+.home {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem;
+  padding: 1.25rem 1rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.drop p {
+  margin: 0;
+}
+
+.recent {
+  padding: 0 0.5rem 0.5rem;
+}
+
+.recentTitle {
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.375rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+}
+
+.item:hover {
+  background: var(--color-surface-hover);
+}
+
+.item .iconButton {
+  visibility: hidden;
+  margin-right: 0.25rem;
+}
+
+.item:hover .iconButton,
+.item:focus-within .iconButton {
+  visibility: visible;
+}
+
+.item[data-missing='true'] .row {
+  opacity: 0.55;
+}
+
+.row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.375rem 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  text-align: left;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.rowName,
+.rowMeta {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rowName {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.rowMeta {
+  font-size: 0.75rem;
+}
+
+/* Avancement de la lecture (reprise) */
+.progress {
+  height: 3px;
+  overflow: hidden;
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+/* ---------- Glisser-déposer ---------- */
+
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  border: 2px dashed var(--color-accent);
+  border-radius: inherit;
+  color: var(--color-text);
+  font-weight: 600;
+  pointer-events: none;
+}

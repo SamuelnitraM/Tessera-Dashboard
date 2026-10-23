@@ -19,6 +19,11 @@
   pointer-events: none;
 }
 
+/* Fichier glissé sur la fenêtre : il est déposé sur le bloc, sous le lecteur */
+.layer[data-file-drag='true'] .player:not([data-mini='true']) {
+  pointer-events: none;
+}
+
 .player[data-pending='true'] {
   visibility: hidden;
 }
@@ -73,4 +78,27 @@
 .miniButton:hover {
   background: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+/* Vidéo ou musique du PC */
+.local {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.video {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: transparent;
+}
+
+.audioIcon {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  color: rgb(255 255 255 / 0.4);
 }

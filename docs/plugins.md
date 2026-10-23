@@ -97,6 +97,7 @@ Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peu
 | `apps`          | Afficher la fenêtre d'une application installée de l'utilisateur (composant `InstalledAppView`), **uniquement** parmi celles qu'il a ajoutées à Tessera             | `"permissions": ["apps"]`                                  |
 | `mail`          | Lire, classer et envoyer les mails des comptes de l'utilisateur (`useMail`). Jamais ses jetons ni ses mots de passe, qui restent dans le processus principal        | `"permissions": ["mail"]`                                  |
 | `media`         | Lire les abonnements et playlists YouTube et les chaînes Twitch suivies en direct de l'utilisateur (`useMedia`), en lecture seule                                   | `"permissions": ["media"]`                                 |
+| `videos`        | Lire les vidéos et musiques du PC (`useLocalMedia`, `MediaView`), **uniquement** celles que l'utilisateur a choisies (fenêtre de Windows ou glisser-déposer)        | `"permissions": ["videos"]`                                |
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -156,6 +157,7 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                       |
 | `useMail()`, `useMailAccounts()`                                            | Mails des comptes de l'utilisateur (permission `mail`), voir ci-dessous                        |
 | `MediaView`, `useMedia()`                                                   | Lecteur vidéo avec mini-lecteur (permission `web`), YouTube et Twitch (permission `media`)     |
+| `useLocalMedia()`, `localMediaUrl()`                                        | Vidéos et musiques du PC choisies par l'utilisateur (permission `videos`), voir ci-dessous     |
 | `useNotificationTarget(onOpen)`                                             | Ce que désigne une notification cliquée (`target` de `notify`)                                 |
 | `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
 | `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
@@ -326,6 +328,27 @@ const target = parseMediaLink('https://youtu.be/jNQXAC9IVRw', 'youtube') // vid�
 | `useMediaReveal(id, fn)`                        | « Revenir au bloc » cliqué dans le mini-lecteur : le bloc réaffiche son lecteur                                              |
 
 Avec la permission `media`, `useMedia()` donne `youtubeFeed(compte)`, `youtubeSearch(compte, texte, page)` (quota limité : erreur `quota`), `youtubePlaylists(compte)`, `youtubePlaylist(compte, id)` (`'liked'` : vidéos aimées), `twitchSearch(texte)` (chaînes, nom exact puis directs d'abord), `twitchLive()` et `twitchRefresh()`. `compte` est l'identifiant d'un compte YouTube de `useYouTubeAccounts()` (photo, nom, adresse, erreur) ; vide : le premier compte. `useMediaStatus()` dit quels comptes sont connectés, `useTwitchLive()` suit les directs, `openMediaSettings()` ouvre Paramètres → Comptes. Les extensions **YouTube** et **Twitch** (`plugins/tessera.youtube`, `plugins/tessera.twitch`) sont des exemples complets.
+
+#### Vidéos et musiques du PC
+
+Avec la permission `videos`, `useLocalMedia()` ouvre les fichiers que l'utilisateur choisit, et `MediaView` les lit (même mini-lecteur que YouTube) :
+
+```tsx
+const local = useLocalMedia()
+const file = await local.open() // fenêtre de Windows ; ou local.addDropped(event.dataTransfer.files[0])
+<MediaView id={instanceId} src={localMediaUrl(file.id, { start: file.position, autoplay: true })} title={file.name} />
+```
+
+| Élément                                    | Rôle                                                                                                  |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| `open()`, `addDropped(file)`               | Ajoute un fichier choisi par l'utilisateur ; renvoie un `LocalMediaFile` (identifiant, nom, position) |
+| `recent()`, `get(id)`, `forget(id)`        | Fichiers récents (position de reprise, `missing` si déplacé), retrait de la liste                     |
+| `localMediaUrl(id, { start, autoplay })`   | Adresse `tessera-file://` du lecteur ; la position est enregistrée automatiquement pendant la lecture |
+| `useMediaError(id, fn)`                    | Format non lu ou fichier illisible (code `MediaError`, 4 = format non pris en charge)                 |
+| `hasVlc()`, `openExternally(id, position)` | Ouvre le fichier dans VLC au même moment (sinon dans le lecteur de Windows)                           |
+| `getMediaPosition(id)`, `pauseMedia(id)`   | Position et pause du fichier lu par le lecteur `id`                                                   |
+
+Un fichier n'est lisible qu'une fois choisi par l'utilisateur : le processus principal le sert sous un identifiant aléatoire et refuse tout autre chemin (liste dans `local-media.json`). L'extension **Vidéo locale** (`plugins/tessera.video`) est un exemple complet.
 
 ### Bonnes pratiques
 
