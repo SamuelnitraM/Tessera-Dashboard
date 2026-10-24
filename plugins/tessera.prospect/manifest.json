@@ -1,0 +1,55 @@
+{
+  "id": "tessera.prospect",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Prospect Solution", "en": "Prospect Solution" },
+  "description": {
+    "fr": "Ta prospection Prospect Solution : serveur, chiffres clés, relances du jour, tâches en cours et interface complète.",
+    "en": "Your Prospect Solution prospecting: server, key figures, today's follow-ups, running jobs and full interface."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["integrations", "processes", "web", "notifications"],
+  "integrations": ["prospect"],
+  "widgets": [
+    {
+      "type": "prospect",
+      "name": { "fr": "Prospect Solution", "en": "Prospect Solution" },
+      "description": {
+        "fr": "Démarre le serveur, suit la prospection et affiche l'interface.",
+        "en": "Starts the server, follows the prospecting and shows the interface."
+      },
+      "icon": "target",
+      "defaultSize": { "w": 9, "h": 8 },
+      "minSize": { "w": 4, "h": 3 },
+      "settings": [
+        {
+          "key": "port",
+          "type": "number",
+          "label": { "fr": "Port du serveur", "en": "Server port" },
+          "default": 8765,
+          "min": 1024,
+          "max": 65535,
+          "step": 1
+        },
+        {
+          "key": "notifyJobs",
+          "type": "boolean",
+          "label": {
+            "fr": "Notifier à la fin d'une recherche ou d'une analyse",
+            "en": "Notify when a search or an analysis ends"
+          },
+          "default": true
+        },
+        {
+          "key": "notifyFollowUps",
+          "type": "boolean",
+          "label": {
+            "fr": "Rappeler les relances du jour (une fois par jour)",
+            "en": "Remind today's follow-ups (once a day)"
+          },
+          "default": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+*.tessera
+
+# Clé de signature : ne jamais la publier
+*.pem

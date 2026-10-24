@@ -19,9 +19,12 @@
     "dev": "electron-vite dev",
     "build": "npm run typecheck && electron-vite build",
     "start": "electron-vite preview",
-    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web && npm run typecheck:sdk",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
+    "typecheck:sdk": "tsc --noEmit -p packages/module-sdk/tsconfig.json",
+    "sdk:build": "npm run build --prefix packages/module-sdk",
+    "sdk:pack": "npm pack ./packages/module-sdk",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { Readable } from 'node:stream'
-import { dialog, protocol, shell, type BrowserWindow } from 'electron'
+import { dialog, protocol, shell, type BrowserWindow, type CustomScheme } from 'electron'
 import {
   isLocalMediaId,
   isLocalMediaPath,
@@ -264,14 +264,13 @@ const MIME: Record<string, string> = {
   opus: 'audio/ogg'
 }
 
-/** À appeler avant `app.whenReady` : le lecteur doit pouvoir avancer dans le fichier. */
-export function registerLocalMediaScheme(): void {
-  protocol.registerSchemesAsPrivileged([
-    {
-      scheme: LOCAL_MEDIA_SCHEME,
-      privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true }
-    }
-  ])
+/**
+ * Déclaration du protocole, à passer à `registerSchemesAsPrivileged` avant `app.whenReady`
+ * (voir index.ts) : le lecteur doit pouvoir avancer dans le fichier.
+ */
+export const localMediaScheme: CustomScheme = {
+  scheme: LOCAL_MEDIA_SCHEME,
+  privileges: { standard: true, secure: true, stream: true, supportFetchAPI: true }
 }
 
 /** Sert les fichiers choisis, par morceaux (déplacement dans la vidéo). */

@@ -278,6 +278,154 @@
   color: var(--color-text-muted);
 }
 
+/* Page des extensions : zone de dépôt d'un fichier .tessera */
+.extensionsPage {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-radius: var(--radius-lg);
+  outline: 2px dashed transparent;
+  outline-offset: 0.5rem;
+}
+
+.extensionsPage[data-dragging='true'] {
+  outline-color: var(--color-accent);
+}
+
+.extensionsToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.extensionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.25rem;
+  margin-left: -0.5rem;
+}
+
+/* Permission d'un module tiers, avec son interrupteur */
+.extensionPermission[data-toggle='true'] {
+  word-break: normal;
+}
+
+.permissionText {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.extensionIcon[data-size='small'] {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+}
+
+/* Collection : modules regroupés, dépliables */
+.collection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.collectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+.collectionToggle {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.collectionToggle:hover {
+  background: var(--color-surface-hover);
+}
+
+.collectionChevron {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: transform 150ms ease;
+}
+
+.collection[data-expanded='true'] .collectionChevron {
+  transform: rotate(90deg);
+}
+
+.collection .extension {
+  background: var(--color-bg);
+}
+
+/* Fenêtre d'installation */
+.installSignature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0 0.5rem 1rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+}
+
+.installSignature svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.installSignature[data-signed='true'] {
+  background: var(--color-accent-soft);
+}
+
+.installSignature[data-signed='false'] {
+  background: color-mix(in oklab, #d97706 16%, transparent);
+}
+
+.installList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 0.5rem 1rem;
+  padding: 0;
+  list-style: none;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.installItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.installItem[data-enabled='false'] {
+  opacity: 0.7;
+}
+
+.installToggle {
+  margin-left: auto;
+}
+
 /* ---------- Applications ---------- */
 
 .appList {

@@ -11,7 +11,7 @@ export function applyAccentColor(color: HexColor): void {
 }
 
 /** Texte blanc ou noir selon la couleur de fond, pour rester lisible sur n'importe quel accent. */
-function getReadableTextColor(background: HexColor): string {
+export function getReadableTextColor(background: HexColor): string {
   const [r, g, b] = [1, 3, 5].map((start) => {
     const channel = parseInt(background.slice(start, start + 2), 16) / 255
     return channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4

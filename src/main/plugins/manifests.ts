@@ -1,25 +1,31 @@
-import { parseManifest, type PluginManifest, type PluginPermission } from '@shared/plugins'
+import type { PluginManifest, PluginPermission } from '@shared/plugins'
+import { getSettings } from '../settings-store'
+import { getBuiltInManifest } from './builtin'
+import { getGrantedPermissions, getModuleManifest } from './modules'
 
 /**
- * Manifestes des extensions intégrées, relus côté processus principal.
+ * Manifestes de toutes les extensions, relus côté processus principal : intégrées (compilées
+ * avec l'app) et modules installés (dossier de l'app).
  * C'est d'ici (et non de l'interface) que viennent les permissions : l'interface ne peut pas
  * s'attribuer un accès que l'extension n'a pas déclaré.
  */
-const files = import.meta.glob<unknown>('../../../plugins/*/manifest.json', {
-  eager: true,
-  import: 'default'
-})
-
-const manifests = new Map<string, PluginManifest>()
-for (const raw of Object.values(files)) {
-  const result = parseManifest(raw)
-  if (result.ok) manifests.set(result.manifest.id, result.manifest)
-}
 
 export function getPluginManifest(pluginId: string): PluginManifest | undefined {
-  return manifests.get(pluginId)
+  return getBuiltInManifest(pluginId) ?? getModuleManifest(pluginId)
 }
 
+/**
+ * Une extension intégrée a les permissions de son manifeste. Un module tiers n'a que celles
+ * déclarées dans son manifeste ET accordées par l'utilisateur, et aucune s'il est désactivé.
+ */
 export function hasPermission(pluginId: string, permission: PluginPermission): boolean {
-  return manifests.get(pluginId)?.permissions.includes(permission) ?? false
+  const builtIn = getBuiltInManifest(pluginId)
+  if (builtIn) return builtIn.permissions.includes(permission)
+
+  const manifest = getModuleManifest(pluginId)
+  if (!manifest || getSettings().plugins.disabled.includes(pluginId)) return false
+  return (
+    manifest.permissions.includes(permission) &&
+    getGrantedPermissions(pluginId).includes(permission)
+  )
 }

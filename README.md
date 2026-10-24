@@ -113,7 +113,7 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
   - Boutons Lancer, Arrêter (programme et sous-programmes), Relancer, Afficher dans l'Explorateur.
   - Statut en direct : en cours (depuis quand), arrêté, terminé, terminé avec erreur, ou « déjà ouvert hors de Tessera ».
   - **Journaux** de la console dans le bloc, en direct et en UTF-8 (accents corrects, scripts Python compris), conservés en changeant de page.
-  - Prévu pour DevLauncher et GitSpread (`.exe`, fenêtre propre) et ProspectSolution (`.bat`, journaux). Des modules dédiés viendront à l'étape 14.
+  - Bloc générique : DevLauncher, GitSpread et Prospect Solution ont maintenant leurs blocs dédiés (ci-dessous).
 - **Mails** ✅ ([guide de connexion](docs/mails.md))
   - Comptes **Gmail** (API Google) et **IMAP/SMTP** (OVH, Orange, Free, iCloud, Yahoo…, réglages proposés ; serveur local comme Proton Mail Bridge), ajoutés dans Paramètres → Comptes : **« Se connecter avec Google »** (page officielle dans le navigateur, un clic si l'on y est déjà connecté), adresse et mot de passe pour IMAP.
   - Jetons et mots de passe **chiffrés par Windows**, jamais visibles par l'interface.
@@ -135,7 +135,32 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
   - **Mini-lecteur** en changeant de page, comme YouTube.
   - **« Ouvrir dans VLC »** au même moment ; c'est aussi la solution proposée pour les formats que Tessera ne lit pas (avi, wmv…). Sans VLC : le lecteur de Windows.
   - Tessera ne lit que les fichiers choisis par l'utilisateur.
+- **DevLauncher** ✅ (permissions « intégrations » et « notifications »)
+  - Statut de DevLauncher et de son serveur MCP ; projets (favoris, récents, tous) avec recherche, choix du profil et **Lancer** ; services (Apache, MySQL, FileZilla…) avec **Redémarrer** et **Tout arrêter** ; journaux relus en direct.
+  - Notifications « environnement prêt » et « service arrêté ».
+  - **Prérequis** : activer le serveur MCP de DevLauncher (Paramètres de DevLauncher → Serveur MCP) sur un port libre, autre que 8765 (pris par Prospect Solution). Sans lui, le bloc est en lecture seule. DevLauncher demande les droits administrateur : son ouverture passe par l'UAC, et sa fenêtre ne peut pas s'afficher dans un bloc.
+- **GitSpread** ✅ (permissions « intégrations » et « applications »)
+  - Projets trouvés avec les réglages de GitSpread, groupés par compte GitHub : branche, commits à pousser ou en retard, fichiers modifiés, dernière récupération ; dossier et page GitHub d'un clic.
+  - État lu par `git status` en lecture seule (aucune action réseau, aucun verrou), toutes les 30 s.
+  - **Ouvrir GitSpread** dans sa fenêtre, ou sa vraie fenêtre dans le bloc (onglet GitSpread). Prérequis : `git` dans le PATH.
+- **Prospect Solution** ✅ (permissions « intégrations », « programmes », « web » et « notifications »)
+  - **Démarrer / Arrêter** le serveur (`start.bat --no-browser`, sans ouvrir le navigateur) ; un serveur déjà lancé hors de Tessera est reconnu et laissé tranquille.
+  - Tableau de bord : chiffres clés, suivi par statut, **relances du jour** (téléphone cliquable), tâches en cours avec **Annuler** ; l'interface complète dans un onglet, et les journaux.
+  - Notifications : fin d'une tâche, relances du jour. Lecture seule (pas d'écriture dans la prospection pour l'instant).
 - **Prévu** : **Flux RSS**.
+
+### Modules ✅ ([créer un module](docs/modules/fr/README.md) · [English](docs/modules/en/README.md))
+
+- **Installer un module** : un fichier `.tessera`, par le bouton « Installer un module… » ou déposé sur Paramètres → Widgets et modules. Une **collection** (plusieurs modules d'un même éditeur, ex. « Messenger » + « Fil d'actualité ») s'installe en une fois, en choisissant les modules voulus.
+- **Consentement** : avant l'installation, Tessera montre l'auteur, les widgets et chaque permission demandée, avec un interrupteur par permission. Elles restent modifiables une à une dans la carte du module ; une mise à jour qui demande une nouvelle permission la redemande.
+- **Isolation** : chaque module tourne dans un cadre séparé (son propre processus, son propre stockage), sans aucun accès à Tessera. Il ne parle à l'app que par un canal où Tessera fixe son identité et vérifie chaque permission, aussi dans le processus principal. Sans la permission « réseau » (adresses déclarées), un module n'a **aucun accès à Internet**.
+- **Signature facultative** : un module signé affiche l'empreinte de son éditeur, et ses mises à jour doivent venir de la même clé ; un module non signé s'installe avec un avertissement.
+- **Désinstallation** (avec ses données, et ses blocs si on le souhaite), mises à jour en réinstallant un `.tessera` plus récent, plantage d'un module détecté (« Réessayer »).
+- **Pour les développeurs** :
+  - **guide complet en français et en anglais** : premier module pas à pas, manifeste, SDK, permissions, interface, empaquetage, collections, sécurité, dépannage ;
+  - **modèle de départ** (`templates/module-starter`) et **SDK** `@tessera/module-sdk` (`packages/module-sdk` ; `npm run sdk:pack` produit l'archive à installer) avec l'outil `tessera-module` (`validate`, `pack`, `pack-collection`, `keygen`) ;
+  - **mode développeur** (Paramètres → Widgets et modules) : un module chargé depuis son dossier se recharge tout seul à chaque construction ;
+  - exemple de collection : `examples/collection-demo`.
 
 ### Comptes ✅
 
@@ -165,7 +190,7 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 - **Thèmes** : clair, sombre ou système (suit Windows), avec **couleur d'accent** personnalisable.
 - **Icônes aux couleurs de l'accent** (optionnel) : logo, barre des tâches et zone de notification.
 - **Langues** : français et anglais.
-- **Widgets et modules** : chaque bloc est fourni par un plugin, décrit par un manifeste. Ses réglages apparaissent automatiquement, et il s'active ou se désactive dans Paramètres → Widgets et modules. Des développeurs pourront créer leurs propres modules ([guide](docs/plugins.md)).
+- **Widgets et modules** : chaque bloc est fourni par un widget intégré ou par un module, décrit par un manifeste. Ses réglages apparaissent automatiquement, et il s'active ou se désactive dans Paramètres → Widgets et modules.
 
 ### Plus tard
 
@@ -202,6 +227,13 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 
 - Formats lus par le lecteur intégré (Chromium) : mp4 / mov (H.264, HEVC si la carte graphique le permet), webm, mkv (codecs courants), ogv, et les musiques courantes. Les autres (avi, wmv, flv, certains mkv…) s'ouvrent dans VLC.
 - Pas de sous-titres externes (`.srt`) dans le lecteur intégré : VLC les charge.
+
+### Limites connues des modules
+
+- Un module ne peut pas encore afficher de page web, de lecteur YouTube / Twitch ou de fenêtre d'application dans son bloc (composants `WebView`, `MediaView`, `InstalledAppView`) : il lit les données (`media`, `apps`) et ouvre les liens dans le navigateur.
+- Pas de glisser-déposer de fichier dans un module (vidéos du PC : fenêtre de Windows seulement), ni de fenêtre hors de son bloc (sauf les confirmations et le menu du clic droit de Tessera).
+- Le SDK est fourni dans le dépôt (archive `.tgz`) ; il n'est pas encore publié sur npm.
+- La permission « intégrations » (DevLauncher, GitSpread, Prospect Solution) est réservée aux widgets intégrés.
 
 ### Limites connues des pages web
 
@@ -323,9 +355,17 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 ├── tessera.desktop/          #   Application installée dans la grille (permission « apps »)
 ├── tessera.mail/             #   Mails : boîte de réception, lecture, écriture (permission « mail »)
 ├── tessera.youtube/          #   YouTube : lecteur, abonnements, playlists (permissions « web » et « media »)
-└── tessera.twitch/           #   Twitch : lecteur, chat, directs suivis (« web », « media », « notifications »)
+├── tessera.twitch/           #   Twitch : lecteur, chat, directs suivis (« web », « media », « notifications »)
+├── tessera.video/            #   Vidéo locale (permission « videos »)
+├── tessera.devlauncher/      #   DevLauncher (« integrations », « notifications »)
+├── tessera.gitspread/        #   GitSpread (« integrations », « apps »)
+└── tessera.prospect/         #   Prospect Solution (« integrations », « processes », « web », « notifications »)
+packages/module-sdk/          # SDK des modules tiers (@tessera/module-sdk) et outil tessera-module
+templates/module-starter/     # Modèle de départ d'un module
+examples/collection-demo/     # Exemple de collection (deux modules)
 docs/
-└── plugins.md                # Guide de création d'une extension
+├── modules/                  # Créer un module : guide complet (fr/ et en/)
+└── plugins.md                # Widgets intégrés : contribuer à Tessera
 ```
 
 **Réglages** : ils sont stockés dans `%APPDATA%\Tessera Dashboard\settings.json`. Le fichier est entièrement revalidé à chaque lecture : une valeur invalide reprend sa valeur par défaut, l'app ne peut donc pas être cassée par un fichier abîmé. Pour ajouter un réglage :
@@ -349,7 +389,7 @@ La disposition compacte est générée à partir de la large (ordre de lecture c
 2. le **registre** (`src/renderer/src/plugins/registry.ts`) associe chaque widget du manifeste à son composant ;
 3. le **cadre** (`WidgetFrame`) fournit au composant sa configuration (réglages du manifeste + données du widget). Il génère la fenêtre de réglages et isole les erreurs du widget.
 
-Pour créer un widget, suis le **[guide des modules](docs/plugins.md)**. Les types de widgets de la v1 (`clock`, `heading`) sont migrés automatiquement vers leur nouveau nom (`tessera.clock/clock`…).
+Pour ajouter un widget intégré à Tessera, suis le **[guide des widgets intégrés](docs/plugins.md)** ; pour un module installable par d'autres, le **[guide des modules](docs/modules/fr/README.md)**. Les **modules tiers** passent par un autre chemin : paquet `.tessera` installé dans `%APPDATA%\Tessera Dashboard\modules\` (`src/main/plugins/modules.ts`), servi par l'adresse `tessera-module://` (`module-protocol.ts`), affiché dans un cadre isolé (`ModuleFrame`) relié à l'app par le pont (`plugins/bridge-host.ts`). Les types de widgets de la v1 (`clock`, `heading`) sont migrés automatiquement vers leur nouveau nom (`tessera.clock/clock`…).
 
 **Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
 
@@ -430,8 +470,8 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 ### Phase 3 : plugins
 
-- [ ] **Étape 13 :** modules tiers : installation, isolation, permissions, **modèle de module** pour les développeurs (projet de départ + guide) et **collections** (un module peut regrouper plusieurs widgets, ex. une « collection Facebook » : Messenger, fil d'actualité…).
-- [ ] **Étape 14 :** plugins dédiés [DevLauncher](https://github.com/SamuelnitraM/DevLauncher), [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) et [ProspectSolution](https://github.com/SamuelnitraM/ProspectSolution).
+- [x] **Étape 13 : modules tiers.** Paquets `.tessera` (module ou collection) installés avec consentement, permissions révocables, isolation (cadre et processus séparés, pont vérifié, aucun accès Internet sans la permission « réseau »), signature facultative, désinstallation, mode développeur ; SDK `@tessera/module-sdk` avec l'outil `tessera-module`, modèle de départ, exemple de collection et guide complet en français et en anglais.
+- [x] **Étape 14 : plugins dédiés** [DevLauncher](https://github.com/SamuelnitraM/DevLauncher), [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) et [ProspectSolution](https://github.com/SamuelnitraM/ProspectSolution). Trois blocs qui comprennent leur application (serveur MCP de DevLauncher, réglages et `git status` en lecture seule pour GitSpread, API locale de Prospect Solution), par la nouvelle permission « intégrations » : connecteurs fixes dans le processus principal, limités à 127.0.0.1 et à des actions listées.
 
 ### Phase 4 : distribution
 

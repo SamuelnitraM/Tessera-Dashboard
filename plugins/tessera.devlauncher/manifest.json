@@ -1,0 +1,37 @@
+{
+  "id": "tessera.devlauncher",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "DevLauncher", "en": "DevLauncher" },
+  "description": {
+    "fr": "Tes projets DevLauncher : lancement avec un profil, services et journaux, tout arrêter.",
+    "en": "Your DevLauncher projects: launch with a profile, services and logs, stop everything."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["integrations", "notifications"],
+  "integrations": ["devlauncher"],
+  "widgets": [
+    {
+      "type": "devlauncher",
+      "name": { "fr": "DevLauncher", "en": "DevLauncher" },
+      "description": {
+        "fr": "Projets, profils, services et journaux de DevLauncher.",
+        "en": "DevLauncher projects, profiles, services and logs."
+      },
+      "icon": "rocket",
+      "defaultSize": { "w": 8, "h": 7 },
+      "minSize": { "w": 4, "h": 3 },
+      "settings": [
+        {
+          "key": "notify",
+          "type": "boolean",
+          "label": {
+            "fr": "Notifier quand l'environnement est prêt ou qu'un service s'arrête",
+            "en": "Notify when the environment is ready or a service stops"
+          },
+          "default": true
+        }
+      ]
+    }
+  ]
+}

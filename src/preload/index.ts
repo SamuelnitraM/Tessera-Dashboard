@@ -33,9 +33,17 @@ import type {
   InstalledProgram
 } from '@shared/desktop-apps'
 import type { CustomSound, NotifyInput, TesseraNotification } from '@shared/notifications'
+import type {
+  InstalledModule,
+  ModulePreview,
+  ModuleSelection,
+  UninstallOptions
+} from '@shared/modules'
 import type { PluginFileEntry } from '@shared/plugin-files'
+import type { PluginPermission } from '@shared/plugins'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Settings, SettingsPatch } from '@shared/settings'
+import { integrationsApi } from './integrations'
 
 /** S'abonne à un événement envoyé par le processus principal. Renvoie la fonction de désabonnement. */
 function subscribe<T>(channel: string, callback: (payload: T) => void): () => void {
@@ -317,12 +325,40 @@ const api = {
     openExternally: (pluginId: string, id: string, position: number): Promise<ExternalPlayer> =>
       ipcRenderer.invoke(IpcChannels.localMediaOpenExternally, pluginId, id, position)
   },
+  /** Modules tiers : installation, permissions accordées, mode développeur. */
+  modules: {
+    list: (): Promise<InstalledModule[]> => ipcRenderer.invoke(IpcChannels.modulesList),
+    /** Fenêtre de Windows pour choisir un `.tessera` ; `null` si annulé. */
+    pickPackage: (): Promise<ModulePreview | null> =>
+      ipcRenderer.invoke(IpcChannels.modulesPickPackage),
+    /** Paquet déposé sur la fenêtre : son chemin est lu ici. */
+    previewFile: (file: File): Promise<ModulePreview> =>
+      ipcRenderer.invoke(IpcChannels.modulesPreviewFile, webUtils.getPathForFile(file)),
+    pickDevFolder: (): Promise<ModulePreview | null> =>
+      ipcRenderer.invoke(IpcChannels.modulesPickDevFolder),
+    /** Mode développeur : dossier de module déposé sur la page (son chemin est lu ici). */
+    previewDevFolder: (folder: File): Promise<ModulePreview> =>
+      ipcRenderer.invoke(IpcChannels.modulesPreviewDevFolder, webUtils.getPathForFile(folder)),
+    install: (token: string, selection: ModuleSelection[]): Promise<InstalledModule[]> =>
+      ipcRenderer.invoke(IpcChannels.modulesInstall, token, selection),
+    cancel: (token: string): Promise<void> => ipcRenderer.invoke(IpcChannels.modulesCancel, token),
+    uninstall: (id: string, options: UninstallOptions): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.modulesUninstall, id, options),
+    setGranted: (id: string, granted: PluginPermission[]): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.modulesSetGranted, id, granted),
+    reload: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannels.modulesReload, id),
+    inspect: (): Promise<void> => ipcRenderer.invoke(IpcChannels.modulesInspect),
+    onChange: (callback: (modules: InstalledModule[]) => void) =>
+      subscribe(IpcChannels.modulesChanged, callback)
+  },
   /** Navigateurs installés sur le PC. */
   browsers: {
     list: (): Promise<InstalledBrowser[]> => ipcRenderer.invoke(IpcChannels.browsersList),
     open: (browserId: string, url: string): Promise<boolean> =>
       ipcRenderer.invoke(IpcChannels.browsersOpen, browserId, url)
   },
+  /** Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`). */
+  integrations: integrationsApi,
   system: {
     getPreferences: (): Promise<SystemPreferences> =>
       ipcRenderer.invoke(IpcChannels.systemGetPreferences),

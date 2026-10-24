@@ -1,0 +1,462 @@
+/*
+ * Bloc Prospect Solution : en-tête (serveur), onglets, puis tableau de bord, interface ou journaux.
+ * Adapté à la taille du bloc (requêtes de conteneur).
+ */
+.widget {
+  container: prospect / size;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  padding: 0.75rem 0.75rem 0.5rem;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-md);
+  color: var(--color-accent);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+}
+
+.statusText {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+[data-state='running'] > .dot,
+[data-state='ready'] > .dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px color-mix(in oklab, #22c55e 25%, transparent);
+}
+
+[data-state='warning'] > .dot,
+[data-state='starting'] > .dot {
+  background: #f59e0b;
+}
+
+[data-state='error'] > .dot {
+  background: var(--color-danger);
+}
+
+.status[data-state='error'] {
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.tabs {
+  flex-shrink: 0;
+  padding: 0 0.75rem 0.5rem;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0.75rem;
+  color: var(--color-text-muted);
+  text-align: center;
+  font-size: 0.8125rem;
+}
+
+.empty p {
+  max-width: 40ch;
+  margin: 0;
+}
+
+.placeholder {
+  margin: 1rem 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.muted {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+/* ---------- Tableau de bord ---------- */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 0.75rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.75rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.kpi[data-highlight='true'] {
+  background: var(--color-accent-soft);
+  border-color: transparent;
+}
+
+.kpiValue {
+  font-size: 1.375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi[data-highlight='true'] .kpiValue {
+  color: var(--color-accent);
+}
+
+.kpiLabel {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.sectionTitle {
+  margin: 0 0 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.pipeline {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.segment {
+  flex-basis: 0;
+  min-width: 4px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.legend strong {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+/* Couleurs des statuts : de « nouveau » (neutre) à « signé » (vert) ou « perdu » (rouge) */
+.segment[data-status='new'],
+.swatch[data-status='new'] {
+  background: #94a3b8;
+}
+.segment[data-status='to_call'],
+.swatch[data-status='to_call'] {
+  background: #60a5fa;
+}
+.segment[data-status='called_no_answer'],
+.swatch[data-status='called_no_answer'] {
+  background: #a78bfa;
+}
+.segment[data-status='callback'],
+.swatch[data-status='callback'] {
+  background: #f59e0b;
+}
+.segment[data-status='interested'],
+.swatch[data-status='interested'] {
+  background: #2dd4bf;
+}
+.segment[data-status='meeting'],
+.swatch[data-status='meeting'] {
+  background: #0ea5e9;
+}
+.segment[data-status='quote_sent'],
+.swatch[data-status='quote_sent'] {
+  background: #6366f1;
+}
+.segment[data-status='won'],
+.swatch[data-status='won'] {
+  background: #22c55e;
+}
+.segment[data-status='lost'],
+.swatch[data-status='lost'] {
+  background: #ef4444;
+}
+.segment[data-status='not_interested'],
+.swatch[data-status='not_interested'] {
+  background: #78716c;
+}
+
+.jobs,
+.followUps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.job,
+.followUp {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  padding: 0.25rem 0.375rem 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: none;
+}
+
+.followUp:hover {
+  background: var(--color-surface-hover);
+}
+
+.job[data-status='failed'] .rowMeta {
+  color: var(--color-danger);
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  gap: 0.125rem;
+}
+
+.rowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.rowMeta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.progress {
+  position: relative;
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  background: var(--color-surface-hover);
+  border-radius: 999px;
+}
+
+.progress > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--color-accent);
+  border-radius: inherit;
+  transition: width 0.3s;
+}
+
+.progress[data-indeterminate='true'] > span {
+  width: 30%;
+  animation: slide 1.4s ease-in-out infinite;
+}
+
+@keyframes slide {
+  from {
+    left: -30%;
+  }
+  to {
+    left: 100%;
+  }
+}
+
+.phone {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-accent-soft);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.phone:hover {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+/* ---------- Interface et journaux ---------- */
+
+.frame {
+  flex: 1;
+  min-height: 0;
+  margin: 0 0.25rem 0.25rem;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.logs {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  margin: 0 0.75rem 0.75rem;
+}
+
+.output {
+  height: 100%;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  overflow: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: Consolas, 'Cascadia Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  cursor: text;
+}
+
+.logActions {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  display: flex;
+  gap: 0.125rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+/* Bloc étroit : boutons sans texte, numéros en dessous du nom */
+@container prospect (max-width: 360px) {
+  .buttonLabel {
+    display: none;
+  }
+}
+
+/* Bloc bas : en-tête seul */
+@container prospect (max-height: 170px) {
+  .tabs,
+  .body {
+    display: none;
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/@tessera/module-sdk/collection.schema.json",
+  "id": "demo.collection",
+  "version": "1.0.0",
+  "name": { "fr": "Collection de démonstration", "en": "Demo collection" },
+  "description": {
+    "fr": "Un minuteur et un pense-bête, installés en une fois.",
+    "en": "A timer and a to-do list, installed at once."
+  },
+  "author": "Tessera Dashboard",
+  "modules": ["demo.minuteur", "demo.pense-bete"]
+}

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type { LaunchOptions } from '@shared/plugin-processes'
@@ -98,8 +98,42 @@ import {
   recentLocalMedia,
   saveLocalMediaPosition
 } from './media/local'
+import {
+  cancelPreview,
+  installPreview,
+  listModules,
+  previewDevFolder,
+  previewDevPath,
+  previewPackage,
+  reloadModule,
+  setGrantedPermissions,
+  uninstallModule
+} from './plugins/modules'
+import {
+  MODULE_PACKAGE_EXTENSION,
+  type ModulePreview,
+  type ModuleSelection,
+  type UninstallOptions
+} from '@shared/modules'
+import { getTranslation } from './i18n'
+import type { PluginPermission } from '@shared/plugins'
 import { getSystemPreferences } from './system'
+import { registerIntegrationHandlers } from './plugins/integrations'
 import { clearAppData, fetchSiteIcon, resetAppPermissions } from './web'
+
+/** Fenêtre de Windows pour choisir un paquet `.tessera`, puis aperçu de son contenu. */
+async function pickModulePackage(window: BrowserWindow | null): Promise<ModulePreview | null> {
+  const options: Electron.OpenDialogOptions = {
+    title: getTranslation().settings.extensions.install.pickTitle,
+    properties: ['openFile'],
+    filters: [{ name: 'Tessera', extensions: [MODULE_PACKAGE_EXTENSION] }]
+  }
+  const result = window
+    ? await dialog.showOpenDialog(window, options)
+    : await dialog.showOpenDialog(options)
+  const path = result.filePaths[0]
+  return result.canceled || !path ? null : previewPackage(path)
+}
 
 /** Enregistre les réponses du processus principal aux demandes du renderer. */
 export function registerIpcHandlers(): void {
@@ -363,6 +397,44 @@ export function registerIpcHandlers(): void {
     twitchRefresh(pluginId)
   )
 
+  // Modules tiers : installation (aperçu puis consentement), permissions, mode développeur
+  ipcMain.handle(IpcChannels.modulesList, () => listModules())
+  ipcMain.handle(IpcChannels.modulesPickPackage, (event) =>
+    pickModulePackage(BrowserWindow.fromWebContents(event.sender))
+  )
+  ipcMain.handle(IpcChannels.modulesPreviewFile, (_event, path: unknown) => {
+    if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${MODULE_PACKAGE_EXTENSION}`)) {
+      throw new Error('[invalid-package] Fichier .tessera attendu.')
+    }
+    return previewPackage(path)
+  })
+  ipcMain.handle(IpcChannels.modulesPickDevFolder, (event) => {
+    if (!getSettings().plugins.developerMode) return null
+    return previewDevFolder(BrowserWindow.fromWebContents(event.sender))
+  })
+  ipcMain.handle(IpcChannels.modulesPreviewDevFolder, (_event, path: unknown) => {
+    if (!getSettings().plugins.developerMode) {
+      throw new Error('[not-found] Mode développeur désactivé.')
+    }
+    return previewDevPath(String(path))
+  })
+  ipcMain.handle(
+    IpcChannels.modulesInstall,
+    (_event, token: string, selection: ModuleSelection[]) => installPreview(token, selection)
+  )
+  ipcMain.handle(IpcChannels.modulesCancel, (_event, token: string) => cancelPreview(token))
+  ipcMain.handle(IpcChannels.modulesUninstall, (_event, id: string, options: UninstallOptions) =>
+    uninstallModule(id, options)
+  )
+  ipcMain.handle(IpcChannels.modulesSetGranted, (_event, id: string, granted: PluginPermission[]) =>
+    setGrantedPermissions(id, granted)
+  )
+  ipcMain.handle(IpcChannels.modulesReload, (_event, id: string) => reloadModule(id))
+  // Outils de développement de l'interface (le cadre du module s'y choisit), mode développeur
+  ipcMain.handle(IpcChannels.modulesInspect, (event) => {
+    if (getSettings().plugins.developerMode) event.sender.openDevTools({ mode: 'detach' })
+  })
+
   // Navigateurs installés (ouverture d'applications web hors de Tessera)
   ipcMain.handle(IpcChannels.browsersList, () => listBrowsers())
   ipcMain.handle(IpcChannels.browsersOpen, (_event, browserId: string, url: string) =>
@@ -370,4 +442,7 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle(IpcChannels.systemGetPreferences, () => getSystemPreferences())
+
+  // Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`)
+  registerIntegrationHandlers()
 }

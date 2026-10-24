@@ -1,5 +1,15 @@
 import { useMemo, useState } from 'react'
-import { CircleAlert, GripVertical, PlugZap, Settings2, SquarePen, Trash2, X } from 'lucide-react'
+import {
+  Bug,
+  CircleAlert,
+  GripVertical,
+  PlugZap,
+  RotateCw,
+  Settings2,
+  SquarePen,
+  Trash2,
+  X
+} from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { WidgetInstance } from '@shared/dashboard'
 import { localize, resolveWidgetConfig } from '@shared/plugins'
@@ -7,6 +17,7 @@ import { PluginContext } from '../../plugin-sdk/context'
 import { getWidget } from '../../plugins/registry'
 import { openContextMenu, type MenuItem } from '../../stores/contextMenu'
 import { useDashboardStore } from '../../stores/dashboard'
+import { useModules } from '../../stores/modules'
 import { useNavigationStore } from '../../stores/navigation'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
 import { WidgetErrorBoundary } from './WidgetErrorBoundary'
@@ -27,6 +38,9 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
   const { t } = useTranslation()
   const language = useResolvedLanguage()
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
+  const developerMode = useSettingsStore((state) => state.settings.plugins.developerMode)
+  // Se réaffiche quand un module est installé, rechargé ou désinstallé
+  useModules()
   const removeWidget = useDashboardStore((state) => state.removeWidget)
   const updateWidgetConfig = useDashboardStore((state) => state.updateWidgetConfig)
   const setEditing = useNavigationStore((state) => state.setEditing)
@@ -55,6 +69,22 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
       ? [{ label: t('blocks.settings'), icon: Settings2, onSelect: () => setSettingsOpen(true) }]
       : []),
     { label: t('nav.pageMenu.edit'), icon: SquarePen, onSelect: () => setEditing(true) },
+    // Mode développeur : outils pour les blocs des modules tiers
+    ...(developerMode && registered && !registered.builtIn
+      ? [
+          'separator' as const,
+          {
+            label: t('settings.extensions.reload'),
+            icon: RotateCw,
+            onSelect: () => void window.tessera.modules.reload(registered.pluginId)
+          },
+          {
+            label: t('settings.extensions.inspect'),
+            icon: Bug,
+            onSelect: () => void window.tessera.modules.inspect()
+          }
+        ]
+      : []),
     'separator',
     {
       label: t('blocks.remove'),

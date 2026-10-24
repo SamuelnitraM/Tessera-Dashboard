@@ -1,4 +1,6 @@
+import { createElement } from 'react'
 import type { i18n as I18n } from 'i18next'
+import type { InstalledModule } from '@shared/modules'
 import {
   parseManifest,
   widgetKey,
@@ -8,6 +10,8 @@ import {
 } from '@shared/plugins'
 import type { PluginModule, WidgetComponent } from '@tessera/plugin-sdk'
 import type { PluginContextValue } from '../plugin-sdk/context'
+import { ModuleFrame } from '../components/grid/ModuleFrame'
+import { useModulesStore } from '../stores/modules'
 
 /**
  * Registre des extensions.
@@ -15,6 +19,10 @@ import type { PluginContextValue } from '../plugin-sdk/context'
  * Les extensions intégrées vivent dans le dossier `plugins/` à la racine du projet : chaque
  * sous-dossier contenant un `manifest.json` et un `index.tsx` est découvert automatiquement
  * au build (aucune liste à tenir à jour).
+ *
+ * Les modules tiers, installés par l'utilisateur, viennent du processus principal (store
+ * `modules`) : leurs widgets sont des cadres isolés (`ModuleFrame`). Les composants qui listent
+ * les widgets s'abonnent à ce store (`useModules`) pour se réafficher quand il change.
  */
 
 export interface LoadedPlugin {
@@ -23,8 +31,10 @@ export interface LoadedPlugin {
   manifest: PluginManifest | null
   /** Message d'erreur si l'extension n'a pas pu être chargée. */
   error: string | null
-  /** Fournie avec l'app (les extensions tierces arriveront à l'étape 13). */
+  /** Fournie avec l'app (sinon : module tiers installé par l'utilisateur). */
   builtIn: boolean
+  /** Module tiers : provenance, permissions accordées, collection… */
+  module: InstalledModule | null
 }
 
 export interface RegisteredWidget {
@@ -75,7 +85,8 @@ function loadPlugin(
     id: folder,
     manifest: null,
     error,
-    builtIn: true
+    builtIn: true,
+    module: null
   })
 
   const result = parseManifest(rawManifest)
@@ -107,21 +118,80 @@ function loadPlugin(
       builtIn: true
     })
   }
-  return { id: manifest.id, manifest, error: null, builtIn: true }
+  return { id: manifest.id, manifest, error: null, builtIn: true, module: null }
 }
 
-/** Toutes les extensions trouvées, valides ou non. */
+// ---------------------------------------------------------------------------
+// Modules tiers
+// ---------------------------------------------------------------------------
+
+/**
+ * Composant d'un widget de module : toujours le même pour une clé donnée, pour que React ne
+ * recrée pas le cadre (et ne recharge pas le module) à chaque changement de la liste.
+ */
+const moduleComponents = new Map<string, WidgetComponent>()
+
+function moduleComponent(pluginId: string, widgetType: string): WidgetComponent {
+  const key = widgetKey(pluginId, widgetType)
+  let component = moduleComponents.get(key)
+  if (!component) {
+    component = (props) => createElement(ModuleFrame, { ...props, pluginId, widgetType })
+    component.displayName = `Module(${key})`
+    moduleComponents.set(key, component)
+  }
+  return component
+}
+
+interface ModuleRegistry {
+  source: InstalledModule[]
+  plugins: LoadedPlugin[]
+  widgets: Map<string, RegisteredWidget>
+}
+
+let moduleRegistry: ModuleRegistry | null = null
+
+/** Extensions et widgets des modules installés, recalculés quand la liste change. */
+function getModuleRegistry(): ModuleRegistry {
+  const source = useModulesStore.getState().modules
+  if (moduleRegistry?.source === source) return moduleRegistry
+
+  const moduleWidgets = new Map<string, RegisteredWidget>()
+  const modulePlugins = source.map((module): LoadedPlugin => {
+    const { manifest } = module
+    if (manifest && !module.error) {
+      const context: PluginContextValue = { id: module.id, permissions: module.granted }
+      for (const widget of manifest.widgets) {
+        const key = widgetKey(module.id, widget.type)
+        moduleWidgets.set(key, {
+          key,
+          pluginId: module.id,
+          manifest: widget,
+          component: moduleComponent(module.id, widget.type),
+          context,
+          builtIn: false
+        })
+      }
+    }
+    return { id: module.id, manifest, error: module.error, builtIn: false, module }
+  })
+  moduleRegistry = { source, plugins: modulePlugins, widgets: moduleWidgets }
+  return moduleRegistry
+}
+
+/** Toutes les extensions trouvées, valides ou non : intégrées, puis modules tiers. */
 export function getPlugins(): readonly LoadedPlugin[] {
-  return plugins
+  return [...plugins, ...getModuleRegistry().plugins]
 }
 
 export function getWidget(key: string): RegisteredWidget | undefined {
-  return widgets.get(key)
+  return widgets.get(key) ?? getModuleRegistry().widgets.get(key)
 }
 
 /** Widgets proposés à l'ajout : ceux des extensions activées. */
 export function listAvailableWidgets(disabledPlugins: readonly string[]): RegisteredWidget[] {
-  return [...widgets.values()].filter((widget) => !disabledPlugins.includes(widget.pluginId))
+  return [...widgets.values(), ...getModuleRegistry().widgets.values()].filter(
+    (widget) => !disabledPlugins.includes(widget.pluginId)
+  )
 }
 
 /** Taille utilisée pour un widget dont l'extension est absente. */
@@ -129,11 +199,11 @@ const FALLBACK_SIZE: GridSizeSpec = { w: 6, h: 3 }
 const FALLBACK_MIN_SIZE: GridSizeSpec = { w: 2, h: 1 }
 
 export function getDefaultSize(key: string): GridSizeSpec {
-  return widgets.get(key)?.manifest.defaultSize ?? FALLBACK_SIZE
+  return getWidget(key)?.manifest.defaultSize ?? FALLBACK_SIZE
 }
 
 export function getMinSize(key: string): GridSizeSpec {
-  return widgets.get(key)?.manifest.minSize ?? FALLBACK_MIN_SIZE
+  return getWidget(key)?.manifest.minSize ?? FALLBACK_MIN_SIZE
 }
 
 /** Rend les textes des extensions disponibles dans i18next (un espace de noms par extension). */

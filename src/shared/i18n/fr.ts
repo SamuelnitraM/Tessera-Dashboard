@@ -80,7 +80,7 @@ export const fr = {
     renamePage: 'Renommer la page',
     rename: 'Renommer',
     cancel: 'Annuler',
-    deletePageTitle: 'Supprimer « {{name}} » ?',
+    deletePageTitle: 'Supprimer « {{name}} » ?',
     deletePageMessage: 'La page et tous ses blocs seront supprimés.'
   },
   apps: {
@@ -187,7 +187,9 @@ export const fr = {
     unknown: 'Bloc indisponible ({{type}})',
     disabledPlugin: 'Désactivé : {{name}}',
     error: 'Ce bloc a rencontré une erreur.',
-    retry: 'Réessayer'
+    retry: 'Réessayer',
+    moduleNotResponding: 'Le module ne répond plus (son processus s’est peut-être arrêté).',
+    moduleNotLoaded: 'Le module ne s’est pas chargé.'
   },
   mail: {
     oauth: {
@@ -372,7 +374,7 @@ export const fr = {
       resetPermissions: 'Réinitialiser les autorisations (micro, caméra, position)',
       delete: 'Supprimer',
       cancel: 'Annuler',
-      deleteTitle: 'Supprimer « {{name}} » ?',
+      deleteTitle: 'Supprimer « {{name}} » ?',
       deleteMessage:
         'L’application disparaîtra de Tessera, et sa connexion (cookies, données enregistrées) sera effacée.'
     },
@@ -398,7 +400,7 @@ export const fr = {
       cancel: 'Annuler',
       reconnect: 'Reconnecter',
       disconnect: 'Déconnecter',
-      disconnectTitle: 'Déconnecter « {{name}} » ?',
+      disconnectTitle: 'Déconnecter « {{name}} » ?',
       disconnectMessage:
         'Tessera oublie cette connexion. Tes données restent chez le fournisseur ; tu peux te reconnecter à tout moment.',
       unread: '{{count}} non lus',
@@ -464,7 +466,70 @@ export const fr = {
       mailPermission: 'Peut lire, classer et envoyer les mails de tes comptes',
       mediaPermission:
         'Peut lire tes abonnements et playlists YouTube et tes chaînes Twitch suivies',
-      videosPermission: 'Peut lire les vidéos et musiques que tu choisis sur ton PC'
+      videosPermission: 'Peut lire les vidéos et musiques que tu choisis sur ton PC',
+      integrationsPermission: 'Peut lire les données et piloter : {{list}}',
+      networkPermission: 'Peut échanger des données sur Internet avec : {{list}}',
+      devBadge: 'Développement',
+      collectionBadge: 'Collection',
+      collectionCount: 'Modules : {{count}}',
+      homepage: 'Site du module',
+      permissionToggle: 'Autoriser : {{permission}}',
+      installButton: 'Installer un module…',
+      dropHint: 'ou dépose un fichier .tessera dans cette page',
+      uninstall: 'Désinstaller',
+      signed: 'Signé par l’éditeur · empreinte {{fingerprint}}',
+      unsigned: 'Non signé',
+      reload: 'Recharger',
+      inspect: 'Inspecter',
+      install: {
+        pickTitle: 'Installer un module',
+        title: 'Installer « {{name}} » ?',
+        titleCollection: 'Installer la collection « {{name}} » ?',
+        titleDev: 'Charger « {{name}} » (développement)',
+        intro:
+          'Ce module est développé par {{author}}, pas par Tessera. Il s’exécute à part : il n’a accès qu’à ce que tu autorises ci-dessous, et tu pourras changer d’avis dans Paramètres.',
+        introCollection:
+          'Cette collection de {{author}} regroupe plusieurs modules. Choisis ceux à installer et ce que chacun peut faire.',
+        noPermissions: 'Aucune permission demandée : le module ne fait qu’afficher ses blocs.',
+        signed:
+          'Paquet signé · empreinte de l’éditeur : {{fingerprint}}. Ses mises à jour devront être signées par la même clé.',
+        unsigned:
+          'Paquet non signé : rien ne garantit qui l’a créé, ni que ses mises à jour viendront du même auteur. Installe-le seulement s’il vient d’une source de confiance.',
+        update: 'Mise à jour : v{{from}} → v{{to}}',
+        downgrade: 'Version plus ancienne que celle installée (v{{from}})',
+        reinstall: 'Déjà installé (v{{from}})',
+        newPermission: 'nouveau',
+        select: 'Installer « {{name}} »',
+        invalid: 'Ne peut pas être installé',
+        confirm: 'Installer',
+        confirmDev: 'Charger',
+        cancel: 'Annuler',
+        nothing: 'Aucun module à installer dans ce paquet.'
+      },
+      uninstallDialog: {
+        title: 'Désinstaller « {{name}} » ?',
+        message:
+          'Le module et ses données enregistrées (réglages internes, connexion) seront supprimés.',
+        messageDev: 'Le module ne sera plus chargé. Son dossier de développement reste intact.',
+        removeBlocks: 'Retirer aussi ses blocs de tes pages ({{count}})',
+        trashFiles: 'Mettre son dossier de fichiers à la Corbeille ({{folder}})',
+        confirm: 'Désinstaller'
+      },
+      dev: {
+        title: 'Mode développeur',
+        description:
+          'Charge un module depuis un dossier, pour le développer : ses blocs se rechargent à chaque construction (npm run dev).',
+        load: 'Charger un dossier…',
+        pickTitle: 'Dossier du module'
+      },
+      errors: {
+        'invalid-package': 'Paquet invalide : {{detail}}',
+        'unsafe-package': 'Paquet refusé, car potentiellement dangereux : {{detail}}',
+        'too-large': 'Paquet trop volumineux (50 Mo au maximum).',
+        expired: 'Installation expirée : rouvre le paquet.',
+        'not-found': 'Fichier introuvable.',
+        io: 'Erreur : {{detail}}'
+      }
     },
     about: {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',

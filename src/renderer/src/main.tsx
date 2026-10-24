@@ -10,6 +10,7 @@ import { initDashboardStore } from './stores/dashboard'
 import { initDesktopAppsStore } from './stores/desktopApps'
 import { initMailStore } from './stores/mail'
 import { initMediaStatusStore } from './stores/mediaStatus'
+import { initModulesStore } from './stores/modules'
 import { initNotificationsStore } from './stores/notifications'
 import { initSettingsStore, useSettingsStore } from './stores/settings'
 import './styles/global.css'
@@ -20,7 +21,8 @@ await Promise.all([
   initDesktopAppsStore(),
   initNotificationsStore(),
   initMailStore(),
-  initMediaStatusStore()
+  initMediaStatusStore(),
+  initModulesStore()
 ])
 const { settings, system } = useSettingsStore.getState()
 applyAccentColor(resolveAccentColor(settings.appearance.accentColor, system.accentColor))

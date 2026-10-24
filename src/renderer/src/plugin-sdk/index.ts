@@ -322,6 +322,40 @@ export {
 } from '@shared/local-media'
 
 // ---------------------------------------------------------------------------
+// Intégrations DevLauncher, GitSpread, Prospect Solution (permission `integrations`)
+// ---------------------------------------------------------------------------
+
+export type {
+  DevLauncherProject,
+  DevLauncherService,
+  DevLauncherState,
+  GitProjectStatus,
+  GitSpreadProject,
+  GitSpreadState,
+  IntegrationErrorCode,
+  IntegrationId,
+  McpStatus,
+  ProspectFollowUp,
+  ProspectHealth,
+  ProspectJob,
+  ProspectStatistics
+} from '@shared/integrations'
+export {
+  getIntegrationErrorCode,
+  getIntegrationErrorMessage,
+  PROSPECT_API_VERSIONS,
+  PROSPECT_DEFAULT_PORT
+} from '@shared/integrations'
+export {
+  useDevLauncher,
+  useGitSpread,
+  useProspect,
+  type PluginDevLauncher,
+  type PluginGitSpread,
+  type PluginProspect
+} from './integrations'
+
+// ---------------------------------------------------------------------------
 // Composants d'interface de l'app, pour un rendu cohérent avec le reste de Tessera
 // ---------------------------------------------------------------------------
 

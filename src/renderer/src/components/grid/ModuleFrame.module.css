@@ -1,0 +1,20 @@
+.root {
+  position: absolute;
+  inset: 0;
+}
+
+.frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  /* Même schéma de couleurs que l'interface : sinon Chromium peint un fond opaque */
+  color-scheme: light dark;
+}
+
+/* Mode édition : le bloc se déplace d'un glisser n'importe où, comme les autres widgets */
+.shield {
+  position: absolute;
+  inset: 0;
+}

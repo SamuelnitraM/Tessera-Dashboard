@@ -1,12 +1,12 @@
-# Créer un module
+# Extensions intégrées
 
-Un **module** ajoute un ou plusieurs **blocs** à Tessera Dashboard. Techniquement, c'est un plugin, comme les widgets fournis avec l'app (Horloge, Bloc-notes, Lanceur, Application web, Application installée) : ces derniers servent d'exemples complets.
+Ce guide s'adresse aux **contributeurs de Tessera** : il décrit les extensions fournies avec l'app (Horloge, Bloc-notes, Lanceur, Application web, Application installée, Mails…), placées dans le dossier `plugins/` du projet et compilées avec elle.
 
-**Collection** : un même module peut fournir plusieurs widgets (tableau `widgets` du manifeste). Un éditeur peut ainsi proposer, en un seul téléchargement, une « collection » complète : par exemple Messenger, fil d'actualité et liste d'amis.
+> **Tu veux créer un module pour Tessera, sans modifier l'app ?** C'est un autre guide : [Créer des modules](modules/fr/README.md) ([English](modules/en/README.md)). Un module tiers est installé par l'utilisateur depuis un fichier `.tessera`, s'exécute isolé et utilise le SDK `@tessera/module-sdk`.
 
-> **État actuel (API v1)** : les plugins sont placés dans le dossier `plugins/` du projet et compilés avec l'app. L'installation de modules par l'utilisateur, avec isolation, ainsi qu'un projet de départ pour les développeurs, arriveront à l'étape 13 de la feuille de route.
+Une extension intégrée s'exécute dans l'interface de Tessera, avec le SDK interne `@tessera/plugin-sdk`. Elle peut fournir plusieurs widgets (tableau `widgets` du manifeste). Le manifeste et le SDK ont la même forme que ceux des modules, avec les différences décrites dans [Le SDK des modules](modules/fr/sdk.md#différences-avec-les-extensions-intégrées).
 
-Dans ce guide, « extension » et « plugin » désignent le paquet (dossier `plugins/<id>`), qu'il s'agisse d'un widget intégré ou d'un module.
+Dans ce guide, « extension » et « plugin » désignent le paquet (dossier `plugins/<id>`).
 
 ## Structure
 
@@ -66,6 +66,7 @@ Tout dossier contenant un `manifest.json` et un `index.tsx` est **découvert aut
 | `settings`                      | Réglages du widget (facultatif), voir ci-dessous                                                                                  |
 | `permissions`                   | Accès supplémentaires (facultatif) : `["files"]`, voir [Permissions](#permissions)                                                |
 | `files`                         | `{ "folder": "Notes" }` : dossier de fichiers de l'extension, obligatoire avec la permission `files`                              |
+| `integrations`                  | `["devlauncher"]` : applications pilotées par l'extension, obligatoire avec la permission `integrations`                          |
 
 Un manifeste invalide n'empêche pas l'app de démarrer : l'extension apparaît dans **Paramètres → Widgets et modules** avec le champ fautif (ex. `widgets[0].minSize : ne peut pas dépasser defaultSize`).
 
@@ -98,6 +99,9 @@ Par défaut, une extension n'a accès qu'à l'affichage de ses widgets. Elle peu
 | `mail`          | Lire, classer et envoyer les mails des comptes de l'utilisateur (`useMail`). Jamais ses jetons ni ses mots de passe, qui restent dans le processus principal        | `"permissions": ["mail"]`                                  |
 | `media`         | Lire les abonnements et playlists YouTube et les chaînes Twitch suivies en direct de l'utilisateur (`useMedia`), en lecture seule                                   | `"permissions": ["media"]`                                 |
 | `videos`        | Lire les vidéos et musiques du PC (`useLocalMedia`, `MediaView`), **uniquement** celles que l'utilisateur a choisies (fenêtre de Windows ou glisser-déposer)        | `"permissions": ["videos"]`                                |
+| `integrations`  | Lire les données et piloter des applications connues (DevLauncher, GitSpread, Prospect Solution), **uniquement** celles déclarées dans `integrations`               | `"permissions": ["integrations"], "integrations": ["…"]`   |
+
+La permission `network` (Internet limité aux adresses déclarées) ne concerne que les [modules tiers](modules/fr/permissions.md#network--internet) : une extension intégrée s'exécute dans l'interface de Tessera, sans politique de sécurité propre.
 
 Les permissions sont vérifiées par le processus principal, à partir de son propre exemplaire du manifeste : une extension ne peut pas utiliser un accès qu'elle n'a pas déclaré, ni sortir de son dossier (noms de fichiers validés, chemins contrôlés), ni lancer un programme que l'utilisateur n'a pas choisi (liste mémorisée dans `process-targets.json`).
 
@@ -144,25 +148,26 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 
 ### API du SDK (`@tessera/plugin-sdk`)
 
-| Élément                                                                     | Rôle                                                                                           |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                                        |
-| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`                      |
-| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`)             |
-| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`                           |
-| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                                  |
-| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                           |
-| `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous     |
-| `useNotifications()`                                                        | Notifications (permission `notifications`), voir ci-dessous                                    |
-| `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                       |
-| `useMail()`, `useMailAccounts()`                                            | Mails des comptes de l'utilisateur (permission `mail`), voir ci-dessous                        |
-| `MediaView`, `useMedia()`                                                   | Lecteur vidéo avec mini-lecteur (permission `web`), YouTube et Twitch (permission `media`)     |
-| `useLocalMedia()`, `localMediaUrl()`                                        | Vidéos et musiques du PC choisies par l'utilisateur (permission `videos`), voir ci-dessous     |
-| `useNotificationTarget(onOpen)`                                             | Ce que désigne une notification cliquée (`target` de `notify`)                                 |
-| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                     |
-| `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}` |
-| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                        |
-| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                             |
+| Élément                                                                     | Rôle                                                                                                  |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `definePlugin(module)`                                                      | Déclare le code de l'extension (vérifié par TypeScript)                                               |
+| `WidgetProps<Config>`                                                       | Props d'un widget : `instanceId`, `config`, `setConfig(patch)`, `editing`                             |
+| `usePluginTranslation()`                                                    | Traduit les textes déclarés dans `translations` (syntaxe i18next : `{{variable}}`)                    |
+| `useLanguage()`                                                             | Langue de l'interface (`fr` ou `en`), pour `Intl` / `toLocaleString`                                  |
+| `usePluginFiles()`                                                          | Fichiers de l'extension (permission `files`), voir ci-dessous                                         |
+| `useProcesses()`                                                            | Programmes (permission `processes`), voir ci-dessous                                                  |
+| `WebView`, `useWebApps()`                                                   | Page web intégrée et applications web de l'utilisateur (permission `web`), voir ci-dessous            |
+| `useNotifications()`                                                        | Notifications (permission `notifications`), voir ci-dessous                                           |
+| `InstalledAppView`, `useInstalledApps()`, `addInstalledApp()`               | Fenêtre d'une application installée (permission `apps`), voir ci-dessous                              |
+| `useMail()`, `useMailAccounts()`                                            | Mails des comptes de l'utilisateur (permission `mail`), voir ci-dessous                               |
+| `MediaView`, `useMedia()`                                                   | Lecteur vidéo avec mini-lecteur (permission `web`), YouTube et Twitch (permission `media`)            |
+| `useLocalMedia()`, `localMediaUrl()`                                        | Vidéos et musiques du PC choisies par l'utilisateur (permission `videos`), voir ci-dessous            |
+| `useDevLauncher()`, `useGitSpread()`, `useProspect()`                       | Applications DevLauncher, GitSpread et Prospect Solution (permission `integrations`), voir ci-dessous |
+| `useNotificationTarget(onOpen)`                                             | Ce que désigne une notification cliquée (`target` de `notify`)                                        |
+| `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                            |
+| `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}`        |
+| `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                               |
+| `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                                    |
 
 - **`config`** contient les réglages du manifeste (avec leurs valeurs par défaut) et toute autre donnée enregistrée par le widget. Elle est sauvegardée dans `dashboard.json` avec la page.
 - **`setConfig(patch)`** fusionne le patch avec la configuration existante et sauvegarde.
@@ -349,6 +354,22 @@ const file = await local.open() // fenêtre de Windows ; ou local.addDropped(eve
 | `getMediaPosition(id)`, `pauseMedia(id)`   | Position et pause du fichier lu par le lecteur `id`                                                   |
 
 Un fichier n'est lisible qu'une fois choisi par l'utilisateur : le processus principal le sert sous un identifiant aléatoire et refuse tout autre chemin (liste dans `local-media.json`). L'extension **Vidéo locale** (`plugins/tessera.video`) est un exemple complet.
+
+### Intégrations (`useDevLauncher`, `useGitSpread`, `useProspect`)
+
+Avec la permission `integrations`, une extension utilise les connecteurs de Tessera pour des applications précises, déclarées dans le manifeste (`"integrations": ["devlauncher", "gitspread", "prospect"]`). Chaque connecteur est écrit dans le processus principal : emplacements de données fixes, actions en liste blanche, API locales appelées sur `127.0.0.1` uniquement, et aucun secret transmis à l'interface.
+
+| Hook             | Application                                                                                                     | Fonctions                                                                                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `useDevLauncher` | [DevLauncher](https://github.com/SamuelnitraM/DevLauncher) : fichiers de `%APPDATA%\DevLauncher` et serveur MCP | `state()` (projets, état, MCP), `services()`, `serviceLogs(service, lignes)`, `launch(projet, profil)`, `stopAll()`, `restart(service)`, `launchLog(lignes)`, `pickExecutable()`, `open()` |
+| `useGitSpread`   | [GitSpread](https://github.com/SamuelnitraM/GitSpread-Manager-Project) : `%AppData%\GitSpread\settings.json`    | `state()` (projets trouvés comme GitSpread), `status(chemins)` (`git status`, sans réseau), `openFolder(chemin)`, `openWeb(chemin)`, `pickExecutable()`, `open()`                          |
+| `useProspect`    | [Prospect Solution](https://github.com/SamuelnitraM/ProspectSolution) : API locale `127.0.0.1:<port>`           | `health(port)`, `statistics(port)`, `followUps(port)`, `jobs(port)`, `cancelJob(port, id)`, `call(numéro)` (lien `tel:`)                                                                   |
+
+- **DevLauncher** demande les droits administrateur : Tessera ne peut ni le lancer sans confirmation (UAC), ni afficher sa fenêtre dans un bloc. Les actions passent par son serveur MCP (option de ses paramètres) ; port et jeton sont lus dans ses paramètres par le processus principal. Sans serveur MCP, le connecteur est en lecture seule.
+- **GitSpread** : git n'est lancé que sur les dossiers trouvés par le connecteur, avec les options de GitSpread (`--no-optional-locks`, `core.fsmonitor=false`), sans réseau ni fenêtre de mot de passe.
+- **Prospect Solution** : lecture seule, plus l'annulation d'une tâche. Son serveur se lance avec `useProcesses` (`start.bat --no-browser`) et son interface s'affiche avec `WebView`.
+
+Les erreurs portent un code lisible avec `getIntegrationErrorCode(error)` : `permission`, `unavailable`, `not-found`, `invalid` ou `failed` (texte de l'application : `getIntegrationErrorMessage(error)`). Les extensions **DevLauncher**, **GitSpread** et **Prospect Solution** (`plugins/tessera.devlauncher`, `plugins/tessera.gitspread`, `plugins/tessera.prospect`) sont des exemples complets.
 
 ### Bonnes pratiques
 

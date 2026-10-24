@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { getAppIcons } from './app-icon'
+import { protectModuleFrames } from './plugins/module-protocol'
 import { getSettings } from './settings-store'
 import { getWindowBackground } from './system'
 import { secureWebviews } from './web'
@@ -47,6 +48,7 @@ export function createMainWindow(): BrowserWindow {
     }
   })
   secureWebviews(mainWindow.webContents)
+  protectModuleFrames(mainWindow.webContents)
 
   // Agrandie = occupe tout l'écran courant, sans être en plein écran
   mainWindow.once('ready-to-show', () => {

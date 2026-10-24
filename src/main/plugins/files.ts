@@ -11,7 +11,7 @@ import {
 } from '@shared/plugin-files'
 import { PLUGIN_FILES_ROOT } from '@shared/plugins'
 import { getTranslation } from '../i18n'
-import { getPluginManifest } from './manifests'
+import { getPluginManifest, hasPermission } from './manifests'
 
 /**
  * Fichiers des extensions.
@@ -27,7 +27,7 @@ function fileError(code: PluginFileErrorCode, detail: string): Error {
 /** Dossier de l'extension. Refuse si elle n'a pas demandé la permission. */
 export function getPluginFolder(pluginId: string): string {
   const manifest = getPluginManifest(pluginId)
-  if (!manifest?.files || !manifest.permissions.includes('files')) {
+  if (!manifest?.files || !hasPermission(pluginId, 'files')) {
     throw fileError('permission', `L'extension « ${pluginId} » n'a pas la permission « files ».`)
   }
   return join(app.getPath('documents'), PLUGIN_FILES_ROOT, manifest.files.folder)

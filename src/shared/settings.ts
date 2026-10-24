@@ -53,6 +53,8 @@ export interface Settings {
   plugins: {
     /** Identifiants des extensions désactivées par l'utilisateur. */
     disabled: string[]
+    /** Mode développeur : charger un module depuis un dossier, rechargé à chaque construction. */
+    developerMode: boolean
   }
   apps: {
     /** Applications web et installées (Discord…), dans l'ordre du menu latéral. */
@@ -105,7 +107,8 @@ export const DEFAULT_SETTINGS: Settings = {
     closeToTray: true
   },
   plugins: {
-    disabled: []
+    disabled: [],
+    developerMode: false
   },
   apps: {
     items: [],
@@ -166,7 +169,11 @@ export function sanitizeSettings(input: unknown): Settings {
     plugins: {
       disabled: Array.isArray(plugins.disabled)
         ? [...new Set(plugins.disabled.filter((id): id is string => typeof id === 'string'))]
-        : defaults.plugins.disabled
+        : defaults.plugins.disabled,
+      developerMode:
+        typeof plugins.developerMode === 'boolean'
+          ? plugins.developerMode
+          : defaults.plugins.developerMode
     },
     apps: {
       items: sanitizeUserApps(asRecord(root.apps).items),

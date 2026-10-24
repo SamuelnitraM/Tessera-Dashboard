@@ -43,7 +43,14 @@ export class WidgetErrorBoundary extends Component<
   }
 }
 
-function WidgetError({ message, onRetry }: { message: string; onRetry: () => void }): ReactNode {
+/** Écran d'erreur d'un bloc, avec « Réessayer » (repris par les blocs des modules tiers). */
+export function WidgetError({
+  message,
+  onRetry
+}: {
+  message: string
+  onRetry: () => void
+}): ReactNode {
   const { t } = useTranslation()
   return (
     <div className={styles.placeholder} role="alert">

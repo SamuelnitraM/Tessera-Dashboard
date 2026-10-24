@@ -182,7 +182,9 @@ export const en: Translation = {
     unknown: 'Block unavailable ({{type}})',
     disabledPlugin: 'Disabled: {{name}}',
     error: 'This block ran into an error.',
-    retry: 'Try again'
+    retry: 'Try again',
+    moduleNotResponding: 'The module stopped responding (its process may have stopped).',
+    moduleNotLoaded: 'The module did not load.'
   },
   mail: {
     oauth: {
@@ -455,7 +457,69 @@ export const en: Translation = {
       mailPermission: 'Can read, sort and send the emails of your accounts',
       mediaPermission:
         'Can read your YouTube subscriptions and playlists and your followed Twitch channels',
-      videosPermission: 'Can play the videos and music you pick on your PC'
+      videosPermission: 'Can play the videos and music you pick on your PC',
+      integrationsPermission: 'Can read the data of and control: {{list}}',
+      networkPermission: 'Can exchange data over the Internet with: {{list}}',
+      devBadge: 'Development',
+      collectionBadge: 'Collection',
+      collectionCount: 'Modules: {{count}}',
+      homepage: 'Module website',
+      permissionToggle: 'Allow: {{permission}}',
+      installButton: 'Install a module…',
+      dropHint: 'or drop a .tessera file on this page',
+      uninstall: 'Uninstall',
+      signed: 'Signed by the publisher · fingerprint {{fingerprint}}',
+      unsigned: 'Unsigned',
+      reload: 'Reload',
+      inspect: 'Inspect',
+      install: {
+        pickTitle: 'Install a module',
+        title: 'Install “{{name}}”?',
+        titleCollection: 'Install the “{{name}}” collection?',
+        titleDev: 'Load “{{name}}” (development)',
+        intro:
+          'This module is made by {{author}}, not by Tessera. It runs apart: it can only access what you allow below, and you can change your mind in Settings.',
+        introCollection:
+          'This collection by {{author}} brings several modules together. Choose which ones to install and what each one can do.',
+        noPermissions: 'No permission requested: the module only shows its blocks.',
+        signed:
+          'Signed package · publisher fingerprint: {{fingerprint}}. Its updates will have to be signed with the same key.',
+        unsigned:
+          'Unsigned package: nothing guarantees who made it, or that its updates will come from the same author. Only install it if it comes from a source you trust.',
+        update: 'Update: v{{from}} → v{{to}}',
+        downgrade: 'Older than the installed version (v{{from}})',
+        reinstall: 'Already installed (v{{from}})',
+        newPermission: 'new',
+        select: 'Install “{{name}}”',
+        invalid: 'Cannot be installed',
+        confirm: 'Install',
+        confirmDev: 'Load',
+        cancel: 'Cancel',
+        nothing: 'No module to install in this package.'
+      },
+      uninstallDialog: {
+        title: 'Uninstall “{{name}}”?',
+        message: 'The module and its saved data (internal settings, sign-in) will be deleted.',
+        messageDev: 'The module will no longer be loaded. Its development folder stays untouched.',
+        removeBlocks: 'Also remove its blocks from your pages ({{count}})',
+        trashFiles: 'Move its file folder to the Recycle Bin ({{folder}})',
+        confirm: 'Uninstall'
+      },
+      dev: {
+        title: 'Developer mode',
+        description:
+          'Load a module from a folder to develop it: its blocks reload on every build (npm run dev).',
+        load: 'Load a folder…',
+        pickTitle: 'Module folder'
+      },
+      errors: {
+        'invalid-package': 'Invalid package: {{detail}}',
+        'unsafe-package': 'Package refused, as it could be dangerous: {{detail}}',
+        'too-large': 'Package too large (50 MB at most).',
+        expired: 'Installation expired: open the package again.',
+        'not-found': 'File not found.',
+        io: 'Error: {{detail}}'
+      }
     },
     about: {
       description: 'A Windows dashboard that brings all your apps together.',

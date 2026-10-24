@@ -1,4 +1,4 @@
-import { app } from 'electron'
+import { app, protocol } from 'electron'
 import { APP_ID } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
@@ -11,7 +11,7 @@ import {
   flushLocalMedia,
   handleLocalMediaProtocol,
   loadLocalMedia,
-  registerLocalMediaScheme
+  localMediaScheme
 } from './media/local'
 import { flushSecrets, loadSecrets } from './auth/secrets'
 import {
@@ -21,6 +21,8 @@ import {
   watchWebNotifications
 } from './notifications'
 import { setPluginFilesListener } from './plugins/files'
+import { handleModuleProtocol, moduleScheme, protectModuleSession } from './plugins/module-protocol'
+import { flushModules, loadModules, setModulesListener } from './plugins/modules'
 import {
   flushProcessApprovals,
   loadProcessApprovals,
@@ -33,9 +35,11 @@ import { createTray, refreshAppIcons, refreshTrayMenu } from './tray'
 import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web'
 import { createMainWindow, getMainWindow, markAppAsQuitting, showMainWindow } from './window'
 
+// Protocoles de l'app, à déclarer en une fois avant qu'elle soit prête : vidéos du PC
+// (tessera-file://) et code des modules tiers (tessera-module://)
+protocol.registerSchemesAsPrivileged([localMediaScheme, moduleScheme])
+
 // Une seule instance de l'app à la fois : un second lancement réaffiche la fenêtre existante
-// Adresse des vidéos du PC (tessera-file://) : à déclarer avant que l'app soit prête
-registerLocalMediaScheme()
 
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -53,6 +57,7 @@ if (!app.requestSingleInstanceLock()) {
     flushNotifications()
     flushSecrets()
     flushLocalMedia()
+    flushModules()
     flushMailState()
     stopMail()
     stopMedia()
@@ -78,6 +83,9 @@ if (!app.requestSingleInstanceLock()) {
     loadSecrets()
     loadLocalMedia()
     handleLocalMediaProtocol()
+    loadModules()
+    handleModuleProtocol()
+    protectModuleSession()
     watchWebContents()
     watchWebNotifications()
 
@@ -112,6 +120,7 @@ if (!app.requestSingleInstanceLock()) {
     })
 
     setPluginFilesListener((pluginId) => broadcast(IpcChannels.pluginFilesChanged, pluginId))
+    setModulesListener((modules) => broadcast(IpcChannels.modulesChanged, modules))
     setNotificationListeners({
       changed: (list) => broadcast(IpcChannels.notificationsChanged, list),
       play: (sound, volume) => broadcast(IpcChannels.notificationsPlay, sound, volume),

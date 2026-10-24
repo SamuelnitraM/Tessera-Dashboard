@@ -27,3 +27,6 @@ Thumbs.db
 
 # Identifiants des applications OAuth de Tessera (injectés à la compilation)
 oauth-clients.local.json
+
+# Copies de travail des agents (git worktree)
+.claude/worktrees/

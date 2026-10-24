@@ -10,6 +10,7 @@
  * affichée dans Paramètres → Extensions.
  */
 
+import { isIntegrationId, type IntegrationId } from './integrations'
 import type { Language } from './settings'
 
 /** Version de l'API des extensions. Une extension déclare celle pour laquelle elle est écrite. */
@@ -76,6 +77,17 @@ export interface PluginManifest {
   permissions: PluginPermission[]
   /** Dossier de fichiers de l'extension (si elle demande la permission `files`). */
   files: { folder: string } | null
+  /** Applications dont l'extension utilise le connecteur (si elle demande la permission `integrations`). */
+  integrations: IntegrationId[] | null
+  /**
+   * Adresses que le module peut joindre (si il demande la permission `network`), ex.
+   * `https://api.exemple.com` ou `https://*.exemple.com`. Sans elles : aucun accès à Internet.
+   */
+  network: string[]
+  /** Script principal d'un module tiers, relatif à son dossier (`index.js` par défaut). */
+  entry: string
+  /** Site du module (facultatif), affiché dans Paramètres → Extensions. */
+  homepage: string | null
   widgets: WidgetManifest[]
 }
 
@@ -88,6 +100,9 @@ export interface PluginManifest {
  * - `web` : afficher des pages web (composant `WebView` du SDK).
  * - `videos` : lire les vidéos et musiques du PC, uniquement celles que l'utilisateur a
  *   choisies (fenêtre de Windows ou glisser-déposer).
+ * - `integrations` : lire les données et piloter des applications connues (DevLauncher,
+ *   GitSpread, Prospect Solution), uniquement celles déclarées dans `integrations`.
+ * - `network` : joindre Internet, uniquement les adresses déclarées dans `network` (modules tiers).
  */
 export const PLUGIN_PERMISSIONS = [
   'files',
@@ -97,7 +112,9 @@ export const PLUGIN_PERMISSIONS = [
   'notifications',
   'mail',
   'media',
-  'videos'
+  'videos',
+  'integrations',
+  'network'
 ] as const
 export type PluginPermission = (typeof PLUGIN_PERMISSIONS)[number]
 
@@ -258,7 +275,18 @@ function widget(value: unknown, path: string): WidgetManifest {
 /** Nom de dossier lisible : lettres, chiffres, espaces, tirets et soulignés. */
 const FOLDER_NAME = /^[\p{L}\p{N}][\p{L}\p{N} _-]{0,59}$/u
 
-function permissionsAndFiles(raw: Raw): Pick<PluginManifest, 'permissions' | 'files'> {
+/**
+ * Adresse joignable par un module : https ou wss, nom de domaine éventuellement précédé de `*.`
+ * (sous-domaines), port facultatif. `http://localhost` est accepté pour le développement.
+ */
+const NETWORK_ORIGIN =
+  /^(?:(?:https|wss):\/\/(?:\*\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+|(?:http|ws):\/\/(?:localhost|127\.0\.0\.1))(?::\d{1,5})?$/
+/** Chemin d'un fichier du module : segments simples, sans `..` ni chemin absolu. */
+const ENTRY_PATH = /^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*\.m?js$/
+
+function permissionsAndFiles(
+  raw: Raw
+): Pick<PluginManifest, 'permissions' | 'files' | 'network' | 'integrations'> {
   const list = raw.permissions === undefined ? [] : raw.permissions
   if (!Array.isArray(list)) fail('permissions', 'liste attendue')
   const permissions = list.map((permission, index) => {
@@ -276,7 +304,52 @@ function permissionsAndFiles(raw: Raw): Pick<PluginManifest, 'permissions' | 'fi
     ? { folder: string(object(raw.files, 'files').folder, 'files.folder', FOLDER_NAME) }
     : null
 
-  return { permissions: [...new Set(permissions)], files }
+  const wantsNetwork = permissions.includes('network')
+  if (wantsNetwork !== (raw.network !== undefined)) {
+    fail('network', 'à déclarer si, et seulement si, la permission « network » est demandée')
+  }
+  let network: string[] = []
+  if (wantsNetwork) {
+    if (!Array.isArray(raw.network) || raw.network.length === 0) {
+      fail('network', 'liste non vide d’adresses attendue (ex. « https://api.exemple.com »)')
+    }
+    if (raw.network.length > 50) fail('network', '50 adresses au maximum')
+    network = [
+      ...new Set(
+        raw.network.map((origin, index) => string(origin, `network[${index}]`, NETWORK_ORIGIN))
+      )
+    ]
+  }
+
+  return {
+    permissions: [...new Set(permissions)],
+    files,
+    network,
+    integrations: integrationList(raw, permissions)
+  }
+}
+
+/** Applications déclarées avec la permission `integrations` (voir `shared/integrations.ts`). */
+function integrationList(raw: Raw, permissions: PluginPermission[]): IntegrationId[] | null {
+  if (permissions.includes('integrations') !== (raw.integrations !== undefined)) {
+    fail(
+      'integrations',
+      'à déclarer si, et seulement si, la permission « integrations » est demandée'
+    )
+  }
+  if (raw.integrations === undefined) return null
+  if (!Array.isArray(raw.integrations) || raw.integrations.length === 0) {
+    fail('integrations', 'liste non vide attendue')
+  }
+  return [
+    ...new Set(
+      raw.integrations.map((id, index) => {
+        if (!isIntegrationId(id))
+          fail(`integrations[${index}]`, `application inconnue (« ${String(id)} »)`)
+        return id
+      })
+    )
+  ]
 }
 
 /** Valide un manifeste lu depuis un fichier `manifest.json`. */
@@ -309,6 +382,11 @@ export function parseManifest(input: unknown): ManifestResult {
         description: localized(raw.description, 'description'),
         author: string(raw.author, 'author'),
         ...permissionsAndFiles(raw),
+        entry: raw.entry === undefined ? 'index.js' : string(raw.entry, 'entry', ENTRY_PATH),
+        homepage:
+          raw.homepage === undefined
+            ? null
+            : string(raw.homepage, 'homepage', /^https:\/\/[^\s]+$/),
         widgets
       }
     }

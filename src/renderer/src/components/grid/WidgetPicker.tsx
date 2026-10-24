@@ -6,6 +6,7 @@ import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
 import { localize } from '@shared/plugins'
 import { listAvailableWidgets, WEB_APP_WIDGET, type RegisteredWidget } from '../../plugins/registry'
 import { useDashboardStore } from '../../stores/dashboard'
+import { useModules } from '../../stores/modules'
 import { pickInstalledApp } from '../../stores/programPicker'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
 import { AppIcon } from '../AppIcon'
@@ -32,6 +33,8 @@ export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps):
   const language = useResolvedLanguage()
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
   const userApps = useSettingsStore((state) => state.settings.apps.items)
+  // Se réaffiche quand un module est installé ou désinstallé
+  useModules()
   const addWidget = useDashboardStore((state) => state.addWidget)
   const [pageFull, setPageFull] = useState(false)
 

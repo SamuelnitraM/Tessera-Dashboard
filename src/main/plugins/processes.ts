@@ -47,6 +47,13 @@ const approvals = new JsonStore<Approvals>('process-targets.json', (input) => {
 })
 
 export const loadProcessApprovals = (): void => void approvals.load()
+
+/** Oublie les programmes choisis pour une extension (module désinstallé). */
+export function forgetProcessApprovals(pluginId: string): void {
+  const next = { ...approvals.get() }
+  delete next[pluginId]
+  approvals.set(next)
+}
 export const flushProcessApprovals = (): void => approvals.flush()
 
 const samePath = (a: string, b: string): boolean =>

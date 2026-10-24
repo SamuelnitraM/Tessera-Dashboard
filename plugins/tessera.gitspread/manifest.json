@@ -1,0 +1,37 @@
+{
+  "id": "tessera.gitspread",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "GitSpread", "en": "GitSpread" },
+  "description": {
+    "fr": "Tes projets git rangés par compte, comme dans GitSpread : branche, modifications, commits à pousser ou en retard.",
+    "en": "Your git projects by account, as in GitSpread: branch, changes, commits to push or behind."
+  },
+  "author": "Tessera Dashboard",
+  "permissions": ["integrations", "apps"],
+  "integrations": ["gitspread"],
+  "widgets": [
+    {
+      "type": "gitspread",
+      "name": { "fr": "GitSpread", "en": "GitSpread" },
+      "description": {
+        "fr": "État git des projets de GitSpread, et GitSpread lui-même dans le bloc.",
+        "en": "Git state of the GitSpread projects, and GitSpread itself in the block."
+      },
+      "icon": "git-branch",
+      "defaultSize": { "w": 8, "h": 7 },
+      "minSize": { "w": 4, "h": 3 },
+      "settings": [
+        {
+          "key": "pendingOnly",
+          "type": "boolean",
+          "label": {
+            "fr": "N'afficher que les projets avec quelque chose à faire",
+            "en": "Only show projects with something to do"
+          },
+          "default": false
+        }
+      ]
+    }
+  ]
+}

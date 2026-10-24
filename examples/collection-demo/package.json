@@ -1,0 +1,17 @@
+{
+  "name": "demo-collection",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "minuteur",
+    "pense-bete"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "pack": "npm run build && tessera-module pack-collection collection.json minuteur pense-bete"
+  },
+  "devDependencies": {
+    "@tessera/module-sdk": "file:../../packages/module-sdk"
+  }
+}
