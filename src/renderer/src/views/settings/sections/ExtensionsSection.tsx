@@ -25,7 +25,7 @@ import { Dialog } from '../../../components/ui/Dialog'
 import { Switch } from '../../../components/ui/Switch'
 import { getPlugins, type LoadedPlugin } from '../../../plugins/registry'
 import { useDashboardStore } from '../../../stores/dashboard'
-import { useModules } from '../../../stores/modules'
+import { consumeOpenedPackage, useModules, useModulesStore } from '../../../stores/modules'
 import { useResolvedLanguage, useSettingsStore } from '../../../stores/settings'
 import dialogStyles from '../../../components/ui/Dialog.module.css'
 import { SettingRow, SettingsCard } from '../SettingRow'
@@ -44,7 +44,15 @@ export function ExtensionsSection(): React.JSX.Element {
   const update = useSettingsStore((state) => state.update)
   // Se réaffiche quand un module est installé, rechargé ou désinstallé
   useModules()
-  const [preview, setPreview] = useState<ModulePreview | null>(null)
+  // Un paquet ouvert depuis l'Explorateur arrive avec sa fenêtre de consentement
+  const [preview, setPreview] = useState<ModulePreview | null>(consumeOpenedPackage)
+  useEffect(
+    () =>
+      useModulesStore.subscribe((state) => {
+        if (state.opened) setPreview(consumeOpenedPackage())
+      }),
+    []
+  )
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
 

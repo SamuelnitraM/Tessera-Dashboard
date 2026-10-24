@@ -11,6 +11,11 @@ export const fr = {
     doNotDisturb: 'Ne pas déranger',
     quit: 'Quitter'
   },
+  updates: {
+    readyTitle: '{{name}} {{version}} est prêt',
+    readyBody:
+      'La mise à jour sera installée en quittant Tessera, ou tout de suite depuis Paramètres → À propos.'
+  },
   dialogs: {
     pickProgram: 'Choisir un programme',
     pickMedia: 'Ouvrir une vidéo ou une musique',
@@ -252,6 +257,11 @@ export const fr = {
         description: 'Comment la fenêtre s’ouvre au démarrage de l’app.',
         maximized: 'Agrandie',
         last: 'Dernière taille'
+      },
+      launchAtStartup: {
+        label: 'Lancer au démarrage de Windows',
+        description:
+          'Tessera démarre avec ta session, réduit dans la zone de notification (version installée).'
       },
       closeToTray: {
         label: 'Garder en arrière-plan à la fermeture',
@@ -535,7 +545,20 @@ export const fr = {
       description: 'Un tableau de bord Windows qui regroupe toutes tes applications.',
       version: 'Version',
       license: 'Licence',
-      sourceCode: 'Code source sur GitHub'
+      sourceCode: 'Code source sur GitHub',
+      updates: {
+        title: 'Mises à jour',
+        unsupported:
+          'Version de développement : les mises à jour automatiques sont réservées à la version installée.',
+        idle: 'Tessera est à jour.',
+        idleChecked: 'Tessera est à jour (vérifié à {{time}}).',
+        checking: 'Recherche de mises à jour…',
+        downloading: 'Téléchargement de la version {{version}}… {{percent}} %',
+        ready: 'La version {{version}} est prête : elle sera installée en quittant Tessera.',
+        error: 'Impossible de vérifier les mises à jour : {{message}}',
+        check: 'Rechercher des mises à jour',
+        install: 'Redémarrer et installer'
+      }
     }
   }
 }

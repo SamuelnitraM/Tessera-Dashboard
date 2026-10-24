@@ -1,0 +1,65 @@
+# Installeur Windows de Tessera Dashboard (electron-builder).
+# Construire : npm run dist (dossier release/). Publier une version : voir docs/distribution.md.
+appId: com.samuelnitram.tessera-dashboard
+productName: Tessera Dashboard
+copyright: Copyright © 2026 Samuel Martin
+
+directories:
+  output: release
+  buildResources: build
+
+# Code compilé par electron-vite ; les dépendances de production sont ajoutées automatiquement
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+# Icônes et sons (src/main/paths.ts les cherche dans resources/ à côté de l'exécutable)
+extraResources:
+  - from: resources
+    to: resources
+# Bibliothèque native de koffi (appels à l'API Windows) : hors de l'archive asar
+asarUnpack:
+  - node_modules/koffi/**
+  - node_modules/@koromix/**
+
+electronFuses:
+  # L'hébergeur des cadres des applications installées est lancé en mode Node (frames.ts)
+  runAsNode: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: true
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: resources/icon.png
+  # Pas de signature pour l'instant : Windows SmartScreen avertit au premier lancement
+  # de l'installeur (« Informations complémentaires » → « Exécuter quand même »)
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Tessera Dashboard
+  runAfterFinish: true
+  # Les réglages et données de l'utilisateur (%APPDATA%\Tessera Dashboard) restent après désinstallation
+  deleteAppDataOnUninstall: false
+  include: build/installer.nsh
+  artifactName: Tessera-Dashboard-Setup-${version}.${ext}
+
+# Double-clic sur un module : Tessera ouvre sa fenêtre d'installation (startup.ts)
+fileAssociations:
+  - ext: tessera
+    name: TesseraModule
+    description: Module Tessera Dashboard
+    role: Viewer
+    icon: build/module.ico
+
+# Versions publiées sur GitHub : l'installeur, et latest.yml lu par les mises à jour automatiques
+publish:
+  provider: github
+  owner: SamuelnitraM
+  repo: Tessera-Dashboard
+  releaseType: draft

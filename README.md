@@ -186,7 +186,7 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 ### Système
 
 - **Arrière-plan** : icône dans la zone de notification, l'app continue de tourner quand on ferme la fenêtre.
-- **Lancement au démarrage** de Windows (optionnel).
+- **Installeur et mises à jour automatiques** ✅ : installeur Windows classique, lancement **au démarrage de Windows** (activé par défaut, réduit dans la zone de notification), nouvelles versions détectées sur GitHub, téléchargées en arrière-plan et installées en quittant (Paramètres → À propos : vérifier, « Redémarrer et installer »).
 - **Thèmes** : clair, sombre ou système (suit Windows), avec **couleur d'accent** personnalisable.
 - **Icônes aux couleurs de l'accent** (optionnel) : logo, barre des tâches et zone de notification.
 - **Langues** : français et anglais.
@@ -209,7 +209,7 @@ Les programmes déjà installés sur le PC s'affichent **avec leur vraie fenêtr
 - La **barre de titre dessinée par l'application** (Discord, Obsidian, GitSpread…) reste visible : elle fait partie de l'application. Seule une barre de titre Windows classique est retirée.
 - Une application qui ouvre **plusieurs fenêtres** : seule sa fenêtre principale est affichée dans le bloc ; les autres (paramètres, fenêtres détachées) s'ouvrent normalement.
 - **Taille minimale** : la fenêtre ne devient jamais plus petite que ce que l'application autorise ; dans un bloc plus petit, elle est rognée.
-- **Version installée de Tessera** (étape 15) : l'hébergeur des cadres utilise le mode Node d'Electron (fusible `RunAsNode`), qui devra rester activé.
+- **Version installée** : l'hébergeur des cadres utilise le mode Node d'Electron, dont le fusible (`RunAsNode`) reste donc activé dans `electron-builder.yml`.
 
 ### Limites connues des mails
 
@@ -363,8 +363,12 @@ plugins/                      # Extensions intégrées (une par dossier : manife
 packages/module-sdk/          # SDK des modules tiers (@tessera/module-sdk) et outil tessera-module
 templates/module-starter/     # Modèle de départ d'un module
 examples/collection-demo/     # Exemple de collection (deux modules)
+build/                        # Ressources de l'installeur (icône des .tessera, script NSIS)
+electron-builder.yml          # Installeur Windows, fusibles, publication sur GitHub
+.github/workflows/            # Intégration continue (ci.yml) et publication des versions (release.yml)
 docs/
 ├── modules/                  # Créer un module : guide complet (fr/ et en/)
+├── distribution.md           # Installeur, mises à jour, publier une version
 └── plugins.md                # Widgets intégrés : contribuer à Tessera
 ```
 
@@ -413,6 +417,16 @@ Pour ajouter un widget intégré à Tessera, suis le **[guide des widgets intég
 
 ## Installation et lancement
 
+### Installer Tessera
+
+Télécharge `Tessera-Dashboard-Setup-<version>.exe` depuis les **[versions GitHub](https://github.com/SamuelnitraM/Tessera-Dashboard/releases)**, puis lance-le.
+
+- L'installeur n'est pas encore signé : Windows SmartScreen affiche « Windows a protégé votre ordinateur ». Clique sur **Informations complémentaires**, puis **Exécuter quand même**.
+- Tessera se lance ensuite **avec Windows**, réduit dans la zone de notification (désactivable dans Paramètres → Général), et **se met à jour tout seul** à partir des versions GitHub.
+- Un double-clic sur un fichier `.tessera` installe le module dans Tessera.
+
+### Lancer depuis le code source
+
 ```bash
 git clone https://github.com/SamuelnitraM/Tessera-Dashboard.git
 cd Tessera-Dashboard
@@ -424,15 +438,19 @@ npm run dev
 
 > **« Se connecter avec Google / Twitch »** : ces boutons utilisent les identifiants des applications de Tessera, à placer dans `oauth-clients.local.json` (non versionné, modèle : `oauth-clients.example.json`). Sans ce fichier, les boutons sont désactivés, sauf avec ses propres identifiants (Paramètres → Comptes → Avancé). Voir le [guide des applications](docs/applications-oauth.md).
 
-| Commande               | Rôle                                                    |
-| ---------------------- | ------------------------------------------------------- |
-| `npm run dev`          | Lance l'app en développement avec rechargement à chaud  |
-| `npm run build`        | Vérifie les types puis compile l'app dans `out/`        |
-| `npm start`            | Lance la version compilée (`out/`)                      |
-| `npm run typecheck`    | Vérifie les types TypeScript (main/preload et renderer) |
-| `npm run lint`         | Analyse le code avec ESLint                             |
-| `npm run format`       | Formate tout le code avec Prettier                      |
-| `npm run format:check` | Vérifie le formatage sans modifier les fichiers         |
+| Commande               | Rôle                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| `npm run dev`          | Lance l'app en développement avec rechargement à chaud     |
+| `npm run build`        | Vérifie les types puis compile l'app dans `out/`           |
+| `npm start`            | Lance la version compilée (`out/`)                         |
+| `npm run typecheck`    | Vérifie les types TypeScript (main/preload et renderer)    |
+| `npm run lint`         | Analyse le code avec ESLint                                |
+| `npm run format`       | Formate tout le code avec Prettier                         |
+| `npm run format:check` | Vérifie le formatage sans modifier les fichiers            |
+| `npm run dist`         | Construit l'installeur Windows dans `release/`             |
+| `npm run dist:dir`     | Construit seulement l'application (`release/win-unpacked`) |
+
+Publier une version (étiquette `v<version>`, installeur construit par GitHub Actions) : voir **[docs/distribution.md](docs/distribution.md)**.
 
 **Comportement de la fenêtre** (modifiable dans Paramètres → Général) :
 
@@ -475,7 +493,7 @@ Chaque étape fait l'objet d'un commit. Les cases sont cochées au fur et à mes
 
 ### Phase 4 : distribution
 
-- [ ] **Étape 15 :** installeur, mises à jour automatiques, lancement au démarrage, intégration continue (GitHub Actions).
+- [x] **Étape 15 : distribution.** Installeur Windows (NSIS : dossier au choix, raccourcis, association des `.tessera`), mises à jour automatiques depuis les versions GitHub, lancement au démarrage de Windows (activé par défaut), fusibles Electron, intégration continue (vérifications à chaque envoi) et publication des versions par étiquette (GitHub Actions). Installeur non signé pour l'instant ([guide](docs/distribution.md)).
 
 ### Plus tard
 

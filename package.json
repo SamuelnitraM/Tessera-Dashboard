@@ -25,6 +25,8 @@
     "typecheck:sdk": "tsc --noEmit -p packages/module-sdk/tsconfig.json",
     "sdk:build": "npm run build --prefix packages/module-sdk",
     "sdk:pack": "npm pack ./packages/module-sdk",
+    "dist": "npm run build && electron-builder --win --publish never",
+    "dist:dir": "npm run build && electron-builder --win --dir --publish never",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -52,6 +54,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "dompurify": "^3.4.17",
     "electron": "^44.9.0",
+    "electron-builder": "26.17.0",
     "electron-vite": "^6.0.0",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
@@ -72,6 +75,7 @@
     "zustand": "^5.0.15"
   },
   "dependencies": {
+    "electron-updater": "6.8.10",
     "imapflow": "2.2.5",
     "koffi": "^3.3.3",
     "mailparser": "3.9.36",

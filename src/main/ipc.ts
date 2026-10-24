@@ -88,6 +88,8 @@ import {
 import type { GoogleService } from '@shared/accounts'
 import { connectGoogle, connectTwitch, getAccountProviders, reconnectMailAccount } from './accounts'
 import { getSettings, updateSettings } from './settings-store'
+import { takeOpenedPackage } from './startup'
+import { checkForUpdates, getUpdateState, installUpdate } from './updater'
 import {
   addDroppedMedia,
   forgetLocalMedia,
@@ -402,6 +404,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.modulesPickPackage, (event) =>
     pickModulePackage(BrowserWindow.fromWebContents(event.sender))
   )
+  // Paquet ouvert par un double-clic dans l'Explorateur avant que l'interface soit prête
+  ipcMain.handle(IpcChannels.modulesTakeOpened, () => takeOpenedPackage())
   ipcMain.handle(IpcChannels.modulesPreviewFile, (_event, path: unknown) => {
     if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${MODULE_PACKAGE_EXTENSION}`)) {
       throw new Error('[invalid-package] Fichier .tessera attendu.')
@@ -445,4 +449,9 @@ export function registerIpcHandlers(): void {
 
   // Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`)
   registerIntegrationHandlers()
+
+  // Mises à jour automatiques (version installée)
+  ipcMain.handle(IpcChannels.updatesGetState, () => getUpdateState())
+  ipcMain.handle(IpcChannels.updatesCheck, () => checkForUpdates())
+  ipcMain.handle(IpcChannels.updatesInstall, () => installUpdate())
 }

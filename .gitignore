@@ -30,3 +30,6 @@ oauth-clients.local.json
 
 # Copies de travail des agents (git worktree)
 .claude/worktrees/
+
+# Installeurs construits par electron-builder
+release/

@@ -4,6 +4,7 @@ import type { InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type { AccountProviders, GoogleService } from '@shared/accounts'
 import type { ExternalPlayer, LocalMediaFile } from '@shared/local-media'
+import type { UpdateState } from '@shared/updates'
 import type {
   MediaStatus,
   TwitchChannel,
@@ -349,7 +350,20 @@ const api = {
     reload: (id: string): Promise<void> => ipcRenderer.invoke(IpcChannels.modulesReload, id),
     inspect: (): Promise<void> => ipcRenderer.invoke(IpcChannels.modulesInspect),
     onChange: (callback: (modules: InstalledModule[]) => void) =>
-      subscribe(IpcChannels.modulesChanged, callback)
+      subscribe(IpcChannels.modulesChanged, callback),
+    /** Paquet ouvert depuis l'Explorateur (double-clic sur un `.tessera`), une seule fois. */
+    takeOpened: (): Promise<ModulePreview | null> =>
+      ipcRenderer.invoke(IpcChannels.modulesTakeOpened),
+    /** Un paquet vient d'être ouvert : le récupérer avec `takeOpened`. */
+    onOpened: (callback: () => void) => subscribe(IpcChannels.modulesOpened, callback)
+  },
+  /** Mises à jour automatiques de la version installée. */
+  updates: {
+    getState: (): Promise<UpdateState> => ipcRenderer.invoke(IpcChannels.updatesGetState),
+    check: (): Promise<void> => ipcRenderer.invoke(IpcChannels.updatesCheck),
+    install: (): Promise<void> => ipcRenderer.invoke(IpcChannels.updatesInstall),
+    onChange: (callback: (state: UpdateState) => void) =>
+      subscribe(IpcChannels.updatesChanged, callback)
   },
   /** Navigateurs installés sur le PC. */
   browsers: {

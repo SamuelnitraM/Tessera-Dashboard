@@ -51,6 +51,20 @@ export function GeneralSection(): React.JSX.Element {
         </SettingRow>
 
         <SettingRow
+          label={t('settings.window.launchAtStartup.label')}
+          description={t('settings.window.launchAtStartup.description')}
+        >
+          {({ labelId, descriptionId }) => (
+            <Switch
+              aria-labelledby={labelId}
+              aria-describedby={descriptionId}
+              checked={settings.window.launchAtStartup}
+              onChange={(launchAtStartup) => void update({ window: { launchAtStartup } })}
+            />
+          )}
+        </SettingRow>
+
+        <SettingRow
           label={t('settings.window.closeToTray.label')}
           description={t('settings.window.closeToTray.description')}
         >

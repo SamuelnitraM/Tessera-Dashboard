@@ -10,6 +10,9 @@ import { loadWindowState, saveWindowState } from './window-state'
 
 let mainWindow: BrowserWindow | null = null
 
+/** Fenêtre créée masquée (démarrage avec Windows) : elle s'agrandira à sa première ouverture. */
+let maximizeOnShow = false
+
 /** Passe à `true` quand l'utilisateur quitte vraiment l'app (et pas seulement la fenêtre). */
 let isQuitting = false
 
@@ -21,7 +24,11 @@ export function getMainWindow(): BrowserWindow | null {
   return mainWindow
 }
 
-export function createMainWindow(): BrowserWindow {
+/**
+ * Crée la fenêtre principale. `hidden` : lancée avec Windows, Tessera reste dans la zone de
+ * notification jusqu'à ce que l'utilisateur l'ouvre.
+ */
+export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}): BrowserWindow {
   // « Dernière taille » : on reprend la position mémorisée, sinon on agrandit
   const savedState = getSettings().window.startupMode === 'last' ? loadWindowState() : null
 
@@ -52,7 +59,13 @@ export function createMainWindow(): BrowserWindow {
 
   // Agrandie = occupe tout l'écran courant, sans être en plein écran
   mainWindow.once('ready-to-show', () => {
-    if (!savedState || savedState.isMaximized) mainWindow?.maximize()
+    const maximize = !savedState || savedState.isMaximized
+    // `maximize()` afficherait la fenêtre : on attend sa première ouverture
+    if (hidden) {
+      maximizeOnShow = maximize
+      return
+    }
+    if (maximize) mainWindow?.maximize()
     mainWindow?.show()
   })
 
@@ -92,6 +105,10 @@ export function createMainWindow(): BrowserWindow {
 export function showMainWindow(): void {
   const window = mainWindow ?? createMainWindow()
   if (window.isMinimized()) window.restore()
+  if (maximizeOnShow) {
+    maximizeOnShow = false
+    window.maximize()
+  }
   window.show()
   window.focus()
 }

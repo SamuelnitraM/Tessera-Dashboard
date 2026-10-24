@@ -8,6 +8,14 @@ import { registerIpcHandlers } from './ipc'
 import { flushMailState, initMail, stopMail } from './mail'
 import { initMedia, stopMedia } from './media'
 import {
+  applyLaunchAtStartup,
+  isLaunchedHidden,
+  openPackage,
+  packageFromArgs,
+  setOpenedPackageListener
+} from './startup'
+import { initUpdater, setUpdateListener } from './updater'
+import {
   flushLocalMedia,
   handleLocalMediaProtocol,
   loadLocalMedia,
@@ -44,7 +52,12 @@ protocol.registerSchemesAsPrivileged([localMediaScheme, moduleScheme])
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.on('second-instance', showMainWindow)
+  // Second lancement : la fenêtre existante s'affiche (et installe le .tessera ouvert, s'il y en a un)
+  app.on('second-instance', (_event, argv) => {
+    showMainWindow()
+    const opened = packageFromArgs(argv)
+    if (opened) void openPackage(opened)
+  })
 
   app.on('before-quit', () => {
     markAppAsQuitting()
@@ -90,7 +103,8 @@ if (!app.requestSingleInstanceLock()) {
     watchWebNotifications()
 
     registerIpcHandlers()
-    initDocking(createMainWindow(), {
+    // Lancée avec Windows : Tessera reste dans la zone de notification
+    initDocking(createMainWindow({ hidden: isLaunchedHidden() }), {
       changed: (appId, state) => broadcast(IpcChannels.desktopAppsChanged, appId, state),
       // Une application demande à s'afficher : Tessera s'ouvre sur son bloc ou son onglet
       reveal: (appId) => {
@@ -116,11 +130,21 @@ if (!app.requestSingleInstanceLock()) {
         refreshAppIcons()
       }
       if (next.apps.items !== previous.apps.items) closeRemovedApps()
+      if (next.window.launchAtStartup !== previous.window.launchAtStartup) applyLaunchAtStartup()
       broadcast(IpcChannels.settingsChanged, next)
     })
 
     setPluginFilesListener((pluginId) => broadcast(IpcChannels.pluginFilesChanged, pluginId))
     setModulesListener((modules) => broadcast(IpcChannels.modulesChanged, modules))
+    setOpenedPackageListener(() => {
+      showMainWindow()
+      getMainWindow()?.webContents.send(IpcChannels.modulesOpened)
+    })
+    setUpdateListener((state) => broadcast(IpcChannels.updatesChanged, state))
+    initUpdater()
+    applyLaunchAtStartup()
+    const opened = packageFromArgs(process.argv)
+    if (opened) void openPackage(opened)
     setNotificationListeners({
       changed: (list) => broadcast(IpcChannels.notificationsChanged, list),
       play: (sound, volume) => broadcast(IpcChannels.notificationsPlay, sound, volume),

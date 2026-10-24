@@ -49,6 +49,8 @@ export interface Settings {
     startupMode: StartupMode
     /** Fermer la fenêtre la masque dans la zone de notification au lieu de quitter. */
     closeToTray: boolean
+    /** Lancer Tessera (réduite dans la zone de notification) à l'ouverture de la session Windows. */
+    launchAtStartup: boolean
   }
   plugins: {
     /** Identifiants des extensions désactivées par l'utilisateur. */
@@ -104,7 +106,8 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   window: {
     startupMode: 'maximized',
-    closeToTray: true
+    closeToTray: true,
+    launchAtStartup: true
   },
   plugins: {
     disabled: [],
@@ -164,7 +167,11 @@ export function sanitizeSettings(input: unknown): Settings {
     window: {
       startupMode: pick(window.startupMode, STARTUP_MODES, defaults.window.startupMode),
       closeToTray:
-        typeof window.closeToTray === 'boolean' ? window.closeToTray : defaults.window.closeToTray
+        typeof window.closeToTray === 'boolean' ? window.closeToTray : defaults.window.closeToTray,
+      launchAtStartup:
+        typeof window.launchAtStartup === 'boolean'
+          ? window.launchAtStartup
+          : defaults.window.launchAtStartup
     },
     plugins: {
       disabled: Array.isArray(plugins.disabled)

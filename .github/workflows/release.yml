@@ -1,0 +1,38 @@
+# Publication d'une version : pousser une étiquette « v<version> » (ex. v0.2.0, identique à la
+# version de package.json) construit l'installeur et le dépose dans un brouillon de version
+# GitHub. Publier ce brouillon le rend disponible aux mises à jour automatiques.
+# Voir docs/distribution.md.
+name: Version
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  installeur:
+    name: Construire et publier l'installeur
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - name: Étiquette et version de package.json identiques
+        shell: bash
+        run: |
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "L'étiquette $GITHUB_REF_NAME ne correspond pas à la version $version de package.json."
+            exit 1
+          fi
+      - run: npm ci
+      - name: Construire et publier
+        run: npm run build && npx electron-builder --win --publish always
+        env:
+          # Identifiants OAuth de Tessera (« Se connecter avec Google / Twitch ») : secret du dépôt
+          TESSERA_OAUTH_CLIENTS: ${{ secrets.TESSERA_OAUTH_CLIENTS }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

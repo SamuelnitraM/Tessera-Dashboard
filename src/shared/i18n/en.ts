@@ -9,6 +9,11 @@ export const en: Translation = {
     doNotDisturb: 'Do not disturb',
     quit: 'Quit'
   },
+  updates: {
+    readyTitle: '{{name}} {{version}} is ready',
+    readyBody:
+      'The update will be installed when you quit Tessera, or right away from Settings → About.'
+  },
   dialogs: {
     pickProgram: 'Choose a program',
     pickMedia: 'Open a video or a song',
@@ -247,6 +252,11 @@ export const en: Translation = {
         description: 'How the window opens when the app starts.',
         maximized: 'Maximized',
         last: 'Last size'
+      },
+      launchAtStartup: {
+        label: 'Launch when Windows starts',
+        description:
+          'Tessera starts with your session, minimized to the notification area (installed version).'
       },
       closeToTray: {
         label: 'Keep running in the background when closed',
@@ -525,7 +535,19 @@ export const en: Translation = {
       description: 'A Windows dashboard that brings all your apps together.',
       version: 'Version',
       license: 'License',
-      sourceCode: 'Source code on GitHub'
+      sourceCode: 'Source code on GitHub',
+      updates: {
+        title: 'Updates',
+        unsupported: 'Development version: automatic updates are for the installed version only.',
+        idle: 'Tessera is up to date.',
+        idleChecked: 'Tessera is up to date (checked at {{time}}).',
+        checking: 'Checking for updates…',
+        downloading: 'Downloading version {{version}}… {{percent}}%',
+        ready: 'Version {{version}} is ready: it will be installed when you quit Tessera.',
+        error: 'Could not check for updates: {{message}}',
+        check: 'Check for updates',
+        install: 'Restart and install'
+      }
     }
   }
 }
