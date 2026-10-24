@@ -1,0 +1,207 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/SamuelnitraM/Tessera-Dashboard/packages/module-sdk/manifest.schema.json",
+  "title": "Manifeste d'un module Tessera Dashboard / Tessera Dashboard module manifest",
+  "description": "manifest.json d'un module. Référence : docs/modules/fr/manifeste.md — Module manifest. Reference: docs/modules/en/manifest.md",
+  "type": "object",
+  "required": ["id", "version", "apiVersion", "name", "description", "author", "widgets"],
+  "additionalProperties": true,
+  "definitions": {
+    "localizedText": {
+      "description": "Texte traduit : au moins une langue, l'anglais sert de secours. — Translated text: at least one language, English is the fallback.",
+      "type": "object",
+      "properties": {
+        "fr": { "type": "string", "minLength": 1 },
+        "en": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false,
+      "minProperties": 1
+    },
+    "localId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "size": {
+      "type": "object",
+      "required": ["w", "h"],
+      "properties": {
+        "w": {
+          "description": "Largeur en colonnes (la grille large en compte 24). — Width in columns (the wide grid has 24).",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        },
+        "h": {
+          "description": "Hauteur en lignes. — Height in rows.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "additionalProperties": false
+    },
+    "setting": {
+      "type": "object",
+      "required": ["key", "type", "label", "default"],
+      "properties": {
+        "key": {
+          "description": "Nom de la valeur dans config (lettres et chiffres, commence par une lettre). — Name of the value in config.",
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$"
+        },
+        "type": { "enum": ["boolean", "text", "number", "select"] },
+        "label": { "$ref": "#/definitions/localizedText" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "boolean" } } },
+          "then": { "properties": { "default": { "type": "boolean" } } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "text" } } },
+          "then": {
+            "properties": {
+              "default": { "type": "string" },
+              "maxLength": { "type": "integer", "minimum": 1, "maximum": 10000, "default": 200 },
+              "placeholder": { "$ref": "#/definitions/localizedText" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "number" } } },
+          "then": {
+            "properties": {
+              "default": { "type": "number" },
+              "min": { "type": "number" },
+              "max": { "type": "number" },
+              "step": { "type": "number", "exclusiveMinimum": 0, "default": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "select" } } },
+          "then": {
+            "required": ["options"],
+            "properties": {
+              "default": { "type": "string" },
+              "options": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "required": ["value", "label"],
+                  "properties": {
+                    "value": { "type": "string", "minLength": 1 },
+                    "label": { "$ref": "#/definitions/localizedText" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "widget": {
+      "type": "object",
+      "required": ["type", "name", "description", "icon", "defaultSize", "minSize"],
+      "properties": {
+        "type": {
+          "description": "Identifiant du widget dans le module (clé de definePlugin({ widgets })). — Widget id inside the module.",
+          "$ref": "#/definitions/localId"
+        },
+        "name": { "$ref": "#/definitions/localizedText" },
+        "description": { "$ref": "#/definitions/localizedText" },
+        "icon": {
+          "description": "Nom d'une icône Lucide (https://lucide.dev/icons), ex. « clock ». — Lucide icon name.",
+          "$ref": "#/definitions/localId"
+        },
+        "defaultSize": { "$ref": "#/definitions/size" },
+        "minSize": { "$ref": "#/definitions/size" },
+        "settings": {
+          "description": "Réglages affichés dans « Réglages du bloc ». — Settings shown in the block settings window.",
+          "type": "array",
+          "items": { "$ref": "#/definitions/setting" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": {
+      "description": "Identifiant unique en notation pointée, ex. « auteur.meteo » (préfixe « tessera. » réservé). — Unique dotted id.",
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:\\.[a-z0-9]+(?:-[a-z0-9]+)*)+$",
+      "not": { "pattern": "^tessera\\." }
+    },
+    "version": {
+      "description": "Version sémantique, ex. « 1.0.0 ». — Semantic version.",
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "apiVersion": {
+      "description": "Version de l'API des modules visée. — Targeted module API version.",
+      "const": 1
+    },
+    "name": { "$ref": "#/definitions/localizedText" },
+    "description": { "$ref": "#/definitions/localizedText" },
+    "author": { "type": "string", "minLength": 1 },
+    "homepage": {
+      "description": "Site du module (https). — Module website (https).",
+      "type": "string",
+      "pattern": "^https://\\S+$"
+    },
+    "entry": {
+      "description": "Script principal construit (« index.js », produit par tesseraModule()). — Built main script.",
+      "type": "string",
+      "default": "index.js"
+    },
+    "permissions": {
+      "description": "Accès demandés, accordés (ou non) par l'utilisateur à l'installation. — Requested access.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "files",
+          "processes",
+          "web",
+          "apps",
+          "notifications",
+          "mail",
+          "media",
+          "videos",
+          "network"
+        ]
+      }
+    },
+    "files": {
+      "description": "Avec la permission « files » : dossier Documents\\Tessera Dashboard\\<folder>. — Folder for the files permission.",
+      "type": "object",
+      "required": ["folder"],
+      "properties": {
+        "folder": {
+          "type": "string",
+          "pattern": "^[\\p{L}\\p{N}][\\p{L}\\p{N} _-]{0,59}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "network": {
+      "description": "Avec la permission « network » : adresses joignables, ex. « https://api.exemple.com », « https://*.exemple.com ». — Reachable origins.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "items": {
+        "type": "string",
+        "pattern": "^(?:(?:https|wss)://(?:\\*\\.)?[a-z0-9-]+(?:\\.[a-z0-9-]+)+|(?:http|ws)://(?:localhost|127\\.0\\.0\\.1))(?::\\d{1,5})?$"
+      }
+    },
+    "widgets": {
+      "description": "Widgets fournis par le module (au moins un). — Widgets provided by the module.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/widget" }
+    }
+  }
+}

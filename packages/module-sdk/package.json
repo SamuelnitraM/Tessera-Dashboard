@@ -1,0 +1,52 @@
+{
+  "name": "@tessera/module-sdk",
+  "version": "0.1.0",
+  "description": "SDK des modules Tessera Dashboard : pont avec l'app, composants, outils de construction et d'empaquetage.",
+  "author": "Samuel Martin",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamuelnitraM/Tessera-Dashboard.git",
+    "directory": "packages/module-sdk"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/types/packages/module-sdk/src/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./manifest.schema.json": "./manifest.schema.json",
+    "./collection.schema.json": "./collection.schema.json",
+    "./vite": {
+      "types": "./dist/types/packages/module-sdk/src/vite.d.ts",
+      "default": "./dist/vite.js"
+    }
+  },
+  "bin": {
+    "tessera-module": "./bin/tessera-module.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "manifest.schema.json",
+    "collection.schema.json",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "vite build && tsc -p tsconfig.build.json",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vite": ">=6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  }
+}
