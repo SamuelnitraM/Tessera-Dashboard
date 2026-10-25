@@ -61,6 +61,11 @@ const connections = new Map<string, MailConnection>()
 const states = new Map<string, MailAccountState>()
 /** Mails déjà vus par la vérification (par compte). */
 const seen = new Map<string, Set<string>>()
+/**
+ * Date du mail le plus récent déjà vu, par compte. Seul un mail plus récent est nouveau : un
+ * ancien non lu qui remonte dans la liste (après une suppression) n'est pas notifié.
+ */
+const newestSeen = new Map<string, number>()
 /** Derniers mails bruts lus (pièces jointes). */
 const rawCache = new Map<string, Buffer>()
 /** Fichiers choisis pour être joints. */
@@ -221,6 +226,7 @@ export function removeAccount(accountId: string): void {
   disconnect(accountId)
   states.delete(accountId)
   seen.delete(accountId)
+  newestSeen.delete(accountId)
   updateSettings({ mail: { accounts: accounts().filter((item) => item.id !== accountId) } })
   setAccountSecret(accountId, null)
 }
@@ -420,12 +426,13 @@ async function checkAccount(accountId: string): Promise<void> {
       connection.list(DEFAULT_QUERY, null, PAGE_SIZE)
     )
     const known = seen.get(accountId)
-    const since = lastChecks.get()[accountId] ?? Date.now()
     // Premier passage : seuls les mails arrivés depuis la dernière vérification sont nouveaux
-    const fresh = page.messages.filter((message) =>
-      known ? !known.has(message.id) && message.unread : message.unread && message.date > since
+    const since = newestSeen.get(accountId) ?? lastChecks.get()[accountId] ?? Date.now()
+    const fresh = page.messages.filter(
+      (message) => message.unread && message.date > since && !known?.has(message.id)
     )
     seen.set(accountId, new Set([...(known ?? []), ...page.messages.map((item) => item.id)]))
+    newestSeen.set(accountId, Math.max(since, ...page.messages.map((message) => message.date)))
     lastChecks.set({ ...lastChecks.get(), [accountId]: Date.now() })
     setState(
       accountId,

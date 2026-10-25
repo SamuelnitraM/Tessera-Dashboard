@@ -22,8 +22,30 @@ export type FrameCommand =
   | { cmd: 'release'; window: number; frame: number }
   /** Fenêtre plus grande que son cadre (rognée) : clic gauche + droit pour déplacer le contenu. */
   | { cmd: 'pannable'; frame: number; value: boolean }
+  /**
+   * Cadre d'un bloc d'une page qui défile : la molette fait défiler la page, sauf après un clic
+   * dans l'application (jusqu'à la sortie de la souris).
+   */
+  | { cmd: 'wheel'; frame: number; value: boolean }
   /** Tessera a disparu (interne à l'hébergeur). */
   | { cmd: 'restoreAll' }
+
+/** Commandes du fil de la souris (interne à l'hébergeur). */
+export type MouseCommand =
+  | { cmd: 'pannable'; frame: number; value: boolean }
+  | { cmd: 'wheel'; frame: number; value: boolean }
+  | { cmd: 'stop' }
+
+/** Molette retenue au-dessus d'un cadre (crans de Windows, 120 par cran, positif vers le haut). */
+export interface FrameWheel {
+  wheel: number
+  delta: number
+}
+
+/** Clic dans l'application d'un cadre (`active`), ou souris sortie (`active: 0`). */
+export interface FrameActive {
+  active: number
+}
 
 /**
  * Clic gauche + droit sur un cadre rogné : déplacement de la souris (px physiques) depuis le
@@ -37,4 +59,9 @@ export interface FramePan {
 }
 
 export type FrameReply =
-  { id: number; frame: number } | { wake: number } | { restored: number } | FramePan
+  | { id: number; frame: number }
+  | { wake: number }
+  | { restored: number }
+  | FramePan
+  | FrameWheel
+  | FrameActive

@@ -134,3 +134,134 @@ export function resolveLayout(
     toCompactSize(defaultSizeOf(widget))
   )
 }
+
+/**
+ * Range une disposition (« Ajuster », mode « Automatique ») : dans l'ordre de lecture, chaque
+ * bloc remonte à la ligne la plus haute où il tient, au plus près de sa colonne (il ne se décale
+ * sur le côté que pour combler un trou). Les tailles ne changent pas ; un trou ne reste que si
+ * aucun bloc n'y tient. `first` : bloc placé en premier à égalité (celui qu'on vient de poser).
+ */
+export function packLayout(layout: readonly GridItem[], cols: number, first?: string): GridItem[] {
+  const ordered = [...layout].sort(
+    (a, b) => a.y - b.y || a.x - b.x || Number(b.i === first) - Number(a.i === first)
+  )
+  const packed: GridItem[] = []
+  for (const item of ordered) {
+    const w = Math.min(item.w, cols)
+    // Colonnes possibles, de la plus proche de la sienne à la plus lointaine
+    const columns = Array.from({ length: cols - w + 1 }, (_, x) => x).sort(
+      (a, b) => Math.abs(a - item.x) - Math.abs(b - item.x) || a - b
+    )
+    let spot: { x: number; y: number } | null = null
+    for (let y = 0; !spot; y++) {
+      for (const x of columns) {
+        const candidate = { i: item.i, x, y, w, h: item.h }
+        if (!packed.some((other) => collides(other, candidate))) {
+          spot = { x, y }
+          break
+        }
+      }
+    }
+    packed.push({ ...item, ...spot, w })
+  }
+  return packed
+}
+
+/** Un bloc ne s'écarte que de quelques cases (au-delà, il prend la place libérée). */
+const MAX_SHIFT = 3
+
+/** Résultat d'un déplacement : disposition au relâchement, et blocs qui bougeront. */
+export interface MovePlan {
+  layout: GridItem[]
+  moved: string[]
+}
+
+/**
+ * Où vont les blocs gênés quand `id` est posé sur `target` (déplacement ou redimensionnement).
+ * Chacun s'écarte d'abord du côté où il a de la place (haut, bas, gauche, droite, de quelques
+ * cases au plus) ; sinon il prend la place libérée par le bloc déplacé ; en dernier recours, il
+ * descend sous lui. Rien ne bouge avant le relâchement : la grille affiche ce plan en aperçu.
+ */
+export function planMove(
+  layout: readonly GridItem[],
+  id: string,
+  target: GridItem,
+  cols: number,
+  auto: boolean
+): MovePlan {
+  const previous = layout.find((item) => item.i === id)
+  const others = layout.filter((item) => item.i !== id)
+  const placedTarget = { ...target, i: id, w: Math.min(target.w, cols) }
+
+  let next: GridItem[]
+  if (auto) {
+    next = packLayout([...others, placedTarget], cols, id)
+  } else {
+    const fixed: GridItem[] = [placedTarget, ...others.filter((o) => !collides(o, placedTarget))]
+    const blocked = others
+      .filter((o) => collides(o, placedTarget))
+      .sort((a, b) => b.w * b.h - a.w * a.h)
+    const free = (candidate: GridItem): boolean =>
+      candidate.x >= 0 &&
+      candidate.y >= 0 &&
+      candidate.x + candidate.w <= cols &&
+      !fixed.some((item) => collides(item, candidate))
+
+    for (const item of blocked) {
+      // 1. S'écarter du bloc posé, du côté le plus proche
+      const sides = [
+        { ...item, y: placedTarget.y - item.h },
+        { ...item, y: placedTarget.y + placedTarget.h },
+        { ...item, x: placedTarget.x - item.w },
+        { ...item, x: placedTarget.x + placedTarget.w }
+      ]
+        .filter((c) => Math.abs(c.x - item.x) + Math.abs(c.y - item.y) <= MAX_SHIFT)
+        .sort(
+          (a, b) =>
+            Math.abs(a.x - item.x) +
+            Math.abs(a.y - item.y) -
+            (Math.abs(b.x - item.x) + Math.abs(b.y - item.y))
+        )
+      let spot = sides.find(free)
+
+      // 2. Prendre la place libérée par le bloc déplacé : d'abord en gardant sa position par
+      // rapport à lui (échange de places), sinon la première case libre de cette zone
+      if (!spot && previous) {
+        const swapped = {
+          ...item,
+          x: item.x + previous.x - placedTarget.x,
+          y: item.y + previous.y - placedTarget.y
+        }
+        if (free(swapped)) spot = swapped
+        for (let y = previous.y; !spot && y <= previous.y + Math.max(0, previous.h - item.h); y++) {
+          for (let x = previous.x; x <= previous.x + Math.max(0, previous.w - item.w); x++) {
+            const candidate = { ...item, x: Math.min(x, cols - item.w), y }
+            if (free(candidate)) {
+              spot = candidate
+              break
+            }
+          }
+        }
+      }
+
+      // 3. Descendre sous le bloc posé, à la première place libre
+      if (!spot) {
+        for (let y = placedTarget.y + placedTarget.h; !spot; y++) {
+          const candidate = { ...item, x: Math.min(item.x, cols - item.w), y }
+          if (free(candidate)) spot = candidate
+        }
+      }
+      fixed.push(spot)
+    }
+    next = fixed
+  }
+
+  const before = new Map(layout.map((item) => [item.i, item]))
+  const moved = next
+    .filter((item) => {
+      const old = before.get(item.i)
+      return item.i !== id && old !== undefined && (old.x !== item.x || old.y !== item.y)
+    })
+    .map((item) => item.i)
+  return { layout: next, moved }
+}

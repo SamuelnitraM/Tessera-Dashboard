@@ -175,7 +175,15 @@ const api = {
     onReveal: (callback: (appId: string) => void) =>
       subscribe(IpcChannels.desktopAppsReveal, callback),
     onPan: (callback: (pan: DesktopAppPan) => void) =>
-      subscribe(IpcChannels.desktopAppsPan, callback)
+      subscribe(IpcChannels.desktopAppsPan, callback),
+    /** La fenêtre de Tessera a bougé : une fenêtre étirée reprend la taille de son bloc. */
+    onUnstretch: (callback: () => void) => subscribe(IpcChannels.desktopAppsUnstretch, callback),
+    /** Molette au-dessus de la fenêtre d'un bloc (la page doit défiler). */
+    onWheel: (callback: (event: { hostId: string; deltaY: number }) => void) =>
+      subscribe(IpcChannels.desktopAppsWheel, callback),
+    /** Clic dans l'application d'un bloc (`null` : la souris en est sortie). */
+    onActivate: (callback: (hostId: string | null) => void) =>
+      subscribe(IpcChannels.desktopAppsActivate, callback)
   },
   /** Notifications : centre, test, sons importés, envoi par les widgets et modules. */
   notifications: {

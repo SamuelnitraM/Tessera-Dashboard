@@ -6,15 +6,12 @@
   padding: 1.25rem 1.5rem 1.5rem;
 }
 
-/* Zone mesurée par la grille : sa taille détermine colonnes, lignes et disposition */
+/* Zone mesurée par la grille : sa taille détermine colonnes, lignes et disposition. Elle défile
+   quand des blocs dépassent ; la place de la barre est réservée (largeur stable). */
 .gridArea {
   flex: 1;
   min-height: 0;
   overflow: hidden auto;
-}
-
-/* Réserve la place de la barre de défilement : la largeur de la grille reste stable */
-.gridArea[data-scroll='true'] {
   scrollbar-gutter: stable;
 }
 
@@ -78,4 +75,13 @@
   max-width: 28rem;
   margin-bottom: 0.75rem;
   color: var(--color-text-muted);
+}
+
+/* Interrupteur « Automatique » de la barre d'édition */
+.autoArrange {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
 }

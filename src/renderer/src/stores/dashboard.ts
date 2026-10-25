@@ -5,29 +5,24 @@ import {
   type Dashboard,
   type DashboardPage,
   type GridItem,
-  type LayoutMode,
-  type PageFitMode
+  type LayoutMode
 } from '@shared/dashboard'
-import { findFreeSpot, layoutBottom, resolveLayout, toCompactSize } from '../lib/grid'
-import { getDefaultSize, getMinSize } from '../plugins/registry'
-
-export type AddWidgetResult = 'added' | 'page-full'
+import { colsFor, findFreeSpot, packLayout, resolveLayout, toCompactSize } from '../lib/grid'
+import { getDefaultSize } from '../plugins/registry'
 
 interface DashboardState {
   dashboard: Dashboard
   /** Crée une page et renvoie son identifiant. */
   addPage: (name: string) => string
   renamePage: (pageId: string, name: string) => void
-  setFitMode: (pageId: string, fitMode: PageFitMode) => void
+  /** « Automatique » : la page reste rangée vers le haut (rangée tout de suite à l'activation). */
+  setAutoArrange: (pageId: string, value: boolean) => void
+  /** « Ajuster » : remonte les blocs et comble les trous, sans changer leur taille. */
+  arrangePage: (pageId: string, mode: LayoutMode) => void
   /** La page principale ne peut pas être supprimée. */
   deletePage: (pageId: string) => void
   /** Ajoute un bloc ; `config` = configuration de départ (ex. application web choisie). */
-  addWidget: (
-    pageId: string,
-    type: string,
-    mode: LayoutMode,
-    config?: Record<string, unknown>
-  ) => AddWidgetResult
+  addWidget: (pageId: string, type: string, config?: Record<string, unknown>) => void
   removeWidget: (pageId: string, widgetId: string) => void
   updateWidgetConfig: (pageId: string, widgetId: string, config: Record<string, unknown>) => void
   setLayout: (pageId: string, mode: LayoutMode, layout: GridItem[]) => void
@@ -36,6 +31,18 @@ interface DashboardState {
 }
 
 const defaultSizeOf = (widget: { type: string }) => getDefaultSize(widget.type)
+
+/** Page en mode « Automatique » : ses dispositions sont rangées après chaque changement. */
+function arranged(page: DashboardPage): DashboardPage {
+  if (!page.autoArrange) return page
+  return {
+    ...page,
+    layouts: {
+      wide: packLayout(resolveLayout(page, 'wide', defaultSizeOf), GRID.wideCols),
+      compact: page.layouts.compact && packLayout(page.layouts.compact, GRID.compactCols)
+    }
+  }
+}
 
 export const useDashboardStore = create<DashboardState>()((set, get) => {
   /** Applique une modification, l'affiche immédiatement et l'envoie à la sauvegarde. */
@@ -61,7 +68,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
         id,
         name,
         isMain: false,
-        fitMode: 'fit',
+        autoArrange: false,
         widgets: [],
         layouts: { wide: [], compact: null }
       }
@@ -72,7 +79,17 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
 
     renamePage: (pageId, name) => updatePage(pageId, (page) => ({ ...page, name })),
 
-    setFitMode: (pageId, fitMode) => updatePage(pageId, (page) => ({ ...page, fitMode })),
+    setAutoArrange: (pageId, value) =>
+      updatePage(pageId, (page) => arranged({ ...page, autoArrange: value })),
+
+    arrangePage: (pageId, mode) =>
+      updatePage(pageId, (page) => ({
+        ...page,
+        layouts: {
+          ...page.layouts,
+          [mode]: packLayout(resolveLayout(page, mode, defaultSizeOf), colsFor(mode))
+        }
+      })),
 
     deletePage: (pageId) => {
       const { dashboard } = get()
@@ -82,28 +99,18 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
       })
     },
 
-    addWidget: (pageId, type, mode, config = {}) => {
+    addWidget: (pageId, type, config = {}) => {
       const page = get().dashboard.pages.find((candidate) => candidate.id === pageId)
-      if (!page) return 'page-full'
+      if (!page) return
 
-      // Position dans la disposition large : taille par défaut, sinon taille minimale
+      // Position dans la disposition large : première place libre (la page défile : il y en
+      // a toujours une, au besoin sous les autres blocs)
       const wide = resolveLayout(page, 'wide', defaultSizeOf)
-      const maxRows = page.fitMode === 'fit' ? GRID.fitRows : Infinity
-      const sizes = [getDefaultSize(type), getMinSize(type)]
-      let wideItem: GridItem | null = null
-      for (const size of sizes) {
-        const spot = findFreeSpot(wide, size, GRID.wideCols, maxRows)
-        if (spot) {
-          wideItem = { i: '', ...spot, ...size }
-          break
-        }
-      }
-
-      if (!wideItem) {
-        // Page pleine : on refuse en disposition large, où l'utilisateur voit la page entière.
-        // En disposition compacte, le widget est placé sous les autres dans la disposition large.
-        if (mode === 'wide') return 'page-full'
-        wideItem = { i: '', x: 0, y: layoutBottom(wide), ...getDefaultSize(type) }
+      const size = getDefaultSize(type)
+      const wideItem: GridItem = {
+        i: '',
+        ...findFreeSpot(wide, size, GRID.wideCols)!,
+        ...size
       }
 
       const id = crypto.randomUUID()
@@ -118,24 +125,25 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
           layouts.compact = [...current.layouts.compact, { i: id, ...spot, ...size }]
         }
 
-        return {
+        return arranged({
           ...current,
           widgets: [...current.widgets, { id, type, config }],
           layouts
-        }
+        })
       })
-      return 'added'
     },
 
     removeWidget: (pageId, widgetId) =>
-      updatePage(pageId, (page) => ({
-        ...page,
-        widgets: page.widgets.filter((widget) => widget.id !== widgetId),
-        layouts: {
-          wide: page.layouts.wide.filter((item) => item.i !== widgetId),
-          compact: page.layouts.compact?.filter((item) => item.i !== widgetId) ?? null
-        }
-      })),
+      updatePage(pageId, (page) =>
+        arranged({
+          ...page,
+          widgets: page.widgets.filter((widget) => widget.id !== widgetId),
+          layouts: {
+            wide: page.layouts.wide.filter((item) => item.i !== widgetId),
+            compact: page.layouts.compact?.filter((item) => item.i !== widgetId) ?? null
+          }
+        })
+      ),
 
     updateWidgetConfig: (pageId, widgetId, config) =>
       updatePage(pageId, (page) => ({

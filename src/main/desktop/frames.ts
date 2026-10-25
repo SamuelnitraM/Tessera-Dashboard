@@ -1,7 +1,13 @@
 import { spawn, type ChildProcessByStdio } from 'node:child_process'
 import type { Readable, Writable } from 'node:stream'
 import { join } from 'node:path'
-import type { FrameCommand, FramePan, FrameReply } from '../frame-host/protocol'
+import type {
+  FrameActive,
+  FrameCommand,
+  FramePan,
+  FrameReply,
+  FrameWheel
+} from '../frame-host/protocol'
 import type { SavedWindow } from './saved-window'
 import type { Hwnd } from './win32'
 
@@ -15,6 +21,8 @@ let nextId = 1
 const pending = new Map<number, (frame: Hwnd) => void>()
 let onHostLost: () => void = () => {}
 let onPan: (pan: FramePan) => void = () => {}
+let onWheel: (wheel: FrameWheel) => void = () => {}
+let onActive: (active: FrameActive) => void = () => {}
 
 /** Appelé si l'hébergeur s'arrête alors que Tessera tourne (ses cadres ont disparu). */
 export function setFrameHostLostListener(listener: () => void): void {
@@ -24,6 +32,15 @@ export function setFrameHostLostListener(listener: () => void): void {
 /** Clic gauche + droit sur un cadre rogné : l'utilisateur déplace le contenu. */
 export function setFramePanListener(listener: (pan: FramePan) => void): void {
   onPan = listener
+}
+
+/** Molette retenue au-dessus d'un cadre, et clic dans son application (bloc actif). */
+export function setFrameWheelListeners(listeners: {
+  wheel: (wheel: FrameWheel) => void
+  active: (active: FrameActive) => void
+}): void {
+  onWheel = listeners.wheel
+  onActive = listeners.active
 }
 
 function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
@@ -45,6 +62,10 @@ function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
       buffer = buffer.slice(end + 1)
       if ('pan' in message) {
         onPan(message)
+      } else if ('wheel' in message) {
+        onWheel(message)
+      } else if ('active' in message) {
+        onActive(message)
       } else if ('id' in message) {
         pending.get(message.id)?.(message.frame)
         pending.delete(message.id)
@@ -87,6 +108,11 @@ export const adoptWindow = (window: Hwnd, frame: Hwnd, saved: SavedWindow): void
 /** Fenêtre rognée ou non : le clic gauche + droit déplace son contenu. */
 export function setFramePannable(frame: Hwnd, value: boolean): void {
   if (host) send({ cmd: 'pannable', frame, value })
+}
+
+/** Cadre d'un bloc d'une page qui défile : sa molette fait défiler la page. */
+export function setFrameWheel(frame: Hwnd, value: boolean): void {
+  if (host) send({ cmd: 'wheel', frame, value })
 }
 
 /** Tessera a repris la fenêtre : le cadre est détruit (rien à faire si l'hébergeur est arrêté). */

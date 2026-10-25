@@ -16,7 +16,9 @@ import {
   releaseFrame,
   setFrameHostLostListener,
   setFramePanListener,
-  setFramePannable
+  setFramePannable,
+  setFrameWheel,
+  setFrameWheelListeners
 } from './frames'
 import { saveMinSize } from './programs'
 import { childStyle, returnWindow, saveWindow, type SavedWindow } from './saved-window'
@@ -63,6 +65,10 @@ interface DockedWindow {
   size: { width: number; height: number }
   /** Repositionnements demandés par l'application elle-même (protection contre les boucles). */
   corrections: { count: number; since: number }
+  /** Étirée au-delà de son bloc : son cadre est passé au-dessus des autres. */
+  raised: boolean
+  /** Sa molette fait défiler la page (l'hébergeur le sait). */
+  pageWheel: boolean
   unwatch: () => void
 }
 
@@ -77,6 +83,12 @@ interface DockingListeners {
   reveal: (appId: string) => void
   /** Clic gauche + droit sur une fenêtre rognée : son bloc déplace le contenu. */
   pan: (pan: DesktopAppPan) => void
+  /** La fenêtre de Tessera a bougé : les fenêtres étirées reprennent la taille de leur bloc. */
+  moved: () => void
+  /** Molette au-dessus de la fenêtre d'un bloc (px, positif vers le bas) : la page défile. */
+  wheel: (hostId: string, deltaY: number) => void
+  /** Clic dans l'application d'un bloc : il devient actif (`null` : souris sortie). */
+  activate: (hostId: string | null) => void
 }
 
 /** Délai maximal d'apparition de la fenêtre après le lancement. */
@@ -86,7 +98,14 @@ const MIN_MAIN_WINDOW = { width: 400, height: 300 }
 
 let hostWindow: BrowserWindow | null = null
 let hostHwnd: w.Hwnd = 0
-let listeners: DockingListeners = { changed: () => {}, reveal: () => {}, pan: () => {} }
+let listeners: DockingListeners = {
+  changed: () => {},
+  reveal: () => {},
+  pan: () => {},
+  moved: () => {},
+  wheel: () => {},
+  activate: () => {}
+}
 /** Fenêtre de Tessera recouverte par son interface (fenêtre de dialogue, mode édition…). */
 let suspended = false
 
@@ -147,6 +166,10 @@ interface Layout {
   window: { x: number; y: number; width: number; height: number }
   /** Fenêtre plus grande que le bloc. */
   cropped: boolean
+  /** Étirée par l'utilisateur : au-dessus des autres blocs. */
+  raised: boolean
+  /** La molette fait défiler la page. */
+  pageWheel: boolean
 }
 
 /** Où poser le cadre et la fenêtre, ou `null` si le bloc n'est pas visible. */
@@ -183,7 +206,9 @@ function layoutFor(docked: DockedWindow): Layout | null {
   return {
     frame: { x: block.x + clip.x, y: block.y + clip.y, width: clip.width, height: clip.height },
     window: { x: -clip.x - offsetX, y: -clip.y - offsetY, width, height },
-    cropped: width > block.width || height > block.height
+    cropped: width > block.width || height > block.height,
+    raised: rect.raised === true,
+    pageWheel: rect.pageWheel === true
   }
 }
 
@@ -214,17 +239,34 @@ function place(docked: DockedWindow): void {
     docked.pannable = layout.cropped
     setFramePannable(docked.frame, layout.cropped)
   }
+  if (docked.pageWheel !== layout.pageWheel) {
+    docked.pageWheel = layout.pageWheel
+    setFrameWheel(docked.frame, layout.pageWheel)
+  }
   const key = JSON.stringify(layout)
   const current = w.getWindowRect(docked.hwnd)
   if (docked.shown && key === docked.target && sameRect(docked.placed, current)) return
 
   normalize(docked.hwnd)
-  const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER
+  // Demandes postées : une application occupée (ou l'hébergeur qui l'attend) ne bloque pas
+  // Tessera. La position visée est retenue, la fenêtre y sera dans un instant.
+  const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
   w.setWindowPos(docked.frame, frame.x, frame.y, frame.width, frame.height, quiet)
   w.setWindowPos(docked.hwnd, window.x, window.y, window.width, window.height, quiet)
-  docked.placed = w.getWindowRect(docked.hwnd)
+  docked.placed = {
+    left: frame.x + window.x,
+    top: frame.y + window.y,
+    right: frame.x + window.x + window.width,
+    bottom: frame.y + window.y + window.height
+  }
   docked.target = key
   docked.size = { width: window.width, height: window.height }
+  // Étirée : son cadre passe au-dessus des autres (applications, blocs voisins)
+  if (layout.raised && !docked.raised) {
+    const flags = (quiet & ~w.SWP.NOZORDER) | w.SWP.NOMOVE | w.SWP.NOSIZE
+    w.setWindowPos(docked.frame, 0, 0, 0, 0, flags, w.HWND_TOP)
+  }
+  docked.raised = layout.raised
 
   if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) w.showWindow(docked.hwnd, w.SW.SHOWNA)
   if (!docked.shown) {
@@ -313,6 +355,8 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       target: null,
       size: { width: 0, height: 0 },
       corrections: { count: 0, since: 0 },
+      raised: false,
+      pageWheel: false,
       unwatch: () => {}
     }
     docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
@@ -574,8 +618,26 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
     listeners.pan({ hostId, phase: pan, dx: dx / scale, dy: dy / scale })
   })
 
-  // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement)
-  window.on('move', placeAll)
+  // Molette au-dessus de la fenêtre d'un bloc, clic dans son application : transmis au bloc
+  const hostOfFrame = (frame: number): string | null => {
+    const docked = [...windows.values()].find((candidate) => candidate.frame === frame)
+    return (docked && activeHosts.get(docked.appId)) ?? null
+  }
+  setFrameWheelListeners({
+    // Un cran de molette (120) : 100 px, comme dans une page web
+    wheel: ({ wheel, delta }) => {
+      const hostId = hostOfFrame(wheel)
+      if (hostId) listeners.wheel(hostId, (-delta / 120) * 100)
+    },
+    active: ({ active }) => listeners.activate(active ? hostOfFrame(active) : null)
+  })
+
+  // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement).
+  // Une fenêtre étirée reprend alors la taille de son bloc.
+  window.on('move', () => {
+    listeners.moved()
+    placeAll()
+  })
   window.on('resize', placeAll)
   window.on('maximize', placeAll)
   window.on('unmaximize', placeAll)

@@ -133,6 +133,8 @@ export const fr = {
     takeOut: 'Sortir la fenêtre de Tessera (sur le bureau)',
     outside: '{{name}} est ouvert hors de Tessera.',
     bringBack: 'Ramener dans Tessera',
+    stretchHint:
+      'Étirer la fenêtre par-dessus les autres blocs (elle reprend sa taille à la prochaine action, ou par un double-clic sur la barre du bloc)',
     panHint: 'Glisser pour choisir la partie affichée',
     /** Barre d'un bloc ou d'un onglet dont la fenêtre est rognée. */
     panHintHandle:
@@ -156,19 +158,20 @@ export const fr = {
     addBlock: 'Ajouter un bloc',
     delete: 'Supprimer la page',
     confirmDelete: 'Confirmer la suppression',
-    fitMode: {
-      label: 'Affichage de la page',
-      fit: 'Ajuster',
-      scroll: 'Défiler'
+    arrange: {
+      label: 'Ajuster',
+      hint: 'Remonter les blocs le plus haut possible et combler les trous, sans changer leur taille'
+    },
+    autoArrange: {
+      label: 'Automatique',
+      hint: 'Garder la page toujours rangée vers le haut, après chaque déplacement, ajout ou retrait'
     },
     emptyTitle: 'Cette page est vide',
     emptyText:
       'Ajoute tes premiers blocs (widgets, applications, modules), puis déplace-les et redimensionne-les à ta guise.',
     compactNotice:
       'Fenêtre étroite : tu modifies la disposition compacte, indépendante de celle en grand écran.',
-    resetCompact: 'Régénérer automatiquement',
-    pageFull:
-      'Plus de place sur cette page. Libère de l’espace, ou passe la page en mode « Défiler ».'
+    resetCompact: 'Régénérer automatiquement'
   },
   common: {
     close: 'Fermer'

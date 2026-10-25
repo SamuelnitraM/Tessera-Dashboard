@@ -1,7 +1,5 @@
-import { useState } from 'react'
-import { AppWindow, CircleAlert, Plus } from 'lucide-react'
+import { AppWindow, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { LayoutMode } from '@shared/dashboard'
 import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
 import { localize } from '@shared/plugins'
 import { listAvailableWidgets, WEB_APP_WIDGET, type RegisteredWidget } from '../../plugins/registry'
@@ -16,7 +14,6 @@ import styles from './WidgetPicker.module.css'
 
 interface BlockPickerProps {
   pageId: string
-  mode: LayoutMode
   open: boolean
   onClose: () => void
 }
@@ -28,7 +25,7 @@ interface BlockPickerProps {
  *   un autre programme du PC
  * - Modules : développés par d'autres
  */
-export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps): React.JSX.Element {
+export function WidgetPicker({ pageId, open, onClose }: BlockPickerProps): React.JSX.Element {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
@@ -36,17 +33,12 @@ export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps):
   // Se réaffiche quand un module est installé ou désinstallé
   useModules()
   const addWidget = useDashboardStore((state) => state.addWidget)
-  const [pageFull, setPageFull] = useState(false)
+  const close = onClose
 
-  // L'alerte « page pleine » est oubliée à la fermeture
-  const close = (): void => {
-    setPageFull(false)
-    onClose()
-  }
-
+  // La page défile : il y a toujours une place libre pour un nouveau bloc
   const add = (key: string, config?: Record<string, unknown>): void => {
-    if (addWidget(pageId, key, mode, config) === 'page-full') setPageFull(true)
-    else close()
+    addWidget(pageId, key, config)
+    close()
   }
 
   const available = listAvailableWidgets(disabledPlugins)
@@ -68,13 +60,6 @@ export function WidgetPicker({ pageId, mode, open, onClose }: BlockPickerProps):
 
   return (
     <Dialog title={t('blocks.picker.title')} open={open} onClose={close}>
-      {pageFull && (
-        <p className={styles.alert} role="alert">
-          <CircleAlert size={16} aria-hidden />
-          {t('pages.pageFull')}
-        </p>
-      )}
-
       <Category
         title={t('blocks.picker.widgets')}
         empty={t('blocks.picker.noWidgets')}

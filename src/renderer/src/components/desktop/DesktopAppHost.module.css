@@ -79,3 +79,37 @@
     transform: rotate(360deg);
   }
 }
+
+/* Poignées d'étirement momentané : dans l'espace entre les blocs, à droite et sous la fenêtre */
+.stretchX,
+.stretchY,
+.stretchXY {
+  position: fixed;
+  z-index: 35;
+  border-radius: 4px;
+}
+
+.stretchX {
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.stretchY {
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.stretchXY {
+  width: 12px;
+  height: 12px;
+  cursor: nwse-resize;
+}
+
+.stretchX:hover,
+.stretchY:hover,
+.stretchXY:hover,
+.stretchX:active,
+.stretchY:active,
+.stretchXY:active {
+  background: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}

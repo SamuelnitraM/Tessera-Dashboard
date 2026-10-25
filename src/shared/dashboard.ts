@@ -9,7 +9,10 @@ export const GRID = {
   wideCols: 24,
   /** Colonnes en disposition compacte (fenêtre étroite). */
   compactCols: 12,
-  /** Lignes visibles en mode « Ajuster à l'écran » : la hauteur des lignes en découle. */
+  /**
+   * Lignes qui remplissent la hauteur de la zone (disposition large) : la hauteur des lignes en
+   * découle. La page continue en dessous (elle défile) si des blocs dépassent.
+   */
   fitRows: 12,
   /** Largeur de la zone de contenu (px) sous laquelle on passe en disposition compacte. */
   compactBreakpoint: 1040,
@@ -18,12 +21,6 @@ export const GRID = {
 } as const
 
 export type LayoutMode = 'wide' | 'compact'
-
-/**
- * - `fit` : la page tient toujours dans la fenêtre, les lignes s'étirent avec sa hauteur.
- * - `scroll` : cases carrées, la page s'allonge et défile verticalement.
- */
-export type PageFitMode = 'fit' | 'scroll'
 
 /** Position et taille d'un widget, en cases de grille. `i` = identifiant du widget. */
 export interface GridItem {
@@ -46,7 +43,8 @@ export interface DashboardPage {
   /** Vide = nom par défaut (« Accueil » pour la page principale). */
   name: string
   isMain: boolean
-  fitMode: PageFitMode
+  /** « Automatique » : la page reste rangée vers le haut après chaque changement. */
+  autoArrange: boolean
   widgets: WidgetInstance[]
   layouts: {
     wide: GridItem[]
@@ -76,7 +74,7 @@ export const DEFAULT_DASHBOARD: Dashboard = {
       id: MAIN_PAGE_ID,
       name: '',
       isMain: true,
-      fitMode: 'fit',
+      autoArrange: false,
       widgets: [{ id: 'welcome-clock', type: 'tessera.clock/clock', config: {} }],
       layouts: {
         wide: [{ i: 'welcome-clock', x: 0, y: 0, w: 6, h: 3 }],
@@ -147,7 +145,8 @@ function sanitizePage(input: unknown, usedIds: Set<string>): DashboardPage | nul
     id,
     name: asString(page.name).slice(0, 60),
     isMain: page.isMain === true,
-    fitMode: page.fitMode === 'scroll' ? 'scroll' : 'fit',
+    // L'ancien choix « Ajuster / Défiler » (fitMode) a disparu : toutes les pages défilent
+    autoArrange: page.autoArrange === true,
     widgets,
     layouts: {
       wide: sanitizeLayout(layouts.wide, GRID.wideCols, widgetIds),

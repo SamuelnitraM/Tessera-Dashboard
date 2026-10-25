@@ -130,6 +130,8 @@ export const en: Translation = {
     takeOut: 'Take the window out of Tessera (to the desktop)',
     outside: '{{name}} is open outside Tessera.',
     bringBack: 'Bring back into Tessera',
+    stretchHint:
+      'Stretch the window over the other blocks (it returns to its size on your next action, or with a double-click on the block bar)',
     panHint: 'Drag to choose the visible part',
     panHintHandle:
       'Drag to choose the visible part (or use the scrollbars, or left + right click on the window)',
@@ -152,18 +154,20 @@ export const en: Translation = {
     addBlock: 'Add block',
     delete: 'Delete page',
     confirmDelete: 'Confirm deletion',
-    fitMode: {
-      label: 'Page display',
-      fit: 'Fit',
-      scroll: 'Scroll'
+    arrange: {
+      label: 'Tidy up',
+      hint: 'Move the blocks as high as possible and fill the gaps, without resizing them'
+    },
+    autoArrange: {
+      label: 'Automatic',
+      hint: 'Keep the page always tidied upward, after every move, addition or removal'
     },
     emptyTitle: 'This page is empty',
     emptyText:
       'Add your first blocks (widgets, apps, modules), then move and resize them however you like.',
     compactNotice:
       'Narrow window: you are editing the compact layout, separate from the full-size one.',
-    resetCompact: 'Regenerate automatically',
-    pageFull: 'No room left on this page. Free up some space, or switch the page to “Scroll”.'
+    resetCompact: 'Regenerate automatically'
   },
   common: {
     close: 'Close'

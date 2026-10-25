@@ -56,6 +56,9 @@ export const IpcChannels = {
   desktopAppsReveal: 'desktop-apps:reveal',
   /** Événement main -> renderer : clic gauche + droit sur une fenêtre rognée (DesktopAppPan). */
   desktopAppsPan: 'desktop-apps:pan',
+  desktopAppsUnstretch: 'desktop-apps:unstretch',
+  desktopAppsWheel: 'desktop-apps:wheel',
+  desktopAppsActivate: 'desktop-apps:activate',
   notificationsList: 'notifications:list',
   notificationsMarkRead: 'notifications:mark-read',
   notificationsRemove: 'notifications:remove',

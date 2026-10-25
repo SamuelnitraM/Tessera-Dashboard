@@ -175,10 +175,15 @@ export const SWP = {
   NOZORDER: 0x4,
   NOACTIVATE: 0x10,
   FRAMECHANGED: 0x20,
-  NOOWNERZORDER: 0x200
+  NOOWNERZORDER: 0x200,
+  /** Ne pas attendre la fenêtre d'un autre fil : la demande lui est postée. */
+  ASYNCWINDOWPOS: 0x4000
 } as const
 
 export const SW = { HIDE: 0, SHOWNOACTIVATE: 4, SHOWNA: 8 } as const
+
+/** Premier plan, parmi les fenêtres du même propriétaire (SetWindowPos). */
+export const HWND_TOP = 0
 
 export const WinEvent = {
   SYSTEM_MOVESIZESTART: 0x000a,

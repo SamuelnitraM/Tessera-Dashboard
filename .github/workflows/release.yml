@@ -30,6 +30,16 @@ jobs:
             exit 1
           fi
       - run: npm ci
+      # Brouillon créé d'abord : electron-builder envoie ses fichiers en parallèle, et sans
+      # version existante chaque envoi créerait son propre brouillon
+      - name: Créer le brouillon de version
+        shell: bash
+        run: |
+          if ! gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" --draft --title "${GITHUB_REF_NAME#v}" --notes ""
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Construire et publier
         run: npm run build && npx electron-builder --win --publish always
         env:

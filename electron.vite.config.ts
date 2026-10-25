@@ -35,7 +35,8 @@ export default defineConfig({
           index: resolve('src/main/index.ts'),
           // Hébergeur des cadres des applications installées (processus séparé) et son fil
           'frame-host': resolve('src/main/frame-host/index.ts'),
-          'frame-worker': resolve('src/main/frame-host/worker.ts')
+          'frame-worker': resolve('src/main/frame-host/worker.ts'),
+          'frame-mouse': resolve('src/main/frame-host/mouse.ts')
         }
       }
     }

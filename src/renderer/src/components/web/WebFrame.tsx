@@ -1,4 +1,13 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { WebviewChannels } from '@shared/webview-channels'
+import {
+  blockIdOf,
+  leaveBlock,
+  scrollPage,
+  setActiveBlock,
+  useActiveBlockStore
+} from '../../stores/activeBlock'
+import { useNavigationStore } from '../../stores/navigation'
 import styles from './WebFrame.module.css'
 
 /** Méthodes de l'élément <webview> d'Electron utilisées par Tessera. */
@@ -13,6 +22,7 @@ interface WebviewElement extends HTMLElement {
   getURL: () => string
   setZoomFactor: (factor: number) => void
   executeJavaScript: (code: string) => Promise<unknown>
+  send: (channel: string, ...args: unknown[]) => void
 }
 
 /** Message de console d'une page dont la vidéo est terminée. */
@@ -88,11 +98,43 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
       const { url } = event as Event & { url: string }
       eventsRef.current.onNavigate?.(url, webview.canGoBack(), webview.canGoForward())
     }
+    // Page web dans un bloc de la grille : la molette fait défiler la page de Tessera, sauf
+    // quand le bloc est actif (clic dans la page, jusqu'à la sortie de la souris). Le bloc est
+    // cherché à chaque fois : la page web peut être créée avant d'être placée dans la grille.
+    const block = (): string | null => blockIdOf(containerRef.current)
+    let wheelToHost: boolean | null = null
+    const updateWheel = (): void => {
+      const blockId = block()
+      if (!blockId || !readyRef.current) return
+      const { activeId, pageScrolls } = useActiveBlockStore.getState()
+      const next = pageScrolls && activeId !== blockId && !useNavigationStore.getState().editing
+      if (next === wheelToHost) return
+      wheelToHost = next
+      webview.send(WebviewChannels.wheelMode, next)
+    }
+    const unsubscribe = [
+      useActiveBlockStore.subscribe(updateWheel),
+      useNavigationStore.subscribe(updateWheel)
+    ]
+
     const listeners: [string, (event: Event) => void][] = [
+      [
+        'ipc-message',
+        (e) => {
+          const { channel, args } = e as Event & { channel: string; args: unknown[] }
+          if (channel === WebviewChannels.wheel && typeof args[0] === 'number') scrollPage(args[0])
+          const blockId = block()
+          if (!blockId) return
+          if (channel === WebviewChannels.pointerDown) setActiveBlock(blockId)
+          if (channel === WebviewChannels.pointerLeave) leaveBlock(blockId)
+        }
+      ],
       [
         'dom-ready',
         () => {
           readyRef.current = true
+          wheelToHost = null
+          updateWheel()
           webview.setZoomFactor(zoomRef.current)
           // Fin d'une vidéo : la page le signale par un message de console (aucun accès à Tessera)
           if (eventsRef.current.onEnded) {
@@ -149,6 +191,7 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     containerRef.current!.appendChild(webview)
 
     return () => {
+      for (const stop of unsubscribe) stop()
       for (const [name, listener] of listeners) webview.removeEventListener(name, listener)
       webview.remove()
       webviewRef.current = null

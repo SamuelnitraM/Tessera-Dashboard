@@ -111,7 +111,12 @@ if (!app.requestSingleInstanceLock()) {
         showMainWindow()
         getMainWindow()?.webContents.send(IpcChannels.desktopAppsReveal, appId)
       },
-      pan: (pan) => getMainWindow()?.webContents.send(IpcChannels.desktopAppsPan, pan)
+      pan: (pan) => getMainWindow()?.webContents.send(IpcChannels.desktopAppsPan, pan),
+      moved: () => getMainWindow()?.webContents.send(IpcChannels.desktopAppsUnstretch),
+      wheel: (hostId, deltaY) =>
+        getMainWindow()?.webContents.send(IpcChannels.desktopAppsWheel, { hostId, deltaY }),
+      activate: (hostId) =>
+        getMainWindow()?.webContents.send(IpcChannels.desktopAppsActivate, hostId)
     })
     createTray()
 

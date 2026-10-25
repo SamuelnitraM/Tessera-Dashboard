@@ -1,29 +1,36 @@
-import { useMemo } from 'react'
-import ReactGridLayout, { getCompactor, verticalCompactor, type Layout } from 'react-grid-layout'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import ReactGridLayout, { getCompactor, type Layout, type LayoutItem } from 'react-grid-layout'
 import { GridBackground } from 'react-grid-layout/extras'
 import 'react-grid-layout/css/styles.css'
-import { GRID, type DashboardPage, type LayoutMode } from '@shared/dashboard'
+import { GRID, type DashboardPage, type GridItem, type LayoutMode } from '@shared/dashboard'
 import {
   colsFor,
   layoutBottom,
   normalizeLayout,
+  planMove,
   resolveLayout,
   sameLayout,
-  toCompactMinSize
+  toCompactMinSize,
+  type MovePlan
 } from '../../lib/grid'
+import { leaveBlock, setActiveBlock, useActiveBlockStore } from '../../stores/activeBlock'
 import { useDashboardStore } from '../../stores/dashboard'
 import { getDefaultSize, getMinSize } from '../../plugins/registry'
 import { WidgetFrame } from './WidgetFrame'
 import styles from './DashboardGrid.module.css'
 
-// Placement libre : les widgets restent où on les pose, sans se chevaucher.
-// - page ajustée : poser un widget sur un autre est refusé (la page ne peut pas s'allonger)
-// - page qui défile : les widgets gênants sont poussés vers le bas
-const FIT_COMPACTOR = getCompactor(null, false, true)
-const SCROLL_COMPACTOR = getCompactor(null, false, false)
+// Pendant un déplacement ou un redimensionnement, rien ne bouge : le bloc tenu passe au-dessus
+// des autres, et le plan (qui s'écarte, où) s'affiche en aperçu. Il s'applique au relâchement.
+const FREE_COMPACTOR = getCompactor(null, true, false)
 
 /** Hauteur minimale d'une ligne (px), même dans une très petite fenêtre. */
 const MIN_ROW_HEIGHT = 24
+/** Lignes libres affichées sous les blocs en mode édition (pour en poser plus bas). */
+const EXTRA_EDIT_ROWS = 4
+/** Bloc tenu près du bord haut ou bas de la zone (px) : la page défile toute seule. */
+const EDGE_SCROLL = 56
+/** Vitesse maximale de ce défilement (px par image). */
+const EDGE_SPEED = 18
 
 interface DashboardGridProps {
   page: DashboardPage
@@ -34,11 +41,21 @@ interface DashboardGridProps {
   height: number
 }
 
+/** Déplacement en cours : bloc tenu, case visée et plan au relâchement. */
+interface Moving {
+  id: string
+  target: GridItem
+  plan: MovePlan
+}
+
+const sameCell = (a: GridItem, b: GridItem): boolean =>
+  a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h
+
 /**
  * Grille de widgets d'une page.
- * - Disposition large (24 colonnes) : « ajustée » (lignes étirées sur la hauteur de la fenêtre)
- *   ou « qui défile » (cases carrées).
- * - Disposition compacte (fenêtre étroite, 12 colonnes, défilement), modifiable séparément.
+ * - Disposition large (24 colonnes) : 12 lignes qui remplissent la hauteur de la zone ; la page
+ *   continue en dessous (elle défile) si des blocs dépassent.
+ * - Disposition compacte (fenêtre étroite, 12 colonnes, cases carrées), modifiable séparément.
  */
 export function DashboardGrid({
   page,
@@ -48,8 +65,9 @@ export function DashboardGrid({
   height
 }: DashboardGridProps): React.JSX.Element {
   const setLayout = useDashboardStore((state) => state.setLayout)
+  const activeId = useActiveBlockStore((state) => state.activeId)
+  const root = useRef<HTMLDivElement>(null)
 
-  const fit = mode === 'wide' && page.fitMode === 'fit'
   const cols = colsFor(mode)
   const gap = GRID.gap
 
@@ -59,11 +77,15 @@ export function DashboardGrid({
   )
 
   const colWidth = (width - gap * (cols - 1)) / cols
-  // Arrondi vers le bas : la grille ajustée ne dépasse jamais la hauteur disponible
+  // Arrondi vers le bas : les 12 premières lignes ne dépassent jamais la hauteur disponible
   const rowHeight = Math.max(
     MIN_ROW_HEIGHT,
-    Math.floor(fit ? (height - gap * (GRID.fitRows - 1)) / GRID.fitRows : colWidth)
+    Math.floor(mode === 'wide' ? (height - gap * (GRID.fitRows - 1)) / GRID.fitRows : colWidth)
   )
+
+  const [moving, setMoving] = useState<Moving | null>(null)
+  /** Change après un déplacement : la grille reprend la disposition enregistrée. */
+  const [revision, setRevision] = useState(0)
 
   // Taille minimale propre à chaque type de widget. Une application installée plus grande que
   // son bloc est rognée (on choisit la partie affichée) : elle n'impose pas la taille du bloc.
@@ -74,20 +96,91 @@ export function DashboardGrid({
         const min = mode === 'wide' ? getMinSize(type) : toCompactMinSize(getMinSize(type))
         return { ...item, minW: Math.min(min.w, cols), minH: min.h }
       }),
-    [layout, page.widgets, mode, cols]
+    // `revision` : nouvelle disposition (même identique) pour annuler la position du glisser
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [layout, page.widgets, mode, cols, revision]
   )
 
-  // Une page ajustée affiche toujours ses 12 lignes (plus si des widgets dépassent)
-  const rows = fit ? Math.max(GRID.fitRows, layoutBottom(layout)) : layoutBottom(layout)
+  // Lignes affichées : au moins la hauteur de la zone, plus de la place libre en mode édition
+  const bottom = Math.max(mode === 'wide' ? GRID.fitRows : 0, layoutBottom(layout))
+  const rows = editing ? bottom + EXTRA_EDIT_ROWS : bottom
 
-  /** Sauvegarde la disposition après un déplacement ou un redimensionnement. */
-  const handleChange = (next: Layout): void => {
-    const normalized = normalizeLayout(next)
-    if (!sameLayout(normalized, layout)) setLayout(page.id, mode, normalized)
+  /** Case visée par le bloc tenu : plan au relâchement (recalculé seulement si elle change). */
+  const preview = (item: LayoutItem | null): void => {
+    if (!item) return
+    const target: GridItem = { i: item.i, x: item.x, y: item.y, w: item.w, h: item.h }
+    if (moving && moving.id === item.i && sameCell(moving.target, target)) return
+    setMoving({
+      id: item.i,
+      target,
+      plan: planMove(layout, item.i, target, cols, page.autoArrange)
+    })
   }
 
+  /** Relâchement : le plan s'applique (les blocs gênés s'écartent ou prennent la place libérée). */
+  const finish = (item: LayoutItem | null): void => {
+    setMoving(null)
+    setRevision((value) => value + 1)
+    if (!item) return
+    const target: GridItem = { i: item.i, x: item.x, y: item.y, w: item.w, h: item.h }
+    const next = normalizeLayout(planMove(layout, item.i, target, cols, page.autoArrange).layout)
+    if (!sameLayout(next, layout)) setLayout(page.id, mode, next)
+  }
+
+  // Bloc tenu près du bord haut ou bas : la page défile ; la molette fonctionne aussi
+  useEffect(() => {
+    if (!moving) return
+    const scroller = root.current?.parentElement
+    if (!scroller) return
+    let pointerY: number | null = null
+    let frame = 0
+    const onMove = (event: PointerEvent | MouseEvent): void => {
+      pointerY = event.clientY
+    }
+    const step = (): void => {
+      if (pointerY !== null) {
+        const box = scroller.getBoundingClientRect()
+        const above = box.top + EDGE_SCROLL - pointerY
+        const below = pointerY - (box.bottom - EDGE_SCROLL)
+        if (above > 0) scroller.scrollTop -= Math.ceil((above / EDGE_SCROLL) * EDGE_SPEED)
+        else if (below > 0) scroller.scrollTop += Math.ceil((below / EDGE_SCROLL) * EDGE_SPEED)
+      }
+      frame = requestAnimationFrame(step)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('mousemove', onMove)
+    frame = requestAnimationFrame(step)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('mousemove', onMove)
+    }
+    // Une seule boucle par geste (le plan change à chaque case)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moving !== null])
+
+  /** Position à l'écran d'une case de la grille (px, dans la grille). */
+  const cellBox = (item: GridItem): React.CSSProperties => ({
+    left: item.x * (colWidth + gap),
+    top: item.y * (rowHeight + gap),
+    width: item.w * colWidth + (item.w - 1) * gap,
+    height: item.h * rowHeight + (item.h - 1) * gap
+  })
+
+  const displaced = new Set(moving?.plan.moved ?? [])
+  // Mode « Automatique » : le bloc tenu sera rangé ailleurs que la case visée
+  const finalOfMoving = moving?.plan.layout.find((item) => item.i === moving.id)
+  const showFinal =
+    page.autoArrange && moving && finalOfMoving && !sameCell(finalOfMoving, moving.target)
+
   return (
-    <div className={styles.grid} data-editing={editing}>
+    <div
+      ref={root}
+      className={styles.grid}
+      data-editing={editing}
+      data-moving={moving !== null}
+      style={editing ? { minHeight: rows * (rowHeight + gap) } : undefined}
+    >
       {editing && (
         <GridBackground
           className={styles.background}
@@ -96,7 +189,7 @@ export function DashboardGrid({
           rowHeight={rowHeight}
           margin={[gap, gap]}
           containerPadding={[0, 0]}
-          rows={fit ? rows : rows + 4}
+          rows={rows}
           borderRadius={6}
         />
       )}
@@ -108,20 +201,42 @@ export function DashboardGrid({
           rowHeight,
           margin: [gap, gap],
           containerPadding: [0, 0],
-          maxRows: fit ? rows : Infinity
+          maxRows: Infinity
         }}
         dragConfig={{ enabled: editing, cancel: '.no-drag' }}
         resizeConfig={{ enabled: editing, handles: ['se', 'e', 's'] }}
-        compactor={mode === 'compact' ? verticalCompactor : fit ? FIT_COMPACTOR : SCROLL_COMPACTOR}
-        onDragStop={handleChange}
-        onResizeStop={handleChange}
+        compactor={FREE_COMPACTOR}
+        onDrag={(_layout, _old, item) => preview(item)}
+        onResize={(_layout, _old, item) => preview(item)}
+        onDragStop={(_layout, _old, item) => finish(item)}
+        onResizeStop={(_layout, _old, item) => finish(item)}
       >
         {page.widgets.map((widget) => (
-          <div key={widget.id}>
+          <div
+            key={widget.id}
+            data-block-id={widget.id}
+            data-displaced={displaced.has(widget.id)}
+            data-active={!editing && activeId === widget.id}
+            // Clic dans le bloc : la molette fait défiler son contenu (jusqu'à la sortie)
+            onPointerDownCapture={editing ? undefined : () => setActiveBlock(widget.id)}
+            onMouseLeave={() => leaveBlock(widget.id)}
+          >
             <WidgetFrame pageId={page.id} widget={widget} editing={editing} />
           </div>
         ))}
       </ReactGridLayout>
+
+      {/* Aperçu : future place des blocs qui s'écarteront (et du bloc tenu, s'il sera rangé) */}
+      {moving && (
+        <div className={styles.preview} aria-hidden>
+          {moving.plan.layout
+            .filter((item) => displaced.has(item.i))
+            .map((item) => (
+              <div key={item.i} className={styles.futureSpot} style={cellBox(item)} />
+            ))}
+          {showFinal && <div className={styles.finalSpot} style={cellBox(finalOfMoving)} />}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AppWindow,
   LoaderCircle,
@@ -10,6 +11,12 @@ import {
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { DesktopApp, HostRect } from '@shared/desktop-apps'
+import {
+  blockIdOf,
+  scrollPage,
+  setActiveBlock,
+  useActiveBlockStore
+} from '../../stores/activeBlock'
 import { useDesktopAppState, useDesktopAppsStore } from '../../stores/desktopApps'
 import { measure } from '../../lib/visibleRect'
 import { Button } from '../ui/Button'
@@ -35,6 +42,18 @@ interface DesktopAppHostProps {
 }
 
 const ORIGIN: PanOffset = { x: 0, y: 0 }
+interface Size {
+  width: number
+  height: number
+}
+
+/** Rectangle à l'écran (px CSS, fenêtre de Tessera). */
+interface Edge extends Size {
+  x: number
+  y: number
+}
+
+type StretchAxis = 'x' | 'y' | 'xy'
 /** Barres de défilement : le choix est enregistré après ce délai sans défilement. */
 const SCROLL_COMMIT_MS = 400
 
@@ -63,6 +82,10 @@ function withoutScrollbars(rect: HostRect, scroller: HTMLElement | null): HostRe
  * Plus grande que le bloc (taille minimale de l'application), la fenêtre est rognée. Pour
  * choisir la partie affichée : barres de défilement, glisser la barre du bloc (ou, en mode
  * édition, son image), ou clic gauche + droit sur la fenêtre (détecté par l'hébergeur des cadres).
+ *
+ * Étirement momentané : les poignées posées juste à droite et sous le bloc (dans l'espace entre
+ * les blocs) agrandissent la fenêtre par-dessus ses voisins. Elle reprend la taille de son bloc
+ * à la moindre autre action dans Tessera, ou au double-clic sur la barre du bloc.
  */
 export function DesktopAppHost({
   app,
@@ -83,6 +106,10 @@ export function DesktopAppHost({
   const [size, setSize] = useState({ width: 0, height: 0 })
   /** Décalage en cours de glisser (enregistré au relâchement). */
   const [dragOffset, setDragOffset] = useState<PanOffset | null>(null)
+  /** Taille de la fenêtre étirée au-delà du bloc (px CSS), ou `null`. */
+  const [stretch, setStretch] = useState<Size | null>(null)
+  /** Contour affiché (bloc ou fenêtre étirée), pour placer les poignées. */
+  const [edge, setEdge] = useState<Edge | null>(null)
 
   // Rognée si la fenêtre (au moins sa taille minimale) dépasse le bloc (sans ses barres)
   const maxOffset = {
@@ -97,9 +124,28 @@ export function DesktopAppHost({
   const current = clamp(dragOffset ?? offset)
 
   // Fonctions utilisées par les écouteurs (toujours à jour, sans recréer les écouteurs)
-  const live = useRef({ current, cropped, clamp, onOffsetChange, report: () => {} })
+  const live = useRef({
+    current,
+    cropped,
+    clamp,
+    onOffsetChange,
+    stretch,
+    /** Taille minimale de la fenêtre (px CSS). */
+    min: { width: app.minWidth, height: app.minHeight } as Size,
+    /** Taille du bloc (sans ses barres de défilement). */
+    block: { width: 0, height: 0 } as Size,
+    report: () => {}
+  })
   useLayoutEffect(() => {
-    live.current = { ...live.current, current, cropped, clamp, onOffsetChange }
+    live.current = {
+      ...live.current,
+      current,
+      cropped,
+      clamp,
+      onOffsetChange,
+      stretch,
+      min: { width: app.minWidth, height: app.minHeight }
+    }
   })
 
   const showingSnapshot = suspended && snapshot && attachedHere
@@ -137,10 +183,38 @@ export function DesktopAppHost({
           previous.width === width && previous.height === height ? previous : { width, height }
         )
         const measured = measure(element)
-        const rect = measured && {
-          ...withoutScrollbars(measured, scroller),
-          offset: live.current.current
+        const inBlock = measured && withoutScrollbars(measured, scroller)
+        if (inBlock) live.current.block = { width: inBlock.width, height: inBlock.height }
+        const stretched = live.current.stretch
+        let rect: HostRect | null = null
+        if (measured && stretched) {
+          // Étirée : la fenêtre déborde du bloc, par-dessus les autres
+          const { current: from, min } = live.current
+          rect = {
+            x: measured.x,
+            y: measured.y,
+            ...stretched,
+            offset: {
+              x: Math.min(from.x, Math.max(0, min.width - stretched.width)),
+              y: Math.min(from.y, Math.max(0, min.height - stretched.height))
+            },
+            raised: true
+          }
+        } else if (inBlock) {
+          rect = { ...inBlock, offset: live.current.current }
         }
+        // Bloc d'une page qui défile : la molette au-dessus de la fenêtre fait défiler la page
+        if (rect && blockIdOf(element) && useActiveBlockStore.getState().pageScrolls) {
+          rect.pageWheel = true
+        }
+        // Poignées d'étirement : seulement autour d'un bloc entièrement visible
+        const shown =
+          rect && !rect.clip
+            ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+            : null
+        setEdge((previous) =>
+          JSON.stringify(previous) === JSON.stringify(shown) ? previous : shown
+        )
         const key = JSON.stringify(rect)
         if (key === last) return
         last = key
@@ -153,15 +227,24 @@ export function DesktopAppHost({
     // Apparition ou disparition des barres de défilement
     if (scrollerRef.current) resizeObserver.observe(scrollerRef.current)
     resizeObserver.observe(document.documentElement)
-    // La grille déplace les blocs en changeant leur style (transform)
-    const mutationObserver = new MutationObserver(report)
+    // La grille déplace les blocs en changeant leur style (transform) : une fenêtre étirée
+    // reprend alors la taille de son bloc
+    const mutationObserver = new MutationObserver(() => {
+      if (live.current.stretch) setStretch(null)
+      report()
+    })
     const gridItem = element.closest('.react-grid-item')
     if (gridItem)
       mutationObserver.observe(gridItem, { attributes: true, attributeFilter: ['style'] })
     window.addEventListener('resize', report)
     window.addEventListener('scroll', report, true)
+    // La page se met à défiler (ou plus) : la molette change de destinataire
+    const unsubscribe = useActiveBlockStore.subscribe((state, previous) => {
+      if (state.pageScrolls !== previous.pageScrolls) report()
+    })
     report()
     return () => {
+      unsubscribe()
       cancelAnimationFrame(frame)
       resizeObserver.disconnect()
       mutationObserver.disconnect()
@@ -170,8 +253,70 @@ export function DesktopAppHost({
     }
   }, [active, hostId, suspended, scrollable])
 
-  // Nouvelle partie affichée : la fenêtre glisse dans son cadre
-  useEffect(() => live.current.report(), [current.x, current.y])
+  // Nouvelle partie affichée, ou étirement : la fenêtre suit
+  useEffect(() => live.current.report(), [current.x, current.y, stretch])
+
+  // Étirée : la moindre autre action dans Tessera lui rend la taille de son bloc (clic ailleurs,
+  // défilement, fenêtre déplacée ou redimensionnée, changement de page, mode édition…)
+  useEffect(() => {
+    if (!stretch) return
+    const restore = (): void => setStretch(null)
+    const onPointer = (event: PointerEvent): void => {
+      if (!(event.target as HTMLElement | null)?.closest('[data-stretch-handle]')) restore()
+    }
+    window.addEventListener('pointerdown', onPointer, true)
+    window.addEventListener('resize', restore)
+    window.addEventListener('scroll', restore, true)
+    window.addEventListener('wheel', restore, true)
+    const unsubscribe = window.tessera.desktopApps.onUnstretch(restore)
+    const handle = panHandle?.current
+    handle?.addEventListener('dblclick', restore)
+    return () => {
+      window.removeEventListener('pointerdown', onPointer, true)
+      window.removeEventListener('resize', restore)
+      window.removeEventListener('scroll', restore, true)
+      window.removeEventListener('wheel', restore, true)
+      unsubscribe()
+      handle?.removeEventListener('dblclick', restore)
+    }
+  }, [stretch, panHandle])
+
+  // Page quittée, mode édition (image de la fenêtre) : retour à la taille du bloc
+  const canStretch = active && attachedHere && state.status === 'running' && !showingSnapshot
+  const [couldStretch, setCouldStretch] = useState(canStretch)
+  if (couldStretch !== canStretch) {
+    setCouldStretch(canStretch)
+    if (!canStretch) setStretch(null)
+  }
+
+  /** Tire une poignée : la fenêtre s'agrandit par-dessus les blocs voisins (jamais plus petite que le bloc). */
+  const startStretch =
+    (axis: StretchAxis) =>
+    (event: React.PointerEvent<HTMLElement>): void => {
+      if (event.button !== 0 || !edge) return
+      event.preventDefault()
+      const target = event.currentTarget
+      target.setPointerCapture(event.pointerId)
+      const start = { x: event.clientX, y: event.clientY }
+      const base = { width: edge.width, height: edge.height }
+      const { block } = live.current
+      const onMove = (move: PointerEvent): void => {
+        const width = axis === 'y' ? base.width : base.width + move.clientX - start.x
+        const height = axis === 'x' ? base.height : base.height + move.clientY - start.y
+        setStretch({
+          width: Math.round(Math.min(Math.max(block.width, width), window.innerWidth - edge.x)),
+          height: Math.round(Math.min(Math.max(block.height, height), window.innerHeight - edge.y))
+        })
+      }
+      const onUp = (): void => {
+        target.removeEventListener('pointermove', onMove)
+        target.removeEventListener('pointerup', onUp)
+        target.removeEventListener('pointercancel', onUp)
+      }
+      target.addEventListener('pointermove', onMove)
+      target.addEventListener('pointerup', onUp)
+      target.addEventListener('pointercancel', onUp)
+    }
 
   // Les barres de défilement suivent la partie affichée (glisser, clic gauche + droit…)
   const scrolledTo = useRef<PanOffset>(ORIGIN)
@@ -200,6 +345,24 @@ export function DesktopAppHost({
       setDragOffset(null)
     }, SCROLL_COMMIT_MS)
   }
+
+  // Molette au-dessus de la fenêtre : la page défile. Clic dans l'application : bloc actif.
+  useEffect(() => {
+    if (!active) return
+    const blockId = blockIdOf(ref.current)
+    if (!blockId) return
+    const stopWheel = window.tessera.desktopApps.onWheel((event) => {
+      if (event.hostId === hostId) scrollPage(event.deltaY)
+    })
+    const stopActivate = window.tessera.desktopApps.onActivate((activated) => {
+      if (activated === hostId) setActiveBlock(blockId)
+      else if (useActiveBlockStore.getState().activeId === blockId) setActiveBlock(null)
+    })
+    return () => {
+      stopWheel()
+      stopActivate()
+    }
+  }, [active, hostId])
 
   // Clic gauche + droit sur la fenêtre (détecté par l'hébergeur des cadres) : le contenu suit
   // la souris, comme quand on glisse la barre du bloc
@@ -363,6 +526,34 @@ export function DesktopAppHost({
           {t('desktopApps.panHint')}
         </span>
       )}
+      {canStretch &&
+        edge &&
+        createPortal(
+          <>
+            <div
+              className={styles.stretchX}
+              data-stretch-handle
+              title={t('desktopApps.stretchHint')}
+              style={{ left: edge.x + edge.width, top: edge.y, height: edge.height }}
+              onPointerDown={startStretch('x')}
+            />
+            <div
+              className={styles.stretchY}
+              data-stretch-handle
+              title={t('desktopApps.stretchHint')}
+              style={{ left: edge.x, top: edge.y + edge.height, width: edge.width }}
+              onPointerDown={startStretch('y')}
+            />
+            <div
+              className={styles.stretchXY}
+              data-stretch-handle
+              title={t('desktopApps.stretchHint')}
+              style={{ left: edge.x + edge.width, top: edge.y + edge.height }}
+              onPointerDown={startStretch('xy')}
+            />
+          </>,
+          document.body
+        )}
     </div>
   )
 }

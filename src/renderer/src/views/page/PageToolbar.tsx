@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Check, Maximize, Pencil, Plus, Rows3, Trash2 } from 'lucide-react'
+import { Check, LayoutDashboard, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { MAIN_PAGE_ID, type DashboardPage } from '@shared/dashboard'
+import { MAIN_PAGE_ID, type DashboardPage, type LayoutMode } from '@shared/dashboard'
 import { PageHeader } from '../../components/PageHeader'
 import { Button } from '../../components/ui/Button'
-import { SegmentedControl } from '../../components/ui/SegmentedControl'
+import { Switch } from '../../components/ui/Switch'
 import { usePageName } from '../../hooks/usePageName'
 import { useDashboardStore } from '../../stores/dashboard'
 import { useNavigationStore } from '../../stores/navigation'
@@ -16,15 +16,23 @@ const CONFIRM_DELAY_MS = 4000
 interface PageToolbarProps {
   page: DashboardPage
   editing: boolean
+  /** Disposition affichée (« Ajuster » range celle-ci). */
+  mode: LayoutMode
   onAddWidget: () => void
 }
 
 /** En-tête d'une page : titre et bouton « Modifier », ou outils du mode édition. */
-export function PageToolbar({ page, editing, onAddWidget }: PageToolbarProps): React.JSX.Element {
+export function PageToolbar({
+  page,
+  editing,
+  mode,
+  onAddWidget
+}: PageToolbarProps): React.JSX.Element {
   const { t } = useTranslation()
   const name = usePageName(page)
   const renamePage = useDashboardStore((state) => state.renamePage)
-  const setFitMode = useDashboardStore((state) => state.setFitMode)
+  const setAutoArrange = useDashboardStore((state) => state.setAutoArrange)
+  const arrangePage = useDashboardStore((state) => state.arrangePage)
   const deletePage = useDashboardStore((state) => state.deletePage)
   const navigate = useNavigationStore((state) => state.navigate)
   const setEditing = useNavigationStore((state) => state.setEditing)
@@ -69,15 +77,22 @@ export function PageToolbar({ page, editing, onAddWidget }: PageToolbarProps): R
         />
       }
     >
-      <SegmentedControl
-        aria-label={t('pages.fitMode.label')}
-        value={page.fitMode}
-        onChange={(fitMode) => setFitMode(page.id, fitMode)}
-        options={[
-          { value: 'fit', label: t('pages.fitMode.fit'), icon: Maximize },
-          { value: 'scroll', label: t('pages.fitMode.scroll'), icon: Rows3 }
-        ]}
-      />
+      <Button
+        icon={LayoutDashboard}
+        title={t('pages.arrange.hint')}
+        disabled={page.autoArrange}
+        onClick={() => arrangePage(page.id, mode)}
+      >
+        {t('pages.arrange.label')}
+      </Button>
+      <label className={styles.autoArrange} title={t('pages.autoArrange.hint')}>
+        <Switch
+          aria-label={t('pages.autoArrange.label')}
+          checked={page.autoArrange}
+          onChange={(value) => setAutoArrange(page.id, value)}
+        />
+        {t('pages.autoArrange.label')}
+      </label>
       <Button icon={Plus} onClick={onAddWidget}>
         {t('pages.addBlock')}
       </Button>

@@ -66,6 +66,16 @@ export interface HostRect {
    * décalage depuis le coin haut gauche de la fenêtre.
    */
   offset?: { x: number; y: number }
+  /**
+   * Fenêtre étirée par l'utilisateur au-delà de son bloc (momentanément) : son cadre passe
+   * au-dessus des autres blocs et applications.
+   */
+  raised?: boolean
+  /**
+   * Bloc d'une page qui défile (hors mode édition) : la molette au-dessus de la fenêtre fait
+   * défiler la page, sauf après un clic dans l'application.
+   */
+  pageWheel?: boolean
 }
 
 /**

@@ -42,3 +42,55 @@
 .grid[data-editing='true'] :global(.react-grid-item.react-draggable-dragging) {
   cursor: grabbing;
 }
+
+/* ---------- Aperçu d'un déplacement : rien ne bouge avant le relâchement ---------- */
+
+/* Case où le bloc tenu sera posé : cadre plein, à la couleur d'accent */
+.grid[data-moving='true'] :global(.react-grid-item.react-grid-placeholder) {
+  opacity: 0.22;
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+/* Bloc tenu : au-dessus des autres, un peu transparent pour laisser voir ceux qui vont bouger */
+.grid :global(.react-grid-item.react-draggable-dragging),
+.grid :global(.react-grid-item.resizing) {
+  z-index: 3;
+  opacity: 0.8;
+}
+
+/* Blocs qui vont bouger : assombris à leur place actuelle */
+.grid :global(.react-grid-item)[data-displaced='true'] {
+  opacity: 0.45;
+  transition: opacity 120ms;
+}
+
+.preview {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Future place d'un bloc qui va s'écarter */
+.futureSpot {
+  position: absolute;
+  border: 2px dashed var(--color-accent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+
+/* Mode « Automatique » : place finale du bloc tenu (après rangement) */
+.finalSpot {
+  position: absolute;
+  border: 2px solid var(--color-accent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
+
+/* Bloc actif (clic dedans) : la molette fait défiler son contenu, pas la page */
+.grid :global(.react-grid-item)[data-active='true'] {
+  outline: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-lg);
+}

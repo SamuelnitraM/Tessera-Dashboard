@@ -149,3 +149,26 @@ contextBridge.executeInMainWorld({
     }
   }
 })
+
+// Molette : hors du bloc actif (pas encore cliqué), elle fait défiler la page de Tessera, qui
+// le décide et le dit ici. Un clic dans la page rend son bloc actif.
+let wheelToHost = false
+ipcRenderer.on(WebviewChannels.wheelMode, (_event, value: boolean) => {
+  wheelToHost = value === true
+})
+window.addEventListener(
+  'wheel',
+  (event) => {
+    if (!wheelToHost) return
+    event.preventDefault()
+    const unit = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? window.innerHeight : 1
+    ipcRenderer.sendToHost(WebviewChannels.wheel, event.deltaY * unit)
+  },
+  { passive: false, capture: true }
+)
+window.addEventListener('pointerdown', () => ipcRenderer.sendToHost(WebviewChannels.pointerDown), {
+  capture: true
+})
+// Souris sortie de la page : seule la page le sait (pour Tessera, elle « quitte » l'élément
+// dès qu'elle entre dans la page web)
+document.addEventListener('mouseleave', () => ipcRenderer.sendToHost(WebviewChannels.pointerLeave))
