@@ -229,6 +229,23 @@
   width: 17rem;
 }
 
+/* Horloge de la barre : calendrier puis horloges du monde, à la même largeur */
+.dateTimePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 20rem;
+}
+
+.dateTimePanel > [class] {
+  width: auto;
+}
+
+.dateTimePanel > [class] + [class] {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border);
+}
+
 .longDate {
   margin: 0 0 0.5rem;
   color: var(--color-text);
@@ -407,11 +424,12 @@
 
 /* ---------- Minuteur ---------- */
 
+/* Même largeur que la Concentration : le panneau ne change pas de taille d'un mode à l'autre */
 .timer {
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
-  width: 16rem;
+  width: 19.5rem;
 }
 
 .presets {

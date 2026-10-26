@@ -5,6 +5,7 @@ import { interpolate } from '@shared/i18n'
 import { TESSERA_SOURCE } from '@shared/notifications'
 import type { UpdateState } from '@shared/updates'
 import { getTranslation } from './i18n'
+import { logApp } from './log'
 import { notify } from './notifications'
 
 /**
@@ -104,6 +105,7 @@ export function initUpdater(): void {
       setState({ status: 'idle', checkedAt })
       return
     }
+    logApp(`[mises à jour] ${error.message}`)
     setState({ status: 'error', message: error.message.split('\n')[0], checkedAt })
   })
 

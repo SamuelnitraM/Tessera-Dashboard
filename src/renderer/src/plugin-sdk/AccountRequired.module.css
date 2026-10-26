@@ -1,0 +1,125 @@
+/* Bloc sans compte : au centre du bloc */
+.root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Bloc trop petit : défile depuis le haut, sans rien couper */
+  justify-content: safe center;
+  gap: 0.625rem;
+  min-height: 0;
+  padding: 1rem;
+  overflow-y: auto;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.icon {
+  color: var(--color-text-muted);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 42ch;
+}
+
+.text p,
+.root > p {
+  margin: 0;
+}
+
+.title {
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.message {
+  max-width: 42ch;
+}
+
+.error {
+  max-width: 42ch;
+  color: var(--color-danger);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pending {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.link {
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 0.75rem;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Bandeau : texte à gauche, boutons à droite */
+.root[data-compact] {
+  flex: none;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  overflow: visible;
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+/* Bandeau d'un compte à reconnecter */
+.root[data-compact][data-error] {
+  background: var(--color-danger-soft);
+}
+
+.root[data-compact] .text {
+  flex: 1 1 14rem;
+  max-width: none;
+}
+
+.root[data-compact] .title {
+  font-size: 0.8125rem;
+}
+
+.root[data-compact] .actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.root[data-compact] > p {
+  flex-basis: 100%;
+}
+
+.actions .small {
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}

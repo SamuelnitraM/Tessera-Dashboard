@@ -38,7 +38,7 @@ import { isWebApp } from '@shared/user-apps'
 import { appPartition, SHARED_WEB_PARTITION } from '@shared/web-apps'
 import { WebviewChannels } from '@shared/webview-channels'
 import { getAppIcons } from './app-icon'
-import { getTranslation } from './i18n'
+import { errorText, getTranslation } from './i18n'
 import { JsonStore } from './json-store'
 import { hasPermission } from './plugins/manifests'
 import { getSettings, updateSettings } from './settings-store'
@@ -289,7 +289,9 @@ export function notifyFromPlugin(
   input: NotifyInput
 ): Promise<TesseraNotification | null> {
   if (!hasPermission(pluginId, 'notifications')) {
-    throw new Error(`L'extension « ${pluginId} » n'a pas la permission « notifications ».`)
+    throw new Error(
+      errorText('common', 'missingPermission', { plugin: pluginId, permission: 'notifications' })
+    )
   }
   return notify(pluginSource(pluginId), {
     title: input?.title,

@@ -1,0 +1,44 @@
+/* « Se connecter avec… » aux couleurs des fournisseurs */
+.brandButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  height: 2.5rem;
+  padding: 0 1rem;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 999px;
+  color: #1f1f1f;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.brandButton:hover:not(:disabled) {
+  background: #f6f8fc;
+}
+
+.brandButton[data-brand='twitch'] {
+  background: #9146ff;
+  border-color: #9146ff;
+  border-radius: 6px;
+  color: #ffffff;
+}
+
+.brandButton[data-brand='twitch']:hover:not(:disabled) {
+  background: #772ce8;
+}
+
+.brandButton[data-brand='spotify'] {
+  background: #121212;
+  border-color: #121212;
+  color: #ffffff;
+}
+
+.brandButton[data-brand='spotify']:hover:not(:disabled) {
+  background: #2a2a2a;
+}
+
+.brandButton:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

@@ -6,7 +6,7 @@ import { GRID, type DashboardPage, type GridItem, type LayoutMode } from '@share
 import {
   HEADER_WIDGET_DRAG,
   HEADER_WIDGETS,
-  toolboxWidgetType,
+  headerWidgetBlock,
   type HeaderWidget
 } from '@shared/header-bar'
 import {
@@ -180,7 +180,8 @@ export function DashboardGrid({
   /** Case sous la souris pour un widget de la barre glissé (taille par défaut de son bloc). */
   const spotAt = (event: React.DragEvent): GridItem => {
     const box = root.current!.getBoundingClientRect()
-    const size = getDefaultSize(toolboxWidgetType(getDraggedWidget() ?? 'datetime'))
+    const block = headerWidgetBlock(getDraggedWidget() ?? 'datetime')
+    const size = block.size ?? getDefaultSize(block.type)
     const w = Math.min(size.w, cols)
     return {
       i: '',
@@ -208,11 +209,13 @@ export function DashboardGrid({
     if (!acceptsDrop(event) || !HEADER_WIDGETS.includes(widget)) return
     event.preventDefault()
     const spot = spotAt(event)
+    const block = headerWidgetBlock(widget)
     addWidget(
       page.id,
-      toolboxWidgetType(widget),
-      {},
-      mode === 'wide' ? { x: spot.x, y: spot.y } : undefined
+      block.type,
+      block.config,
+      mode === 'wide' ? { x: spot.x, y: spot.y } : undefined,
+      block.size
     )
   }
 

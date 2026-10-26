@@ -11,6 +11,7 @@ import { builtInSpotifyClientId } from '../auth/clients'
 import { apiFetch, createTokenSource, type TokenSource } from '../auth/http'
 import { authorize, type OAuthClient } from '../auth/oauth'
 import { setAccountSecret } from '../auth/secrets'
+import { errorText } from '../i18n'
 import { JsonStore } from '../json-store'
 
 /**
@@ -84,7 +85,7 @@ export function spotifyState(): SpotifyState {
 export function setClientId(id: unknown): SpotifyState {
   const value = typeof id === 'string' ? id.trim() : ''
   if (value && !/^[a-f0-9]{32}$/i.test(value))
-    throw new Error('Identifiant invalide (32 caractères).')
+    throw new Error(errorText('spotify', 'invalidClientId'))
   store.set({ ...store.get(), clientId: value })
   token = null
   return spotifyState()
@@ -172,7 +173,7 @@ export async function spotifyData(kind: SpotifyKind, value: unknown): Promise<Sp
   }
   if (kind === 'playlist') {
     if (typeof value !== 'string' || !/^[A-Za-z0-9]+$/.test(value))
-      throw new Error('Playlist invalide.')
+      throw new Error(errorText('spotify', 'invalidPlaylist'))
     const data = await get<{ items: { track: Track | null }[] }>(
       `/playlists/${value}/tracks?limit=100`
     )
@@ -263,7 +264,7 @@ export async function openInSpotify(uri: unknown): Promise<void> {
     typeof uri !== 'string' ||
     !/^spotify:(track|album|artist|playlist|show|episode):[A-Za-z0-9]+$/.test(uri)
   ) {
-    throw new Error('Adresse Spotify invalide.')
+    throw new Error(errorText('spotify', 'invalidUri'))
   }
   await shell.openExternal(uri)
 }

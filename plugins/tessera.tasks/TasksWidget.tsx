@@ -12,10 +12,10 @@ import {
   X
 } from 'lucide-react'
 import {
-  Button,
+  AccountRequired,
   ConfirmDialog,
-  EDIT_ACTIVE,
   mailErrorMessage,
+  needsReconnect,
   openContextMenu,
   openMenuBelow,
   useLanguage,
@@ -40,7 +40,6 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
   const [state, setState] = useState<TasksState | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [connecting, setConnecting] = useState(false)
   const [deleting, setDeleting] = useState<TaskList | null>(null)
   const view = config.view ?? 'list'
   const showDone = config.showDone ?? false
@@ -106,15 +105,6 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
         previousListId
       )
     )
-
-  const connect = (): void => {
-    setConnecting(true)
-    window.tessera.accounts
-      .connectGoogle(['tasks'])
-      .then(() => apply(api.state()))
-      .catch((failure: unknown) => setError(mailErrorMessage(failure)))
-      .finally(() => setConnecting(false))
-  }
 
   /** Nouvelle liste en cours de saisie : locale (`null`) ou dans un compte Google. */
   const [newListFor, setNewListFor] = useState<string | null | undefined>(undefined)
@@ -223,14 +213,26 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
       {error && <p className={styles.error}>{error}</p>}
       {state?.accounts
         .filter((account) => account.error)
-        .map((account) => (
-          <p key={account.id} className={styles.error}>
-            {t('accountError', {
-              email: account.email,
-              message: mailErrorMessage(new Error(`mail-error:${account.error}`))
-            })}
-          </p>
-        ))}
+        .map((account) =>
+          // Compte Google à reconnecter : sur place ; autre erreur (réseau…) : le message
+          needsReconnect(account.error) ? (
+            <AccountRequired
+              key={account.id}
+              compact
+              service="tasks"
+              error={account.error}
+              account={account.email}
+              onConnected={() => apply(api.state())}
+            />
+          ) : (
+            <p key={account.id} className={styles.error}>
+              {t('accountError', {
+                email: account.email,
+                message: mailErrorMessage(new Error(`mail-error:${account.error}`))
+              })}
+            </p>
+          )
+        )}
 
       {state === null ? (
         <p className={styles.empty}>{t('loading')}</p>
@@ -262,19 +264,14 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
         </div>
       )}
 
+      {/* Listes locales utilisables sans compte : simple bandeau en bas du bloc */}
       {state && state.accounts.length === 0 && (
-        <div {...EDIT_ACTIVE} className={`${styles.connect} no-drag`}>
-          <span>{t('googleHint')}</span>
-          <Button disabled={connecting} onClick={connect}>
-            {connecting ? t('waiting') : t('connectGoogle')}
-          </Button>
-          {connecting && (
-            // Page de connexion abandonnée : la connexion en attente est annulée
-            <Button variant="ghost" onClick={() => void window.tessera.accounts.cancel()}>
-              {t('cancel')}
-            </Button>
-          )}
-        </div>
+        <AccountRequired
+          compact
+          service="tasks"
+          className={styles.connect}
+          onConnected={() => apply(api.state())}
+        />
       )}
 
       <ConfirmDialog

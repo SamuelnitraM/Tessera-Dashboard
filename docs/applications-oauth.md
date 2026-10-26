@@ -64,7 +64,7 @@ Diffusion large (plus de 100 comptes) : YouTube demande une validation simple ; 
 
 <a id="spotify"></a>
 
-Spotify limite chaque application en mode développement à 25 comptes, ajoutés à la main : chaque utilisateur crée donc en général la sienne et colle son identifiant dans le bloc Spotify (le bloc l'explique). Un identifiant intégré (`oauth-clients.local.json`) sert seulement aux comptes ajoutés à cette application.
+Spotify limite chaque application en mode développement à 25 comptes, ajoutés à la main : chaque utilisateur crée donc en général la sienne et colle son identifiant dans Paramètres → Comptes → Avancé (« Spotify : Client ID », avec ces étapes en résumé). Un identifiant intégré (`oauth-clients.local.json`) sert seulement aux comptes ajoutés à cette application.
 
 1. [Tableau de bord Spotify for Developers](https://developer.spotify.com/dashboard) → **Create app** :
    - nom et description : « Tessera Dashboard » ;

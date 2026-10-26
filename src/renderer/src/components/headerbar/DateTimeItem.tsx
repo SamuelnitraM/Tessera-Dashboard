@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useResolvedLanguage } from '../../stores/settings'
 import { HeaderPopover } from './HeaderPopover'
+import { WorldClocks } from './WorldClocks'
 import styles from './HeaderBar.module.css'
 
 /** Heure courante, mise à jour à chaque changement de minute. */
@@ -37,7 +38,10 @@ function isoWeek(date: Date): number {
   return Math.ceil(((day.getTime() - yearStart) / 86_400_000 + 1) / 7)
 }
 
-/** Date et heure dans la barre ; un clic déplie la date complète et un calendrier du mois. */
+/**
+ * Horloge de la barre : l'heure et la date ; un clic déplie la date complète, le calendrier du
+ * mois et les horloges du monde.
+ */
 export function DateTimeItem(): React.JSX.Element {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
@@ -57,12 +61,27 @@ export function DateTimeItem(): React.JSX.Element {
         </>
       }
     >
-      {() => <Calendar now={now} language={language} />}
+      {() => (
+        <div className={styles.dateTimePanel}>
+          <Calendar now={now} language={language} />
+          <WorldClocks />
+        </div>
+      )}
     </HeaderPopover>
   )
 }
 
-function Calendar({ now, language }: { now: Date; language: string }): React.JSX.Element {
+/** Calendrier du mois (semaines ISO), aussi affiché par le bloc Horloge. */
+export function Calendar({
+  now,
+  language,
+  longDate = true
+}: {
+  now: Date
+  language: string
+  /** Date complète au-dessus du mois (le bloc l'affiche déjà sous l'heure). */
+  longDate?: boolean
+}): React.JSX.Element {
   const { t } = useTranslation()
   const [month, setMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1))
 
@@ -87,14 +106,16 @@ function Calendar({ now, language }: { now: Date; language: string }): React.JSX
 
   return (
     <div className={styles.calendar}>
-      <p className={styles.longDate}>
-        {now.toLocaleDateString(language, {
-          weekday: 'long',
-          day: 'numeric',
-          month: 'long',
-          year: 'numeric'
-        })}
-      </p>
+      {longDate && (
+        <p className={styles.longDate}>
+          {now.toLocaleDateString(language, {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+          })}
+        </p>
+      )}
       <div className={styles.calendarHeader}>
         <button
           type="button"
@@ -155,11 +176,4 @@ function Calendar({ now, language }: { now: Date; language: string }): React.JSX
       </table>
     </div>
   )
-}
-
-/** En bloc sur une page : le panneau du widget, sans le bouton de la barre. */
-export function DateTimeBlock(): React.JSX.Element {
-  const language = useResolvedLanguage()
-  const now = useNow()
-  return <Calendar now={now} language={language} />
 }

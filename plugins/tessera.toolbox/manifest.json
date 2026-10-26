@@ -14,26 +14,6 @@
   "category": "tools",
   "widgets": [
     {
-      "type": "datetime",
-      "name": {
-        "fr": "Date et heure",
-        "en": "Date and time"
-      },
-      "description": {
-        "fr": "Date du jour et calendrier du mois.",
-        "en": "Today’s date and the month calendar."
-      },
-      "icon": "clock",
-      "defaultSize": {
-        "w": 5,
-        "h": 6
-      },
-      "minSize": {
-        "w": 4,
-        "h": 5
-      }
-    },
-    {
       "type": "weather",
       "name": {
         "fr": "Météo",
@@ -160,17 +140,17 @@
         "en": "Timer"
       },
       "description": {
-        "fr": "Compte à rebours, avec notification à la fin.",
-        "en": "Countdown, with a notification at the end."
+        "fr": "Compte à rebours ou séances de Concentration (Pomodoro), avec notification à la fin.",
+        "en": "Countdown or Focus sessions (Pomodoro), with a notification at the end."
       },
       "icon": "timer",
       "defaultSize": {
-        "w": 5,
-        "h": 4
+        "w": 6,
+        "h": 6
       },
       "minSize": {
-        "w": 4,
-        "h": 3
+        "w": 5,
+        "h": 5
       }
     },
     {
@@ -187,46 +167,6 @@
       "defaultSize": {
         "w": 5,
         "h": 5
-      },
-      "minSize": {
-        "w": 4,
-        "h": 3
-      }
-    },
-    {
-      "type": "focus",
-      "name": {
-        "fr": "Concentration",
-        "en": "Focus"
-      },
-      "description": {
-        "fr": "Séances Pomodoro et Ne pas déranger.",
-        "en": "Pomodoro sessions and Do not disturb."
-      },
-      "icon": "brain",
-      "defaultSize": {
-        "w": 5,
-        "h": 5
-      },
-      "minSize": {
-        "w": 4,
-        "h": 4
-      }
-    },
-    {
-      "type": "clocks",
-      "name": {
-        "fr": "Horloges du monde",
-        "en": "World clocks"
-      },
-      "description": {
-        "fr": "L’heure dans les villes de ton choix.",
-        "en": "The time in the cities you choose."
-      },
-      "icon": "globe",
-      "defaultSize": {
-        "w": 5,
-        "h": 4
       },
       "minSize": {
         "w": 4,

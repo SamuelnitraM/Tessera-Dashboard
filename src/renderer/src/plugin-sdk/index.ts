@@ -386,6 +386,9 @@ export {
   type MenuAction
 } from '../stores/contextMenu'
 export { ConfirmDialog, type ConfirmAction } from '../components/ui/ConfirmDialog'
+/** Bloc sans compte, ou à reconnecter : « Se connecter avec… » sur place et « Gérer les comptes ». */
+export { AccountRequired, type AccountRequiredProps, type AccountService } from './AccountRequired'
+export { needsReconnect } from './accounts'
 export { Dialog } from '../components/ui/Dialog'
 export { SegmentedControl } from '../components/ui/SegmentedControl'
 export { Select } from '../components/ui/Select'

@@ -5,9 +5,12 @@ import { REPOSITORY_URL } from '@shared/app'
 import { GOOGLE_SERVICES, type AccountProviders, type GoogleService } from '@shared/accounts'
 import { CHECK_MINUTES, type MailAccount } from '@shared/mail'
 import { LIVE_CHECK_MINUTES } from '@shared/media'
+import type { SpotifyState } from '@shared/spotify'
+import { BrandButton } from '../../../components/ui/BrandButton'
 import { Button } from '../../../components/ui/Button'
 import { ConfirmDialog } from '../../../components/ui/ConfirmDialog'
 import { Select } from '../../../components/ui/Select'
+import { errorMessage } from '../../../plugin-sdk/errors'
 import { mailErrorMessage, useMailStore } from '../../../stores/mail'
 import { useMediaStatusStore } from '../../../stores/mediaStatus'
 import { useSettingsStore } from '../../../stores/settings'
@@ -15,11 +18,10 @@ import styles from '../settings.module.css'
 import { SettingRow, SettingsCard } from '../SettingRow'
 import { ClientIdInput, SecretInput } from './CredentialInputs'
 import { ImapDialog } from './ImapDialog'
-import { BrandButton } from './BrandButton'
 
 const ADVANCED_GUIDE = `${REPOSITORY_URL}/blob/main/docs/applications-oauth.md`
 
-type Connecting = 'google' | 'twitch' | null
+type Connecting = 'google' | 'twitch' | 'spotify' | null
 
 const SERVICE_NAMES: Record<GoogleService, string> = {
   gmail: 'Gmail',
@@ -29,7 +31,7 @@ const SERVICE_NAMES: Record<GoogleService, string> = {
 }
 
 /**
- * Comptes connectés : « Se connecter avec Google / Twitch » (page officielle dans
+ * Comptes connectés : « Se connecter avec Google / Twitch / Spotify » (page officielle dans
  * le navigateur, où l'on est souvent déjà connecté) et comptes de messagerie IMAP.
  */
 export function AccountsSection(): React.JSX.Element {
@@ -44,9 +46,13 @@ export function AccountsSection(): React.JSX.Element {
   const [services, setServices] = useState<GoogleService[]>(['gmail', 'youtube'])
   const [imapFor, setImapFor] = useState<MailAccount | 'new' | null>(null)
   const [toRemove, setToRemove] = useState<{ label: string; run: () => void } | null>(null)
+  const [spotify, setSpotify] = useState<SpotifyState | null>(null)
+  const [spotifyIdError, setSpotifyIdError] = useState<string | null>(null)
 
   const refreshProviders = (): void => void window.tessera.accounts.providers().then(setProviders)
   useEffect(refreshProviders, [settings.mail.googleClientId, settings.media.twitchClientId])
+  // Spotify : compte et identifiant gardés par son module (hors des réglages)
+  useEffect(() => void window.tessera.spotify.state().then(setSpotify), [])
 
   const run = async (
     provider: Exclude<Connecting, null>,
@@ -122,7 +128,7 @@ export function AccountsSection(): React.JSX.Element {
     ) : null
 
   const unavailable = (provider: Exclude<Connecting, null>): React.JSX.Element | null =>
-    providers && !providers.available[provider] ? (
+    (provider === 'spotify' ? spotify?.configured : providers?.available[provider]) === false ? (
       <p className={styles.cardIntro}>{t('settings.accounts.unavailable')}</p>
     ) : null
 
@@ -310,6 +316,52 @@ export function AccountsSection(): React.JSX.Element {
         {progress('twitch')}
       </SettingsCard>
 
+      {/* ---------- Spotify ---------- */}
+      <SettingsCard title="Spotify">
+        <p className={styles.cardIntro}>{t('settings.accounts.spotifyIntro')}</p>
+        {spotify?.user && (
+          <ul className={styles.appList}>
+            <li className={styles.appRow}>
+              <div className={styles.mailAccount}>
+                <strong>{spotify.user.name}</strong>
+              </div>
+              <div className={styles.appActions}>
+                <button
+                  type="button"
+                  className={styles.iconButton}
+                  data-danger
+                  title={t('settings.accounts.disconnect')}
+                  aria-label={t('settings.accounts.disconnect')}
+                  onClick={() =>
+                    setToRemove({
+                      label: spotify.user?.name ?? 'Spotify',
+                      run: () => void window.tessera.spotify.disconnect().then(setSpotify)
+                    })
+                  }
+                >
+                  <LogOut size={16} aria-hidden />
+                </button>
+              </div>
+            </li>
+          </ul>
+        )}
+        <div className={styles.connectBox}>
+          <BrandButton
+            brand="spotify"
+            disabled={connecting !== null || spotify?.configured === false}
+            onClick={() =>
+              void run('spotify', () => window.tessera.spotify.connect().then(setSpotify))
+            }
+          >
+            {spotify?.user
+              ? t('settings.accounts.reconnectSpotify')
+              : t('settings.accounts.withSpotify')}
+          </BrandButton>
+        </div>
+        {unavailable('spotify')}
+        {progress('spotify')}
+      </SettingsCard>
+
       {/* ---------- Autres messageries ---------- */}
       <SettingsCard title={t('settings.accounts.imapTitle')}>
         <p className={styles.cardIntro}>{t('settings.accounts.imapIntro')}</p>
@@ -393,6 +445,27 @@ export function AccountsSection(): React.JSX.Element {
               value={settings.media.twitchClientId}
               onSave={(twitchClientId) => void update({ media: { twitchClientId } })}
             />
+          </label>
+          <label className={styles.mailField}>
+            <span>{t('settings.accounts.spotifyClientId')}</span>
+            <ClientIdInput
+              value={spotify?.ownClientId ?? ''}
+              onSave={(clientId) =>
+                void window.tessera.spotify
+                  .setClientId(clientId)
+                  .then((next) => {
+                    setSpotify(next)
+                    setSpotifyIdError(null)
+                  })
+                  .catch((failure: unknown) => setSpotifyIdError(errorMessage(failure)))
+              }
+            />
+            {spotifyIdError && <span className={styles.extensionError}>{spotifyIdError}</span>}
+            {spotify && (
+              <span className={styles.cardIntro}>
+                {t('settings.accounts.spotifyHelp', { uri: spotify.redirectUri })}
+              </span>
+            )}
           </label>
         </div>
       </details>

@@ -14,12 +14,13 @@ import {
   X
 } from 'lucide-react'
 import {
+  AccountRequired,
   Button,
   closeMediaView,
-  EDIT_ACTIVE,
   MEDIA_REFERRER,
   MediaView,
   mailErrorMessage,
+  needsReconnect,
   openContextMenu,
   openMediaSettings,
   parseMediaLink,
@@ -301,11 +302,12 @@ export function YouTubeWidget({
             <Avatar account={account} />
           </button>
         ) : (
+          // Retour à l'accueil, où se trouve la connexion
           <button
             type="button"
             className={styles.signIn}
             title={t('signInHint')}
-            onClick={openMediaSettings}
+            onClick={() => openTab('home')}
           >
             <LogIn size={14} aria-hidden />
             {t('signIn')}
@@ -413,20 +415,9 @@ function Welcome({ onPlay }: { onPlay: (link: string, title: string) => void }):
     onPlay(input.trim(), 'YouTube')
   }
   return (
-    <form className={styles.state} onSubmit={submit}>
-      <SquarePlay size={26} aria-hidden />
-      <p>{t('welcome')}</p>
-      <Button
-        {...EDIT_ACTIVE}
-        className="no-drag"
-        variant="primary"
-        icon={LogIn}
-        onClick={openMediaSettings}
-      >
-        {t('signIn')}
-      </Button>
+    <AccountRequired service="youtube">
       <p className={styles.or}>{t('orPasteLink')}</p>
-      <div className={styles.linkRow}>
+      <form className={styles.linkRow} onSubmit={submit}>
         <input
           className={styles.input}
           value={input}
@@ -441,9 +432,9 @@ function Welcome({ onPlay }: { onPlay: (link: string, title: string) => void }):
         <Button type="submit" icon={Play} disabled={!input.trim()}>
           {t('play')}
         </Button>
-      </div>
+      </form>
       {invalid && <p className={styles.error}>{t('invalidLink')}</p>}
-    </form>
+    </AccountRequired>
   )
 }
 
@@ -455,15 +446,13 @@ function AccountGate({
   account: Account | null
   children: React.ReactNode
 }): React.JSX.Element {
-  const t = usePluginTranslation()
-  if (account && account.error !== 'auth') return <>{children}</>
+  if (account && !needsReconnect(account.error)) return <>{children}</>
   return (
-    <div className={styles.state}>
-      <p>{account ? t('expired') : t('connect')}</p>
-      <Button {...EDIT_ACTIVE} className="no-drag" icon={LogIn} onClick={openMediaSettings}>
-        {account ? t('reconnect') : t('signIn')}
-      </Button>
-    </div>
+    <AccountRequired
+      service="youtube"
+      error={account?.error ?? undefined}
+      account={account?.email || account?.name}
+    />
   )
 }
 

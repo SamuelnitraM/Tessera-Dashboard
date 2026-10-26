@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react'
-import styles from '../settings.module.css'
+import styles from './BrandButton.module.css'
 
-type Brand = 'google' | 'twitch'
+export type Brand = 'google' | 'twitch' | 'spotify'
 
 /** Logos officiels simplifiés (SVG en ligne, aucune ressource téléchargée). */
 const LOGOS: Record<Brand, React.JSX.Element> = {
@@ -32,6 +32,18 @@ const LOGOS: Record<Brand, React.JSX.Element> = {
         d="M4.3 2 3 5.4v13.3h4.6V21h2.6l2.3-2.3h3.6l4.9-4.9V2H4.3zm15 10.9-2.8 2.8H12l-2.3 2.3v-2.3H5.8V3.8h13.5v9.1zM16.2 7v5h-1.8V7h1.8zm-4.9 0v5H9.5V7h1.8z"
       />
     </svg>
+  ),
+  spotify: (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden>
+      <circle cx="12" cy="12" r="12" fill="#1ed760" />
+      <path
+        d="M6.4 9.1c3.7-1.1 8-.8 11.3 1.1M6.9 12.4c3.1-.9 6.6-.6 9.3 1M7.5 15.5c2.5-.7 5.1-.4 7.2.8"
+        fill="none"
+        stroke="#121212"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }
 
@@ -39,10 +51,16 @@ const LOGOS: Record<Brand, React.JSX.Element> = {
 export function BrandButton({
   brand,
   children,
+  className,
   ...props
 }: { brand: Brand } & ButtonHTMLAttributes<HTMLButtonElement>): React.JSX.Element {
   return (
-    <button type="button" className={styles.brandButton} data-brand={brand} {...props}>
+    <button
+      type="button"
+      className={[styles.brandButton, className].filter(Boolean).join(' ')}
+      data-brand={brand}
+      {...props}
+    >
       {LOGOS[brand]}
       {children}
     </button>

@@ -6,6 +6,7 @@ import { ipcMain, type WebContents } from 'electron'
 import { spawn as spawnPty, type IPty } from '@lydell/node-pty'
 import { BuiltinChannels as C } from '@shared/builtin-ipc'
 import type { TerminalShell } from '@shared/terminal'
+import { errorText } from '../i18n'
 
 /**
  * Module Terminal : vraies consoles Windows (ConPTY, par node-pty) pour PowerShell, cmd,
@@ -83,9 +84,9 @@ export function createSession(
   rows: unknown
 ): string {
   shells ??= findShells()
-  if (sessions.size >= MAX_SESSIONS) throw new Error('Trop de terminaux ouverts.')
+  if (sessions.size >= MAX_SESSIONS) throw new Error(errorText('terminal', 'tooMany'))
   const shell = shells.find((item) => item.id === shellId) ?? shells[0]
-  if (!shell) throw new Error('Aucun shell trouvé.')
+  if (!shell) throw new Error(errorText('terminal', 'noShell'))
   // Identifiant unique : un onglet qui garde l'ancien après un redémarrage ne se branche jamais
   // sur le shell d'un autre onglet
   const id = `term-${randomUUID()}`

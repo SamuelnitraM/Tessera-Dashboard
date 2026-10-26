@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
-import { Download, ExternalLink, RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Copy, Download, ExternalLink, FileText, FolderOpen, RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { REPOSITORY_URL } from '@shared/app'
-import type { AppInfo } from '@shared/ipc'
+import type { AppInfo, LogName } from '@shared/ipc'
 import type { UpdateState } from '@shared/updates'
 import { Button } from '../../../components/ui/Button'
+import { Dialog } from '../../../components/ui/Dialog'
+import { SegmentedControl } from '../../../components/ui/SegmentedControl'
 import logo from '@resources/icon.png'
 import styles from '../settings.module.css'
 import { SettingsCard } from '../SettingRow'
@@ -50,7 +52,102 @@ export function AboutSection(): React.JSX.Element {
         </a>
       </SettingsCard>
       <UpdatesCard />
+      <LogsCard />
     </>
+  )
+}
+
+/** Journaux de Tessera (erreurs, applications installées), pour comprendre un problème. */
+function LogsCard(): React.JSX.Element {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+
+  return (
+    <SettingsCard title={t('settings.about.logs.title')}>
+      <p className={styles.cardIntro}>{t('settings.about.logs.intro')}</p>
+      <div className={styles.installedActions}>
+        <Button icon={FileText} onClick={() => setOpen(true)}>
+          {t('settings.about.logs.show')}
+        </Button>
+        <Button icon={FolderOpen} onClick={() => void window.tessera.logs.openFolder()}>
+          {t('settings.about.logs.openFolder')}
+        </Button>
+      </div>
+      <Dialog
+        title={t('settings.about.logs.title')}
+        open={open}
+        wide
+        onClose={() => setOpen(false)}
+      >
+        <LogViewer />
+      </Dialog>
+    </SettingsCard>
+  )
+}
+
+function LogViewer(): React.JSX.Element {
+  const { t } = useTranslation()
+  const [name, setName] = useState<LogName>('tessera')
+  const [text, setText] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const view = useRef<HTMLPreElement>(null)
+
+  const load = useCallback((log: LogName): void => {
+    void window.tessera.logs.read(log).then((content) => {
+      setText(content)
+      // Les dernières lignes d'abord en vue
+      requestAnimationFrame(() => {
+        if (view.current) view.current.scrollTop = view.current.scrollHeight
+      })
+    })
+  }, [])
+
+  useEffect(() => load(name), [load, name])
+
+  useEffect(() => {
+    if (!copied) return
+    const timer = window.setTimeout(() => setCopied(false), 1500)
+    return () => window.clearTimeout(timer)
+  }, [copied])
+
+  return (
+    <div className={styles.logViewer}>
+      <div className={styles.logToolbar}>
+        <SegmentedControl
+          value={name}
+          aria-label={t('settings.about.logs.title')}
+          options={[
+            { value: 'tessera', label: t('settings.about.logs.names.tessera') },
+            { value: 'applications', label: t('settings.about.logs.names.applications') }
+          ]}
+          onChange={setName}
+        />
+        <span className={styles.logActions}>
+          <Button variant="ghost" icon={RefreshCw} onClick={() => load(name)}>
+            {t('settings.about.logs.refresh')}
+          </Button>
+          <Button
+            variant="ghost"
+            icon={Copy}
+            disabled={!text}
+            onClick={() => {
+              void navigator.clipboard.writeText(text ?? '')
+              setCopied(true)
+            }}
+          >
+            {copied ? t('settings.about.logs.copied') : t('settings.about.logs.copy')}
+          </Button>
+        </span>
+      </div>
+      <p className={styles.cardIntro}>{t(`settings.about.logs.descriptions.${name}`)}</p>
+      {text === '' ? (
+        <p className={styles.logEmpty}>{t('settings.about.logs.empty')}</p>
+      ) : (
+        <pre ref={view} className={styles.logText} tabIndex={0}>
+          {text}
+        </pre>
+      )}
+    </div>
   )
 }
 

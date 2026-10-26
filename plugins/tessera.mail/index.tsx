@@ -7,10 +7,6 @@ export default definePlugin({
   },
   translations: {
     fr: {
-      noAccount: 'Tes mails ici',
-      noAccountText:
-        'Connecte-toi avec Google ou ton adresse mail pour voir tes mails dans ce bloc.',
-      addAccount: 'Se connecter',
       account: 'Compte',
       unread: '{{count}} non lus',
       refresh: 'Actualiser',
@@ -38,7 +34,6 @@ export default definePlugin({
       filters: { label: 'Afficher', all: 'Tous', unread: 'Non lus', read: 'Lus' },
       loadMore: 'Mails plus anciens',
       reconnect: 'Reconnecter',
-      openSettings: 'Paramètres → Comptes',
       retry: 'Réessayer',
       noSubject: '(sans objet)',
       unknownSender: '(expéditeur inconnu)',
@@ -105,9 +100,6 @@ export default definePlugin({
       }
     },
     en: {
-      noAccount: 'Your emails here',
-      noAccountText: 'Sign in with Google or your email address to see your emails in this block.',
-      addAccount: 'Sign in',
       account: 'Account',
       unread: '{{count}} unread',
       refresh: 'Refresh',
@@ -135,7 +127,6 @@ export default definePlugin({
       filters: { label: 'Show', all: 'All', unread: 'Unread', read: 'Read' },
       loadMore: 'Older emails',
       reconnect: 'Reconnect',
-      openSettings: 'Settings → Accounts',
       retry: 'Try again',
       noSubject: '(no subject)',
       unknownSender: '(unknown sender)',

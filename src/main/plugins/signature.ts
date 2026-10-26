@@ -5,6 +5,7 @@ import {
   SIGNATURE_FILE,
   signatureMessage
 } from '@shared/module-signature'
+import { errorText } from '../i18n'
 import { UnsafePackageError } from './zip'
 
 /** Éditeur d'un paquet signé : sa clé publique et l'empreinte affichée à l'utilisateur. */
@@ -31,18 +32,21 @@ export function verifyPackageSignature(files: Map<string, Buffer>): PackagePubli
   } catch {
     signature = null
   }
-  if (!signature) throw new UnsafePackageError(`${SIGNATURE_FILE} illisible.`)
+  if (!signature)
+    throw new UnsafePackageError(
+      errorText('package', 'signatureUnreadable', { name: SIGNATURE_FILE })
+    )
 
   // Chaque fichier du paquet est signé, et rien d'autre
   const signed = Object.keys(signature.files)
   const present = [...files.keys()].filter((path) => path !== SIGNATURE_FILE)
   if (signed.length !== present.length) {
-    throw new UnsafePackageError('Signature invalide : la liste des fichiers ne correspond pas.')
+    throw new UnsafePackageError(errorText('package', 'signatureFiles'))
   }
   for (const path of present) {
     const data = files.get(path) as Buffer
     if (signature.files[path] !== sha256(data)) {
-      throw new UnsafePackageError(`Signature invalide : « ${path} » a été modifié.`)
+      throw new UnsafePackageError(errorText('package', 'signatureModified', { name: path }))
     }
   }
 
@@ -64,7 +68,7 @@ export function verifyPackageSignature(files: Map<string, Buffer>): PackagePubli
       return false
     }
   })()
-  if (!valid) throw new UnsafePackageError('Signature invalide.')
+  if (!valid) throw new UnsafePackageError(errorText('package', 'signatureInvalid'))
 
   return {
     publicKey: signature.publicKey,

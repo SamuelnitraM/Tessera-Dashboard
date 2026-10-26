@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { IntegrationChannels, type IntegrationId } from '@shared/integrations'
+import { errorText } from '../../i18n'
 import { JsonStore } from '../../json-store'
 import { getPluginManifest, hasPermission } from '../manifests'
 import { integrationError, isFile, pickExecutable } from './common'
@@ -46,7 +47,7 @@ function requireIntegration(pluginId: unknown, integration: IntegrationId): void
   ) {
     throw integrationError(
       'permission',
-      `L'extension « ${id} » n'a pas déclaré l'intégration « ${integration} ».`
+      errorText('integrations', 'notDeclared', { plugin: id, integration })
     )
   }
 }

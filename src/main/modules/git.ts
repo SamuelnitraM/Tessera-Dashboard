@@ -30,6 +30,7 @@ import {
   type ScannedProject
 } from '../plugins/integrations/gitspread'
 import { findProgram } from '../executables'
+import { errorText } from '../i18n'
 
 /**
  * Module Git : reprise de GitSpread dans Tessera (mêmes réglages, `%AppData%\GitSpread`).
@@ -64,7 +65,7 @@ function run(command: string, args: string[], options: RunOptions = {}): Promise
     // Chemin complet : jamais un git.exe ou gh.exe posé dans le dossier du projet
     const executable = findProgram(command)
     if (!executable) {
-      reject(new Error(`${command} est introuvable (PATH).`))
+      reject(new Error(errorText('common', 'programNotFound', { program: command })))
       return
     }
     const child = spawn(executable, args, {
@@ -93,7 +94,7 @@ function run(command: string, args: string[], options: RunOptions = {}): Promise
       reject(
         new Error(
           (error as NodeJS.ErrnoException).code === 'ENOENT'
-            ? `${command} est introuvable (PATH).`
+            ? errorText('common', 'programNotFound', { program: command })
             : error.message
         )
       )
@@ -103,7 +104,12 @@ function run(command: string, args: string[], options: RunOptions = {}): Promise
       if (code === 0) resolvePromise(stdout)
       else {
         const message = (stderr || stdout).trim().split(/\r?\n/).slice(-4).join('\n')
-        reject(new Error(message || `${command} a échoué (${code}).`))
+        reject(
+          new Error(
+            message ||
+              errorText('common', 'programFailed', { program: command, code: String(code) })
+          )
+        )
       }
     })
     if (options.input !== undefined) child.stdin.end(options.input)
@@ -238,7 +244,7 @@ function setField(settings: Settings, key: string, value: unknown): void {
 function updateSettings(change: (settings: Settings) => void): void {
   const settings = readSettings()
   // Illisibles : les réécrire effacerait toute la configuration de GitSpread
-  if (!settings) throw new Error('Réglages de GitSpread illisibles : réessaie dans un instant.')
+  if (!settings) throw new Error(errorText('git', 'settingsUnreadable'))
   change(settings)
   mkdirSync(dirname(settingsPath()), { recursive: true })
   // Écriture atomique : GitSpread ne lit jamais un fichier à moitié écrit
@@ -257,13 +263,13 @@ let scanned: ScannedProject[] = []
 function project(path: unknown): ScannedProject {
   const found =
     typeof path === 'string' ? scanned.find((candidate) => samePath(candidate.path, path)) : null
-  if (!found) throw new Error('Projet inconnu : actualise la liste.')
+  if (!found) throw new Error(errorText('git', 'unknownProject'))
   return found
 }
 
 function repository(path: unknown): ScannedProject {
   const found = project(path)
-  if (!found.repository) throw new Error('Ce dossier n’est pas un dépôt git.')
+  if (!found.repository) throw new Error(errorText('git', 'notRepository'))
   return found
 }
 
@@ -305,7 +311,7 @@ async function accountFor(
 
 const nameWithOwner = (scannedProject: ScannedProject): string => {
   const match = /github\.com\/([^/]+\/[^/]+)$/.exec(scannedProject.webUrl ?? '')
-  if (!match) throw new Error('Pas de dépôt GitHub pour ce projet.')
+  if (!match) throw new Error(errorText('git', 'noGitHubRepository'))
   return match[1]
 }
 
@@ -467,9 +473,9 @@ export async function gitDiscard(path: unknown, list: unknown): Promise<void> {
 export async function gitCommit(path: unknown, message: unknown, list: unknown): Promise<void> {
   const cwd = repository(path).path
   const text = typeof message === 'string' ? message.trim() : ''
-  if (!text) throw new Error('Message de commit vide.')
+  if (!text) throw new Error(errorText('git', 'emptyCommitMessage'))
   const names = files(list)
-  if (names.length === 0) throw new Error('Aucun fichier choisi.')
+  if (names.length === 0) throw new Error(errorText('git', 'noFileSelected'))
   await git(cwd, ['add', '-A', '--', ...names])
   await git(cwd, ['commit', '-F', '-', '--', ...names], { input: `${text}\n` })
 }
@@ -491,7 +497,7 @@ export async function gitNetwork(path: unknown, action: GitNetworkAction): Promi
       options
     )
   }
-  throw new Error('Action inconnue.')
+  throw new Error(errorText('common', 'unknownAction'))
 }
 
 /* ---------- Branches, historique, remise de côté ---------- */
@@ -528,9 +534,9 @@ export async function gitBranches(path: unknown): Promise<GitBranch[]> {
 
 async function validBranch(cwd: string, name: unknown): Promise<string> {
   if (typeof name !== 'string' || !name || name.startsWith('-'))
-    throw new Error('Nom de branche invalide.')
+    throw new Error(errorText('git', 'invalidBranch'))
   await git(cwd, ['check-ref-format', '--branch', name]).catch(() => {
-    throw new Error('Nom de branche invalide.')
+    throw new Error(errorText('git', 'invalidBranch'))
   })
   return name
 }
@@ -545,7 +551,7 @@ export async function gitBranchAction(
   if (action === 'switch') {
     const branches = await gitBranches(path)
     const target = branches.find((branch) => branch.name === name)
-    if (!target) throw new Error('Branche introuvable.')
+    if (!target) throw new Error(errorText('git', 'branchNotFound'))
     if (target.remote) {
       const local = target.name.split('/').slice(1).join('/')
       if (branches.some((branch) => !branch.remote && branch.name === local)) {
@@ -631,7 +637,7 @@ async function gh(path: unknown, args: string[], cwd?: string): Promise<string> 
 
 async function ghAccount(key: unknown, args: string[], cwd?: string): Promise<string> {
   const account = (await listAccounts()).find((candidate) => candidate.key === key)
-  if (!account) throw new Error('Compte inconnu.')
+  if (!account) throw new Error(errorText('git', 'unknownAccount'))
   const token = await tokenFor(account)
   return run('gh', args, {
     cwd,
@@ -707,7 +713,7 @@ export async function gitPullRequestAction(
   const scannedProject = repository(path)
   const repo = nameWithOwner(scannedProject)
   const id = String(Math.floor(Number(number)))
-  if (!/^\d+$/.test(id)) throw new Error('Numéro invalide.')
+  if (!/^\d+$/.test(id)) throw new Error(errorText('common', 'invalidNumber'))
   if (action === 'checkout') {
     await gh(path, ['pr', 'checkout', id, '--repo', repo], scannedProject.path)
   } else if (action === 'merge' || action === 'squash') {
@@ -723,9 +729,9 @@ export async function gitCreatePullRequest(
   const scannedProject = repository(path)
   const repo = nameWithOwner(scannedProject)
   const status = await readStatus(scannedProject)
-  if (!status.branch) throw new Error('Aucune branche active.')
+  if (!status.branch) throw new Error(errorText('git', 'noActiveBranch'))
   const title = typeof input.title === 'string' ? input.title.trim() : ''
-  if (!title) throw new Error('Titre vide.')
+  if (!title) throw new Error(errorText('git', 'emptyTitle'))
   const args = [
     'pr',
     'create',
@@ -788,7 +794,7 @@ export async function gitIssueAction(
   const repo = nameWithOwner(repository(path))
   if (action === 'create') {
     const title = typeof input.title === 'string' ? input.title.trim() : ''
-    if (!title) throw new Error('Titre vide.')
+    if (!title) throw new Error(errorText('git', 'emptyTitle'))
     await gh(path, [
       'issue',
       'create',
@@ -802,7 +808,7 @@ export async function gitIssueAction(
     return
   }
   const id = String(Math.floor(Number(input.number)))
-  if (!/^\d+$/.test(id)) throw new Error('Numéro invalide.')
+  if (!/^\d+$/.test(id)) throw new Error(errorText('common', 'invalidNumber'))
   await gh(path, ['issue', action, id, '--repo', repo])
 }
 
@@ -850,7 +856,7 @@ export async function gitRunAction(
 ): Promise<void> {
   const repo = nameWithOwner(repository(path))
   const run = String(Math.floor(Number(id)))
-  if (!/^\d+$/.test(run)) throw new Error('Identifiant invalide.')
+  if (!/^\d+$/.test(run)) throw new Error(errorText('common', 'invalidId'))
   await gh(path, ['run', action, run, ...(action === 'rerun' ? ['--failed'] : []), '--repo', repo])
 }
 
@@ -863,7 +869,7 @@ export async function gitPublish(
 ): Promise<void> {
   const scannedProject = repository(path)
   if (typeof name !== 'string' || !/^[A-Za-z0-9_.-]{1,100}$/.test(name))
-    throw new Error('Nom invalide.')
+    throw new Error(errorText('common', 'invalidName'))
   await ghAccount(
     accountKey,
     [
@@ -885,7 +891,7 @@ export async function gitPublish(
 
 export async function gitRepositories(accountKey: unknown): Promise<GitHubRepository[]> {
   const account = (await listAccounts()).find((candidate) => candidate.key === accountKey)
-  if (!account) throw new Error('Compte inconnu.')
+  if (!account) throw new Error(errorText('git', 'unknownAccount'))
   const own = JSON.parse(
     await ghAccount(accountKey, [
       'repo',
@@ -966,14 +972,16 @@ export async function gitClone(
   repo: unknown,
   folder: unknown
 ): Promise<string> {
-  if (typeof repo !== 'string' || !REPO.test(repo)) throw new Error('Dépôt invalide.')
-  if (typeof folder !== 'string' || !folder) throw new Error('Dossier invalide.')
+  if (typeof repo !== 'string' || !REPO.test(repo))
+    throw new Error(errorText('git', 'invalidRepository'))
+  if (typeof folder !== 'string' || !folder) throw new Error(errorText('git', 'invalidFolder'))
   const account = (await listAccounts()).find((candidate) => candidate.key === accountKey)
-  if (!account) throw new Error('Compte inconnu.')
+  if (!account) throw new Error(errorText('git', 'unknownAccount'))
   const token = await tokenFor(account)
   const parent = resolve(folder)
   const target = join(parent, repo.split('/')[1])
-  if (existsSync(target)) throw new Error(`Le dossier « ${basename(target)} » existe déjà.`)
+  if (existsSync(target))
+    throw new Error(errorText('git', 'folderExists', { name: basename(target) }))
   await run('git', ['clone', `https://${account.host}/${repo}.git`, target], {
     cwd: parent,
     env: credentialEnv(account, token),
@@ -994,7 +1002,8 @@ export async function gitRepositoryAction(
   action: GitHubRepositoryAction,
   value: unknown
 ): Promise<void> {
-  if (typeof repo !== 'string' || !REPO.test(repo)) throw new Error('Dépôt invalide.')
+  if (typeof repo !== 'string' || !REPO.test(repo))
+    throw new Error(errorText('git', 'invalidRepository'))
   if (action === 'visibility') {
     await ghAccount(accountKey, [
       'repo',
@@ -1008,12 +1017,13 @@ export async function gitRepositoryAction(
     await ghAccount(accountKey, ['repo', action, repo, '--yes'])
   } else if (action === 'rename') {
     if (typeof value !== 'string' || !/^[A-Za-z0-9_.-]{1,100}$/.test(value))
-      throw new Error('Nom invalide.')
+      throw new Error(errorText('common', 'invalidName'))
     await ghAccount(accountKey, ['repo', 'rename', value, '--repo', repo, '--yes'])
   } else if (action === 'delete') {
     await ghAccount(accountKey, ['repo', 'delete', repo, '--yes'])
   } else if (action === 'transfer') {
-    if (typeof value !== 'string' || !LOGIN.test(value)) throw new Error('Compte invalide.')
+    if (typeof value !== 'string' || !LOGIN.test(value))
+      throw new Error(errorText('git', 'invalidAccount'))
     await ghAccount(accountKey, [
       'api',
       '-X',
@@ -1031,9 +1041,11 @@ export async function gitCollaborators(
   action: 'list' | 'add' | 'remove',
   login: unknown
 ): Promise<GitHubCollaborator[]> {
-  if (typeof repo !== 'string' || !REPO.test(repo)) throw new Error('Dépôt invalide.')
+  if (typeof repo !== 'string' || !REPO.test(repo))
+    throw new Error(errorText('git', 'invalidRepository'))
   if (action !== 'list') {
-    if (typeof login !== 'string' || !LOGIN.test(login)) throw new Error('Compte invalide.')
+    if (typeof login !== 'string' || !LOGIN.test(login))
+      throw new Error(errorText('git', 'invalidAccount'))
     await ghAccount(accountKey, [
       'api',
       '-X',
@@ -1060,7 +1072,7 @@ export function gitSettings(
   path: unknown,
   value: unknown
 ): void {
-  if (typeof path !== 'string' || !path) throw new Error('Chemin invalide.')
+  if (typeof path !== 'string' || !path) throw new Error(errorText('common', 'invalidPath'))
   const full = resolve(path)
   updateSettings((settings) => {
     const list = (key: string): string[] => stringList(field(settings, key))

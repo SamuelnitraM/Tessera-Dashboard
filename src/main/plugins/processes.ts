@@ -13,7 +13,7 @@ import {
 } from '@shared/plugin-processes'
 import { interpolate } from '@shared/i18n'
 import { pluginSource } from '@shared/notifications'
-import { getTranslation } from '../i18n'
+import { errorText, getTranslation } from '../i18n'
 import { notify } from '../notifications'
 import { JsonStore } from '../json-store'
 import { hasPermission } from './manifests'
@@ -64,7 +64,7 @@ function requirePermission(pluginId: string): void {
   if (!hasPermission(pluginId, 'processes')) {
     throw processError(
       'permission',
-      `L'extension « ${pluginId} » n'a pas la permission « processes ».`
+      errorText('common', 'missingPermission', { plugin: pluginId, permission: 'processes' })
     )
   }
 }
@@ -75,9 +75,10 @@ function requireApproved(pluginId: string, path: unknown): string {
     typeof path !== 'string' ||
     !(approvals.get()[pluginId] ?? []).some((p) => samePath(p, path))
   ) {
-    throw processError('not-approved', 'Ce programme n’a pas été choisi par l’utilisateur.')
+    throw processError('not-approved', errorText('processes', 'notApproved'))
   }
-  if (!existsSync(path)) throw processError('not-found', `Programme introuvable : ${path}`)
+  if (!existsSync(path))
+    throw processError('not-found', errorText('processes', 'programNotFound', { path }))
   return path
 }
 
@@ -100,7 +101,7 @@ export async function pickTarget(
   if (result.canceled || !path) return null
 
   const kind = getLaunchableKind(path)
-  if (!kind) throw processError('invalid', 'Type de fichier non pris en charge.')
+  if (!kind) throw processError('invalid', errorText('processes', 'unsupportedType'))
 
   const current = approvals.get()
   const list = current[pluginId] ?? []
@@ -160,7 +161,8 @@ function splitArgs(args: string): string[] {
 /** Lance un programme choisi par l'utilisateur. */
 export function startProcess(pluginId: string, owner: string, options: LaunchOptions): ProcessRun {
   const path = requireApproved(pluginId, options?.path)
-  if (typeof owner !== 'string' || !owner) throw processError('invalid', 'Propriétaire manquant.')
+  if (typeof owner !== 'string' || !owner)
+    throw processError('invalid', errorText('processes', 'missingOwner'))
   const args = typeof options.args === 'string' ? options.args.trim() : ''
   const mode = options.mode === 'captured' || options.mode === 'window' ? options.mode : 'window'
 
@@ -168,7 +170,7 @@ export function startProcess(pluginId: string, owner: string, options: LaunchOpt
     (state) =>
       state.pluginId === pluginId && state.info.owner === owner && state.info.status === 'running'
   )
-  if (running) throw processError('already-running', 'Ce programme est déjà lancé.')
+  if (running) throw processError('already-running', errorText('processes', 'alreadyRunning'))
 
   // On ne garde que la dernière exécution de chaque widget
   for (const [id, state] of runs) {
@@ -195,7 +197,7 @@ export function startProcess(pluginId: string, owner: string, options: LaunchOpt
     // Arguments d'un script : cmd.exe interprète & | < > ^ % et les guillemets. Refusés : un
     // module ne doit pas pouvoir ajouter sa propre commande au script choisi par l'utilisateur.
     if (/[&|<>^%"\r\n]/.test(args)) {
-      throw processError('invalid', 'Arguments refusés pour un script (caractères & | < > ^ % ").')
+      throw processError('invalid', errorText('processes', 'scriptArguments'))
     }
     // Un .bat passe par cmd.exe. `chcp 65001` : sortie en UTF-8 (accents corrects).
     command = systemProgram('cmd.exe')
@@ -204,7 +206,7 @@ export function startProcess(pluginId: string, owner: string, options: LaunchOpt
   }
 
   if (!existsSync(cwd) || !statSync(cwd).isDirectory()) {
-    throw processError('not-found', `Dossier de travail introuvable : ${cwd}`)
+    throw processError('not-found', errorText('processes', 'folderNotFound', { path: cwd }))
   }
 
   const state: RunState = {
@@ -312,7 +314,7 @@ function getRun(pluginId: string, runId: string): RunState {
   requirePermission(pluginId)
   const state = runs.get(runId)
   if (!state || state.pluginId !== pluginId)
-    throw processError('not-found', 'Exécution introuvable.')
+    throw processError('not-found', errorText('processes', 'runNotFound'))
   return state
 }
 

@@ -15,6 +15,7 @@ import {
   type SiteStatus
 } from '@shared/devtools'
 import { helperRequest } from '../headerbar/helper'
+import { errorText } from '../i18n'
 import { JsonStore } from '../json-store'
 import { notifyFromPlugin } from '../notifications'
 import { findProgram, systemProgram } from '../executables'
@@ -159,19 +160,20 @@ export async function localServices(): Promise<LocalServicesState> {
 
 export async function stopProcess(pid: unknown): Promise<void> {
   const id = Math.floor(Number(pid))
-  if (!Number.isInteger(id) || id <= 4 || id === process.pid) throw new Error('Programme protégé.')
+  if (!Number.isInteger(id) || id <= 4 || id === process.pid)
+    throw new Error(errorText('devtools', 'protectedProgram'))
   const state = await localServices()
   const service = state.services.find((item) => item.pid === id)
-  if (!service) throw new Error('Ce programme n’écoute plus sur aucun port.')
-  if (service.system) throw new Error('Programme de Windows : il ne peut pas être arrêté ici.')
+  if (!service) throw new Error(errorText('devtools', 'notListening'))
+  if (service.system) throw new Error(errorText('devtools', 'windowsProgram'))
   process.kill(id)
 }
 
 export async function dockerAction(id: unknown, action: unknown): Promise<void> {
   if (typeof id !== 'string' || !/^[a-f0-9]{6,64}$/i.test(id))
-    throw new Error('Conteneur invalide.')
+    throw new Error(errorText('devtools', 'invalidContainer'))
   if (action !== 'start' && action !== 'stop' && action !== 'restart')
-    throw new Error('Action inconnue.')
+    throw new Error(errorText('common', 'unknownAction'))
   await exec('docker', [action, id], 60_000)
 }
 
@@ -278,7 +280,7 @@ async function check(site: MonitoredSite): Promise<SiteCheck> {
           ? `HTTP ${response.status}`
           : keywordOk
             ? null
-            : 'Texte attendu absent'
+            : errorText('devtools', 'keywordMissing')
     }
   } catch (error) {
     result = {
@@ -314,7 +316,7 @@ async function check(site: MonitoredSite): Promise<SiteCheck> {
   // Changement d'état : notification (pas au premier contrôle)
   if (previous && previous.ok !== result.ok) {
     void notifyFromPlugin(PLUGIN, {
-      title: result.ok ? `${site.name} est de nouveau en ligne` : `${site.name} ne répond plus`,
+      title: errorText('devtools', result.ok ? 'siteUp' : 'siteDown', { name: site.name }),
       body: result.ok ? `${result.ms} ms` : (result.error ?? ''),
       tag: `monitor-${site.id}`
     }).catch(() => undefined)
@@ -356,7 +358,7 @@ export async function saveSite(input: Partial<MonitoredSite>): Promise<SiteStatu
   try {
     new URL(url)
   } catch {
-    throw new Error('Adresse invalide.')
+    throw new Error(errorText('common', 'invalidAddress'))
   }
   const data = monitor.get()
   const id =

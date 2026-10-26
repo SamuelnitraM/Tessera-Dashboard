@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react'
-import {
-  CalendarClock,
-  ExternalLink,
-  LoaderCircle,
-  Pencil,
-  Plus,
-  RefreshCw,
-  Video
-} from 'lucide-react'
+import { CalendarClock, ExternalLink, Pencil, Plus, RefreshCw, Video } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { CalendarEvent, CalendarState } from '@shared/header-bar'
+import { AccountRequired } from '../../plugin-sdk/AccountRequired'
+import { needsReconnect } from '../../plugin-sdk/accounts'
 import { mailErrorMessage } from '../../stores/mail'
 import { useNavigationStore } from '../../stores/navigation'
 import { useSettingsStore } from '../../stores/settings'
@@ -130,50 +124,19 @@ function AgendaPanel({
 }): React.JSX.Element {
   const { t, i18n } = useTranslation()
   const navigate = useNavigationStore((store) => store.navigate)
-  const [connecting, setConnecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   /** Formulaire ouvert : nouvel événement, ou événement modifié. */
   const [editing, setEditing] = useState<CalendarEvent | 'new' | null>(null)
-
-  const connect = (): void => {
-    setConnecting(true)
-    setError(null)
-    window.tessera.accounts
-      .connectGoogle(['calendar'])
-      .then(onRefresh)
-      .catch((failure: unknown) => setError(mailErrorMessage(failure)))
-      .finally(() => setConnecting(false))
-  }
-
-  const connectBox = (
-    <>
-      {connecting ? (
-        <p className={styles.inline}>
-          <LoaderCircle size={14} className={styles.spin} aria-hidden />
-          {t('settings.accounts.waiting')}
-          <button
-            type="button"
-            className={styles.linkButton}
-            onClick={() => void window.tessera.accounts.cancel()}
-          >
-            {t('settings.accounts.cancel')}
-          </button>
-        </p>
-      ) : (
-        <button type="button" className={styles.primaryButton} onClick={connect}>
-          {hasAccounts ? t('headerBar.agenda.reconnect') : t('headerBar.agenda.connect')}
-        </button>
-      )}
-      {error && <p className={styles.error}>{error}</p>}
-    </>
-  )
 
   if (!hasAccounts) {
     return (
       <div className={styles.agenda}>
         <PanelTitle title={t('headerBar.names.agenda')} />
-        <p className={styles.muted}>{t('headerBar.agenda.intro')}</p>
-        {connectBox}
+        <AccountRequired
+          service="calendar"
+          message={t('headerBar.agenda.intro')}
+          onConnected={onRefresh}
+          onManage={onClose}
+        />
       </div>
     )
   }
@@ -254,17 +217,30 @@ function AgendaPanel({
           <RefreshCw size={14} aria-hidden />
         </button>
       </PanelTitle>
-      {broken.map((account) => (
-        <div key={account.id} className={styles.agendaError}>
-          <p className={styles.error}>
-            {t('headerBar.agenda.accountError', {
-              email: account.email,
-              error: mailErrorMessage(new Error(`mail-error:${account.error}`))
-            })}
-          </p>
-        </div>
-      ))}
-      {broken.length > 0 && connectBox}
+      {broken.map((account) =>
+        // Compte à reconnecter : sur place ; autre erreur (réseau…) : le message
+        needsReconnect(account.error) ? (
+          <AccountRequired
+            key={account.id}
+            compact
+            service="calendar"
+            className={styles.agendaError}
+            error={account.error}
+            account={account.email}
+            onConnected={onRefresh}
+            onManage={onClose}
+          />
+        ) : (
+          <div key={account.id} className={styles.agendaError}>
+            <p className={styles.error}>
+              {t('headerBar.agenda.accountError', {
+                email: account.email,
+                error: mailErrorMessage(new Error(`mail-error:${account.error}`))
+              })}
+            </p>
+          </div>
+        )
+      )}
       {!state ? (
         <p className={styles.muted}>{failed ? t('headerBar.offline') : t('headerBar.loading')}</p>
       ) : week ? (

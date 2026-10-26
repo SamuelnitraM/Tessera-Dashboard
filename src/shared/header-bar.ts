@@ -13,8 +13,6 @@ export const HEADER_WIDGETS = [
   'calculator',
   'timer',
   'stopwatch',
-  'focus',
-  'clocks',
   'agenda',
   'converter',
   'eyedropper',
@@ -26,6 +24,34 @@ export type HeaderWidget = (typeof HEADER_WIDGETS)[number]
 /** Extension intégrée qui propose les widgets de la barre en blocs (`tessera.toolbox/météo`…). */
 export const TOOLBOX_PLUGIN = 'tessera.toolbox'
 export const toolboxWidgetType = (widget: HeaderWidget): string => `${TOOLBOX_PLUGIN}/${widget}`
+
+/**
+ * Bloc créé quand on glisse un widget de la barre sur une page. L'Horloge de la barre devient
+ * le bloc Horloge, avec son calendrier et ses horloges du monde.
+ */
+export function headerWidgetBlock(widget: HeaderWidget): {
+  type: string
+  config: Record<string, unknown>
+  /** Taille du bloc, si ce n'est pas celle par défaut de son widget. */
+  size?: { w: number; h: number }
+} {
+  return widget === 'datetime'
+    ? {
+        type: 'tessera.clock/clock',
+        config: { showCalendar: true, showWorldClocks: true },
+        size: { w: 7, h: 10 }
+      }
+    : { type: toolboxWidgetType(widget), config: {} }
+}
+
+/**
+ * Widgets fusionnés (étape 21) : Horloges du monde dans l'Horloge, Concentration dans le
+ * Minuteur. Les barres enregistrées avant gardent ainsi leurs widgets.
+ */
+const MERGED_HEADER_WIDGETS: Record<string, HeaderWidget> = {
+  clocks: 'datetime',
+  focus: 'timer'
+}
 
 /** Glisser-déposer d'un widget de la barre (réordonner, ou en faire un bloc). */
 export const HEADER_WIDGET_DRAG = 'application/x-tessera-header-widget'
@@ -60,9 +86,9 @@ export interface HeaderBarSettings {
   /** Texte de la note rapide. */
   note: string
   weather: { place: Place | null }
-  /** Horloges du monde. */
+  /** Horloges du monde (widget Horloge). */
   clocks: Place[]
-  /** Concentration : cycles Pomodoro (minutes) et Ne pas déranger pendant le travail. */
+  /** Concentration (Minuteur) : cycles Pomodoro (minutes) et Ne pas déranger pendant le travail. */
   focus: {
     work: number
     shortBreak: number
@@ -155,9 +181,13 @@ export function sanitizeHeaderBar(input: unknown): HeaderBarSettings {
     items: Array.isArray(raw.items)
       ? [
           ...new Set(
-            raw.items.filter((item): item is HeaderWidget =>
-              (HEADER_WIDGETS as readonly unknown[]).includes(item)
-            )
+            raw.items
+              .map((item: unknown) =>
+                typeof item === 'string' ? (MERGED_HEADER_WIDGETS[item] ?? item) : item
+              )
+              .filter((item): item is HeaderWidget =>
+                (HEADER_WIDGETS as readonly unknown[]).includes(item)
+              )
           )
         ]
       : defaults.items,

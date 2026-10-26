@@ -21,7 +21,7 @@ import {
   setFrameWheel,
   setFrameWheelListeners
 } from './frames'
-import { logDocking } from './log'
+import { logDocking } from '../log'
 import { saveMinSize } from './programs'
 import { childStyle, returnWindow, saveWindow, type SavedWindow } from './saved-window'
 import * as w from './win32'

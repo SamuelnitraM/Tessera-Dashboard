@@ -123,12 +123,18 @@ Avancement de Tessera Dashboard, étape par étape. Les fonctionnalités termin�
   - [x] Applications installées : jeux jamais fermés par Tessera, programmes figés qui ne bloquent plus Tessera, insertion annulable, programmes lancés par un intermédiaire (LibreOffice), écrans de démarrage (GIMP), fenêtres restées petites, journal du clavier (barre d'adresse), fenêtres orphelines après un rechargement, plein écran F11 rétabli après une vidéo.
   - [x] Données : pagination de Google Tasks et des listes GitHub, tâche déplacée sans risque de perte, fichiers JSON illisibles gardés, écritures réessayées, réglages de GitSpread jamais effacés, « Annuler » de Git qui met à la corbeille au lieu de supprimer.
   - [x] Blocs : une quarantaine de corrections (réponses en retard, chargements bloqués, erreurs jamais effacées, mode édition, focus volé, défilement gardé d'une page à l'autre, brouillon de mail perdu, terminal, YouTube, notes, tâches, traductions et typographie).
+- [x] **Étape 21 : fusions, comptes, journal et signature.**
+  - [x] **Horloge** : un seul bloc pour l'heure, la date, le calendrier du mois et les horloges du monde (réglages du bloc). Dans la barre, l'Horloge déplie le calendrier et les horloges du monde. Les blocs Date et heure et Horloges du monde deviennent des Horloges réglées comme avant, et les barres enregistrées gardent leurs widgets.
+  - [x] **Minuteur** : compte à rebours ou séances de Concentration (Pomodoro), au choix dans le panneau ; chaque bloc garde son mode. Les blocs Concentration deviennent des Minuteurs en mode Concentration. Un seul compte à rebours dans le code (`countdown.ts`).
+  - [x] Messages d'erreur du processus principal (Git, Fichiers, Actualités, Spotify, Terminal, modules…) dans la langue de l'interface.
+  - [x] **Connexion des comptes unifiée** : Mails, YouTube, Twitch, Tâches, Prochain événement et Spotify affichent le même encadré (`AccountRequired` du SDK) : « Se connecter avec… » sur place, Annuler pendant l'attente, « Gérer les comptes » ; la reconnexion (accès retiré, case décochée chez Google, API désactivée) passe par le même encadré. Spotify rejoint Paramètres → Comptes (son identifiant personnel est dans « Avancé »).
+  - [x] **Journal** : Paramètres → À propos → Journal affiche les erreurs et plantages de Tessera (`logs/tessera.log`, nouveau) et le journal des applications installées, avec Copier et Ouvrir le dossier.
+  - [x] Signature de code prête : l'installeur et l'application sont signés dès qu'un certificat est configuré (`build/sign.mjs`, secrets de l'action « Version »). Reste à obtenir le certificat (voir le guide de distribution).
 
 ## Plus tard
 
-- [ ] Fusionner les blocs qui se recoupent (Horloge, Date et heure, Horloges du monde ; Minuteur et Concentration), avec une migration qui convertit aussi leurs réglages.
-- [ ] Messages d'erreur du processus principal (Git, Actualités, Spotify…) traduits en anglais.
-- [ ] Signature du code (installeur et mises à jour), puis vérification de l'intégrité de l'archive de l'application.
+- [ ] Certificat de signature de code, puis vérification de la signature des mises à jour (`publisherName`) et de l'intégrité de l'archive de l'application.
+- [ ] Messages des validateurs de modules (`src/shared/modules.ts`, `plugins.ts`) traduits en anglais.
 
 - [ ] Application Android compagnon (SMS et notifications).
 - [ ] Intégration expérimentale de fenêtres externes.

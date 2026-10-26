@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
-import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
+import { IpcChannels, type AppInfo, type LogName, type SystemPreferences } from '@shared/ipc'
 import type { BrowserChoice, InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type {
@@ -77,6 +77,10 @@ function subscribe<T>(channel: string, callback: (payload: T) => void): () => vo
 const api = {
   app: {
     getInfo: (): Promise<AppInfo> => ipcRenderer.invoke(IpcChannels.appGetInfo)
+  },
+  logs: {
+    read: (name: LogName): Promise<string> => ipcRenderer.invoke(IpcChannels.logsRead, name),
+    openFolder: (): Promise<void> => ipcRenderer.invoke(IpcChannels.logsOpenFolder)
   },
   settings: {
     get: (): Promise<Settings> => ipcRenderer.invoke(IpcChannels.settingsGet),

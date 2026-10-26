@@ -17,6 +17,7 @@ import { BuiltinChannels } from '@shared/builtin-ipc'
 import { isDesktopApp } from '@shared/user-apps'
 import { broadcast } from '../broadcast'
 import { getAppStates } from '../desktop/docking'
+import { errorText } from '../i18n'
 import { JsonStore } from '../json-store'
 import { getSettings } from '../settings-store'
 
@@ -66,9 +67,11 @@ function isHidden(path: string, name: string): boolean {
 
 /** Chemin absolu normalisé, ou erreur. */
 function absolute(path: unknown): string {
-  if (typeof path !== 'string' || !path.trim() || path.length > 4000) throw new Error('chemin')
+  if (typeof path !== 'string' || !path.trim() || path.length > 4000)
+    throw new Error(errorText('common', 'invalidPath'))
   const full = resolve(path)
-  if (!/^[a-z]:\\/i.test(full) && !full.startsWith('\\\\')) throw new Error('chemin')
+  if (!/^[a-z]:\\/i.test(full) && !full.startsWith('\\\\'))
+    throw new Error(errorText('common', 'invalidPath'))
   return full
 }
 
@@ -207,7 +210,7 @@ function insideItself(source: string, target: string): boolean {
 export function copyFiles(sources: unknown, target: unknown): Promise<FileOperationResult> {
   const folder = absolute(target)
   return eachPath(paths(sources), async (source) => {
-    if (insideItself(source, folder)) throw new Error('dossier dans lui-même')
+    if (insideItself(source, folder)) throw new Error(errorText('files', 'insideItself'))
     await cp(source, freeName(folder, basename(source)), {
       recursive: true,
       errorOnExist: true,
@@ -220,7 +223,7 @@ export function moveFiles(sources: unknown, target: unknown): Promise<FileOperat
   const folder = absolute(target)
   return eachPath(paths(sources), async (source) => {
     if (dirname(source).toLowerCase() === folder.toLowerCase()) return
-    if (insideItself(source, folder)) throw new Error('dossier dans lui-même')
+    if (insideItself(source, folder)) throw new Error(errorText('files', 'insideItself'))
     const destination = freeName(folder, basename(source))
     try {
       await rename(source, destination)
@@ -235,10 +238,11 @@ export function moveFiles(sources: unknown, target: unknown): Promise<FileOperat
 
 export async function renameFile(path: unknown, name: unknown): Promise<string> {
   const source = absolute(path)
-  if (typeof name !== 'string' || !isValidFileName(name)) throw new Error('nom')
+  if (typeof name !== 'string' || !isValidFileName(name))
+    throw new Error(errorText('files', 'invalidName'))
   const destination = join(dirname(source), name.trim())
   if (destination.toLowerCase() !== source.toLowerCase() && existsSync(destination)) {
-    throw new Error('existe')
+    throw new Error(errorText('files', 'exists'))
   }
   await rename(source, destination)
   return destination
@@ -246,7 +250,8 @@ export async function renameFile(path: unknown, name: unknown): Promise<string> 
 
 export async function createFolder(parent: unknown, name: unknown): Promise<string> {
   const folder = absolute(parent)
-  if (typeof name !== 'string' || !isValidFileName(name)) throw new Error('nom')
+  if (typeof name !== 'string' || !isValidFileName(name))
+    throw new Error(errorText('files', 'invalidName'))
   const path = freeName(folder, name.trim())
   await mkdir(path)
   return path

@@ -9,13 +9,15 @@ interface DialogProps {
   open: boolean
   onClose: () => void
   children: ReactNode
+  /** Fenêtre large (journal…). */
+  wide?: boolean
 }
 
 /**
  * Fenêtre modale basée sur l'élément natif <dialog> :
  * fond assombri, focus piégé et touche Échap gérés par le navigateur.
  */
-export function Dialog({ title, open, onClose, children }: DialogProps): React.JSX.Element {
+export function Dialog({ title, open, onClose, children, wide }: DialogProps): React.JSX.Element {
   const { t } = useTranslation()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -34,6 +36,7 @@ export function Dialog({ title, open, onClose, children }: DialogProps): React.J
       ref={dialogRef}
       // `no-drag` : une fenêtre ouverte depuis un widget ne doit pas déclencher son déplacement
       className={`${styles.dialog} no-drag`}
+      data-wide={wide}
       aria-labelledby={titleId}
       onClose={onClose}
       // Clic sur le fond assombri = fermer

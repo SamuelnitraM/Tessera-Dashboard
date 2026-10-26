@@ -22,6 +22,7 @@ Compose tes pages avec des **blocs** posés sur une grille libre : tes mails, te
 
 | Version                                                                        | Date            | Contenu                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [0.1.3](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.3) | 26 octobre 2026 | Horloge et Minuteur réunis, connexion des comptes identique dans tous les blocs, journal dans les paramètres, messages d'erreur traduits, corrections de l'audit (sécurité, blocs gris, données)                           |
 | [0.1.2](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.2) | 26 octobre 2026 | Barre des pages et ses widgets, modules intégrés (fichiers, jeux, GitSpread, terminal, tâches, actualités, services, surveillance, Spotify), grands blocs, changement de navigateur, fiabilité des applications installées |
 | [0.1.1](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.1) | 25 octobre 2026 | Nouvelle grille (aperçu des déplacements, Ajuster, Automatique), clavier et étirement des applications installées, corrections                                                                                             |
 | [0.1.0](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.0) | 24 octobre 2026 | Première version publique de Tessera Dashboard                                                                                                                                                                             |
@@ -66,7 +67,7 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 | **Bloc-notes**                         | Notes en texte, Markdown ou texte riche, rangées dans tes Documents                                                         |
 | **Lanceur**                            | Lance tes programmes et scripts (`.exe`, `.bat`, raccourcis), avec leur état et leurs journaux                              |
 | **Page web**                           | N'importe quel site dans un bloc                                                                                            |
-| **Horloge**, **Titre**                 | L'heure et la date ; des titres pour organiser tes pages                                                                    |
+| **Horloge**, **Titre**                 | L'heure, la date, le calendrier du mois et l'heure d'autres villes ; des titres pour organiser tes pages                    |
 | **Fichiers**, **Dossiers favoris**     | Un gestionnaire de fichiers complet ; un fichier s'ouvre dans son bloc si son application y est déjà, sinon hors de Tessera |
 | **Jeux**                               | Tes jeux Steam et Epic Games ; le bloc règle le volume du jeu en cours et peut afficher sa fenêtre                          |
 | **GitSpread**                          | GitSpread dans Tessera : projets, commits, branches, historique, pull/push, dépôts, pull requests, issues, GitHub Actions   |
@@ -87,7 +88,8 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 
 ### Et aussi
 
-- **Comptes** : « Se connecter avec Google » (Gmail, YouTube, Agenda et Tasks en une fois) et « Se connecter avec Twitch », sur la page officielle, dans ton navigateur. Tessera ne voit jamais ton mot de passe, et tes jetons sont chiffrés par Windows.
+- **Comptes** : « Se connecter avec Google » (Gmail, YouTube, Agenda et Tasks en une fois), « Se connecter avec Twitch » et Spotify, sur la page officielle, dans ton navigateur. Chaque bloc qui a besoin d'un compte propose le même bouton. Tessera ne voit jamais ton mot de passe, et tes jetons sont chiffrés par Windows.
+- **Journal** : Paramètres → À propos → Journal montre les erreurs de Tessera et ce qu'il fait des applications installées, pour comprendre ou signaler un problème.
 - **Notifications** : centre de notifications, bannières Windows, sons au choix (même les tiens), réglages par application, **Ne pas déranger** (aussi à heures fixes). Un clic sur une notification t'amène au bloc qui l'a envoyée ; s'il n'en a pas encore, Tessera te propose de l'ajouter.
 - **Thèmes** clair et sombre, **couleur d'accent** au choix, interface en **français** et en **anglais**.
 - Tessera tourne en **arrière-plan** dans la zone de notification, démarre avec Windows et **se met à jour tout seul** : il cherche les nouvelles versions au lancement, toutes les 3 heures et à la fermeture, puis une icône clignote dans le menu ; un clic, et c'est installé.

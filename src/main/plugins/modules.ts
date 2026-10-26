@@ -28,7 +28,7 @@ import {
 } from '@shared/plugins'
 import { SIGNATURE_FILE } from '@shared/module-signature'
 import { pluginSource } from '@shared/notifications'
-import { getTranslation } from '../i18n'
+import { errorText, getTranslation } from '../i18n'
 import { JsonStore } from '../json-store'
 import { getSettings, updateSettings } from '../settings-store'
 import { builtInFileFolders, getBuiltInManifest } from './builtin'
@@ -176,7 +176,7 @@ function loadModule(record: ModuleRecord): LoadedModule {
       : join(modulesRoot(), record.id)
   const { manifest, error } = readModuleManifest(folder, (manifest) =>
     manifest.id !== record.id
-      ? `L’identifiant du manifeste (« ${manifest.id} ») a changé : « ${record.id} » attendu.`
+      ? errorText('modules', 'idChanged', { id: manifest.id, expected: record.id })
       : checkModuleFiles(manifest, folder)
   )
   const module: LoadedModule = {
@@ -206,8 +206,8 @@ function readModuleManifest(
       manifest: null,
       error:
         (cause as NodeJS.ErrnoException).code === 'ENOENT'
-          ? 'Aucun manifest.json dans ce dossier ni dans son sous-dossier dist (lance d’abord la construction).'
-          : `manifest.json illisible (${(cause as Error).message}).`
+          ? errorText('modules', 'noManifest')
+          : errorText('modules', 'manifestUnreadable', { detail: (cause as Error).message })
     }
   }
   const result = parseManifest(raw)
@@ -264,7 +264,7 @@ export function getServedModule(
 function checkModuleFiles(manifest: PluginManifest, folder: string): string | null {
   const entry = resolve(folder, manifest.entry)
   if (!entry.startsWith(resolve(folder) + sep) || !existsSync(entry) || !statSync(entry).isFile()) {
-    return `Script principal introuvable : « ${manifest.entry} » (champ entry).`
+    return errorText('modules', 'entryNotFound', { entry: manifest.entry })
   }
   return null
 }
@@ -277,10 +277,13 @@ function checkPublisher(id: string, publisher: PackagePublisher | null): string 
   const installed = loaded.get(id)?.record
   if (installed?.source !== 'package' || !installed.publisher) return null
   if (!publisher) {
-    return `La version installée est signée (${installed.publisher.fingerprint}) : cette mise à jour ne l’est pas, elle est refusée.`
+    return errorText('modules', 'unsignedUpdate', { installed: installed.publisher.fingerprint })
   }
   if (publisher.publicKey !== installed.publisher.publicKey) {
-    return `Signée par une autre clé (${publisher.fingerprint}) que la version installée (${installed.publisher.fingerprint}) : mise à jour refusée.`
+    return errorText('modules', 'otherKey', {
+      fingerprint: publisher.fingerprint,
+      installed: installed.publisher.fingerprint
+    })
   }
   return null
 }
@@ -288,19 +291,19 @@ function checkPublisher(id: string, publisher: PackagePublisher | null): string 
 /** Règles propres aux modules tiers (en plus de la validation du manifeste). */
 function checkModuleManifest(manifest: PluginManifest): string | null {
   if (manifest.id.startsWith(RESERVED_PREFIX)) {
-    return `Le préfixe « ${RESERVED_PREFIX} » est réservé aux extensions de Tessera.`
+    return errorText('modules', 'reservedPrefix', { prefix: RESERVED_PREFIX })
   }
   if (getBuiltInManifest(manifest.id)) {
-    return `« ${manifest.id} » est déjà une extension intégrée.`
+    return errorText('modules', 'builtIn', { id: manifest.id })
   }
-  if (manifest.widgets.length === 0) return 'Le module doit fournir au moins un widget.'
+  if (manifest.widgets.length === 0) return errorText('modules', 'noWidget')
   const reserved = reservedPermissionError(manifest.permissions)
   if (reserved) return reserved
   if (manifest.files) {
     const folder = manifest.files.folder.toLowerCase()
     const owner = store.get().folders[folder]
     if (builtInFileFolders().has(folder) || (owner && owner !== manifest.id)) {
-      return `Le dossier de fichiers « ${manifest.files.folder} » est déjà utilisé par une autre extension.`
+      return errorText('modules', 'folderTaken', { folder: manifest.files.folder })
     }
   }
   return null
@@ -355,11 +358,12 @@ function previewItem(
 }
 
 function parseJson(content: Buffer | undefined, name: string): unknown {
-  if (!content) throw moduleError('invalid-package', `${name} introuvable dans le paquet.`)
+  if (!content)
+    throw moduleError('invalid-package', errorText('modules', 'missingInPackage', { name }))
   try {
     return JSON.parse(content.toString('utf8').replace(/^\uFEFF/, ''))
   } catch {
-    throw moduleError('invalid-package', `${name} n’est pas un JSON valide.`)
+    throw moduleError('invalid-package', errorText('modules', 'invalidJson', { name }))
   }
 }
 
@@ -374,7 +378,7 @@ export async function previewPackage(path: string): Promise<ModulePreview> {
   try {
     const info = await stat(path)
     if (info.size > PACKAGE_LIMITS.archiveBytes) {
-      throw moduleError('too-large', 'Le paquet dépasse 50 Mo.')
+      throw moduleError('too-large', errorText('modules', 'packageTooLarge'))
     }
     files = readZip(await readFile(path))
     publisher = verifyPackageSignature(files)
@@ -382,7 +386,7 @@ export async function previewPackage(path: string): Promise<ModulePreview> {
   } catch (error) {
     if (error instanceof UnsafePackageError) throw moduleError('unsafe-package', error.message)
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw moduleError('not-found', 'Fichier introuvable.')
+      throw moduleError('not-found', errorText('common', 'fileNotFound'))
     }
     throw error
   }
@@ -402,10 +406,7 @@ export async function previewPackage(path: string): Promise<ModulePreview> {
   } else if (files.has('manifest.json')) {
     groups.set('', files)
   } else {
-    throw moduleError(
-      'invalid-package',
-      'Ni manifest.json ni collection.json à la racine du paquet.'
-    )
+    throw moduleError('invalid-package', errorText('modules', 'noRootManifest'))
   }
 
   const token = randomUUID()
@@ -424,7 +425,9 @@ export async function previewPackage(path: string): Promise<ModulePreview> {
     for (const [expectedId, group] of groups) {
       const label = expectedId ? `modules/${expectedId}/manifest.json` : 'manifest.json'
       if (!group.has('manifest.json')) {
-        items.push(previewItem(expectedId, null, `${label} introuvable dans le paquet.`))
+        items.push(
+          previewItem(expectedId, null, errorText('modules', 'missingInPackage', { name: label }))
+        )
         continue
       }
       const result = parseManifest(parseJson(group.get('manifest.json'), label))
@@ -435,10 +438,10 @@ export async function previewPackage(path: string): Promise<ModulePreview> {
       const { manifest } = result
       const error =
         expectedId && manifest.id !== expectedId
-          ? `${label} : identifiant « ${manifest.id} », « ${expectedId} » attendu.`
+          ? errorText('modules', 'wrongId', { label, id: manifest.id, expected: expectedId })
           : (checkModuleManifest(manifest) ?? checkPublisher(manifest.id, publisher))
       if (error || items.some((item) => item.id === manifest.id)) {
-        items.push(previewItem(manifest.id, manifest, error ?? 'Module en double.'))
+        items.push(previewItem(manifest.id, manifest, error ?? errorText('modules', 'duplicate')))
         continue
       }
 
@@ -447,7 +450,7 @@ export async function previewPackage(path: string): Promise<ModulePreview> {
       for (const [name, content] of group) {
         const target = resolve(folder, checkEntryPath(name))
         if (!target.startsWith(resolve(folder) + sep)) {
-          throw moduleError('unsafe-package', `Chemin refusé : « ${name} ».`)
+          throw moduleError('unsafe-package', errorText('modules', 'pathRejected', { name }))
         }
         await mkdir(dirname(target), { recursive: true })
         await writeFile(target, content)
@@ -492,7 +495,7 @@ export async function previewDevFolder(
 export function previewDevPath(chosen: string): ModulePreview {
   forgetExpired()
   if (typeof chosen !== 'string' || !existsSync(chosen) || !statSync(chosen).isDirectory()) {
-    throw moduleError('not-found', 'Dossier introuvable.')
+    throw moduleError('not-found', errorText('common', 'folderNotFound'))
   }
   const folder = servedFolder(chosen)
   const { manifest, error } = readModuleManifest(
@@ -538,7 +541,7 @@ export async function installPreview(
   selection: ModuleSelection[]
 ): Promise<InstalledModule[]> {
   const install = pending.get(token)
-  if (!install) throw moduleError('expired', 'Installation expirée : rouvre le paquet.')
+  if (!install) throw moduleError('expired', errorText('modules', 'expired'))
   pending.delete(token)
 
   const installed: string[] = []
@@ -597,7 +600,10 @@ async function moveIntoPlace(id: string, from: string): Promise<void> {
     await rename(from, target)
   } catch (error) {
     if (hadPrevious) await rename(old, target).catch(() => {})
-    throw moduleError('io', `Installation impossible : ${(error as Error).message}`)
+    throw moduleError(
+      'io',
+      errorText('modules', 'installFailed', { detail: (error as Error).message })
+    )
   }
   if (hadPrevious) await rm(old, { recursive: true, force: true }).catch(() => {})
 }
@@ -634,7 +640,7 @@ export function reloadModule(id: string): void {
 /** Désinstalle un module : son dossier, ses données de navigateur, ses autorisations. */
 export async function uninstallModule(id: string, options: UninstallOptions): Promise<void> {
   const module = loaded.get(id)
-  if (!module) throw moduleError('not-found', `Module « ${id} » introuvable.`)
+  if (!module) throw moduleError('not-found', errorText('modules', 'notFound', { id }))
   stopWatching(id)
   loaded.delete(id)
 

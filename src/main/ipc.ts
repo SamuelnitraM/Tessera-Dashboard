@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import { APP_NAME } from '@shared/app'
-import { IpcChannels, type AppInfo } from '@shared/ipc'
+import { IpcChannels, LOG_NAMES, type AppInfo, type LogName } from '@shared/ipc'
 import type { LaunchOptions } from '@shared/plugin-processes'
 import type { HostRect } from '@shared/desktop-apps'
 import type { SettingsPatch } from '@shared/settings'
@@ -12,6 +12,7 @@ import {
   openWebPage
 } from './browsers'
 import { registerHeaderBarHandlers } from './headerbar/ipc'
+import { errorText } from './i18n'
 import { registerModuleHandlers } from './modules'
 import { isFullScreen, toggleFullScreen } from './window'
 import { getDashboard, saveDashboard } from './dashboard-store'
@@ -27,7 +28,7 @@ import {
   setSuspended,
   takeOutApp
 } from './desktop/docking'
-import { logDocking } from './desktop/log'
+import { logDocking, openLogsFolder, readLog } from './log'
 import { addProgram, listPrograms, pickProgram, protectDesktopApps } from './desktop/programs'
 import {
   activateNotification,
@@ -163,6 +164,11 @@ export function registerIpcHandlers(): void {
       }
     }
   })
+
+  ipcMain.handle(IpcChannels.logsRead, (_event, name: unknown) =>
+    (LOG_NAMES as readonly unknown[]).includes(name) ? readLog(name as LogName) : ''
+  )
+  ipcMain.handle(IpcChannels.logsOpenFolder, () => openLogsFolder())
 
   ipcMain.handle(IpcChannels.settingsGet, () => getSettings())
 
@@ -431,7 +437,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.modulesTakeOpened, () => takeOpenedPackage())
   ipcMain.handle(IpcChannels.modulesPreviewFile, (_event, path: unknown) => {
     if (typeof path !== 'string' || !path.toLowerCase().endsWith(`.${MODULE_PACKAGE_EXTENSION}`)) {
-      throw new Error('[invalid-package] Fichier .tessera attendu.')
+      throw new Error(`[invalid-package] ${errorText('modules', 'packageExpected')}`)
     }
     return previewPackage(path)
   })
@@ -441,7 +447,7 @@ export function registerIpcHandlers(): void {
   })
   ipcMain.handle(IpcChannels.modulesPreviewDevFolder, (_event, path: unknown) => {
     if (!getSettings().plugins.developerMode) {
-      throw new Error('[not-found] Mode développeur désactivé.')
+      throw new Error(`[not-found] ${errorText('modules', 'developerModeOff')}`)
     }
     return previewDevPath(String(path))
   })

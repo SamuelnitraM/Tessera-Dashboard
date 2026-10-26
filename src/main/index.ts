@@ -7,6 +7,7 @@ import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
 import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
+import { logApp, watchCrashes } from './log'
 import { flushMailState, initMail, stopMail } from './mail'
 import { initMedia, stopMedia } from './media'
 import {
@@ -57,6 +58,9 @@ protocol.registerSchemesAsPrivileged([localMediaScheme, moduleScheme])
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
+  // Erreurs et plantages notés dans logs/tessera.log (Paramètres → À propos → Journal)
+  watchCrashes()
+
   // Second lancement : la fenêtre existante s'affiche (et installe le .tessera ouvert, s'il y en a un)
   app.on('second-instance', (_event, argv) => {
     showMainWindow()
@@ -91,6 +95,7 @@ if (!app.requestSingleInstanceLock()) {
         step()
       } catch (error) {
         console.error('[quitter]', error)
+        logApp(`[quitter] ${error instanceof Error ? error.message : String(error)}`)
       }
     }
   })

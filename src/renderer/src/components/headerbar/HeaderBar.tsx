@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ArrowLeftRight,
-  Brain,
   Calculator,
   CalendarClock,
   Camera,
@@ -10,7 +9,6 @@ import {
   CloudSun,
   Cpu,
   Ellipsis,
-  Globe,
   Music,
   Pipette,
   Plus,
@@ -34,11 +32,9 @@ import { AgendaItem } from './AgendaItem'
 import { CalculatorItem } from './CalculatorItem'
 import { setDraggedWidget } from './drag'
 import { ClipboardHistoryItem } from './ClipboardHistoryItem'
-import { ClocksItem } from './ClocksItem'
 import { ConverterItem } from './ConverterItem'
 import { DateTimeItem } from './DateTimeItem'
 import { EyedropperItem } from './EyedropperItem'
-import { FocusItem } from './FocusItem'
 import { HeaderPopover } from './HeaderPopover'
 import { MediaItem } from './MediaItem'
 import { NoteItem } from './NoteItem'
@@ -60,8 +56,6 @@ const WIDGETS: Record<HeaderWidget, { component: () => React.JSX.Element; icon: 
   calculator: { component: CalculatorItem, icon: Calculator },
   timer: { component: TimerItem, icon: Timer },
   stopwatch: { component: StopwatchItem, icon: Watch },
-  focus: { component: FocusItem, icon: Brain },
-  clocks: { component: ClocksItem, icon: Globe },
   agenda: { component: AgendaItem, icon: CalendarClock },
   converter: { component: ConverterItem, icon: ArrowLeftRight },
   eyedropper: { component: EyedropperItem, icon: Pipette },

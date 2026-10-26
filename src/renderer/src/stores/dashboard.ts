@@ -38,7 +38,9 @@ interface DashboardState {
     pageId: string,
     type: string,
     config?: Record<string, unknown>,
-    at?: { x: number; y: number }
+    at?: { x: number; y: number },
+    /** Taille du bloc (sinon celle par défaut du widget). */
+    blockSize?: { w: number; h: number }
   ) => string | null
   removeWidget: (pageId: string, widgetId: string) => void
   updateWidgetConfig: (pageId: string, widgetId: string, config: Record<string, unknown>) => void
@@ -116,14 +118,14 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
       })
     },
 
-    addWidget: (pageId, type, config = {}, at) => {
+    addWidget: (pageId, type, config = {}, at, blockSize) => {
       const page = get().dashboard.pages.find((candidate) => candidate.id === pageId)
       if (!page) return null
 
       // Position dans la disposition large : première place libre (la page défile : il y en
       // a toujours une, au besoin sous les autres blocs)
       const wide = resolveLayout(page, 'wide', defaultSizeOf)
-      const size = getDefaultSize(type)
+      const size = blockSize ?? getDefaultSize(type)
       const wideItem: GridItem = {
         i: '',
         ...findFreeSpot(wide, size, GRID.wideCols)!,
@@ -153,7 +155,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
 
         // Disposition compacte personnalisée : le widget s'ajoute sous les autres
         if (current.layouts.compact) {
-          const size = toCompactSize(getDefaultSize(type))
+          const size = toCompactSize(blockSize ?? getDefaultSize(type))
           const spot = findFreeSpot(current.layouts.compact, size, GRID.compactCols)!
           layouts.compact = [...current.layouts.compact, { i: id, ...spot, ...size }]
         }

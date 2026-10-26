@@ -1,125 +1,69 @@
-import { useEffect, useState } from 'react'
-import { Pause, Play, Square, Timer } from 'lucide-react'
+import { useState } from 'react'
+import { Brain, Coffee, Pause, Play, Square, Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { create } from 'zustand'
 import i18n from 'i18next'
-import { useBlockSize } from './helpers'
+import { SegmentedControl } from '../ui/SegmentedControl'
+import { createCountdown, formatLeft } from './countdown'
+import { focusCountdown, useFocusStore } from './focus'
+import { FocusIdle, FocusRunning } from './FocusPanel'
 import { HeaderPopover } from './HeaderPopover'
 import { PanelTitle } from './parts'
 import styles from './HeaderBar.module.css'
+import widgetStyles from './Widgets.module.css'
 
 /** Durées proposées (minutes). */
 const PRESETS = [1, 5, 10, 15, 25, 45, 60]
 
 /**
- * Minuteur : continue de tourner quand on change de page ou qu'on ouvre les paramètres. À la
- * fin, une notification de Tessera (bannière, son, centre de notifications).
+ * Minuteur : un compte à rebours, ou des séances de Concentration (Pomodoro). À la fin, une
+ * notification de Tessera (bannière, son, centre de notifications).
  */
-interface TimerState {
-  /** Durée choisie (ms), pour le texte de la notification. */
-  duration: number
-  /** Fin prévue (horodatage), si le minuteur tourne. */
-  endsAt: number | null
-  /** Temps restant (ms), si le minuteur est en pause. */
-  pausedLeft: number | null
-  /** Dernier démarrage ou reprise (horodatage). */
-  startedAt: number
-}
+export type TimerMode = 'countdown' | 'focus'
 
-const useTimerStore = create<TimerState>()(() => ({
-  duration: 0,
-  endsAt: null,
-  pausedLeft: null,
-  startedAt: 0
-}))
+const countdown = createCountdown(() => {
+  const minutes = Math.round(countdown.store.getState().duration / 60_000)
+  void window.tessera.notifications.notifyTessera({
+    title: i18n.t('headerBar.timer.doneTitle'),
+    body: i18n.t('headerBar.timer.doneBody', { minutes }),
+    tag: 'timer'
+  })
+})
 
-let endTimer = 0
-
-function scheduleEnd(endsAt: number): void {
-  window.clearTimeout(endTimer)
-  endTimer = window.setTimeout(
-    () => {
-      const minutes = Math.round(useTimerStore.getState().duration / 60_000)
-      useTimerStore.setState({ endsAt: null, pausedLeft: null })
-      void window.tessera.notifications.notifyTessera({
-        title: i18n.t('headerBar.timer.doneTitle'),
-        body: i18n.t('headerBar.timer.doneBody', { minutes }),
-        tag: 'timer'
-      })
-    },
-    Math.max(0, endsAt - Date.now())
-  )
-}
-
-function start(minutes: number): void {
-  const duration = minutes * 60_000
-  const startedAt = Date.now()
-  const endsAt = startedAt + duration
-  useTimerStore.setState({ duration, endsAt, pausedLeft: null, startedAt })
-  scheduleEnd(endsAt)
-}
-
-function pause(): void {
-  const { endsAt } = useTimerStore.getState()
-  if (endsAt === null) return
-  window.clearTimeout(endTimer)
-  useTimerStore.setState({ endsAt: null, pausedLeft: Math.max(0, endsAt - Date.now()) })
-}
-
-function resume(): void {
-  const { pausedLeft } = useTimerStore.getState()
-  if (pausedLeft === null) return
-  const startedAt = Date.now()
-  const endsAt = startedAt + pausedLeft
-  useTimerStore.setState({ endsAt, pausedLeft: null, startedAt })
-  scheduleEnd(endsAt)
-}
-
-function stop(): void {
-  window.clearTimeout(endTimer)
-  useTimerStore.setState({ endsAt: null, pausedLeft: null })
-}
-
-/** Temps restant (ms), rafraîchi plusieurs fois par seconde pendant que le minuteur tourne. */
-function useTimeLeft(): number | null {
-  const endsAt = useTimerStore((state) => state.endsAt)
-  const pausedLeft = useTimerStore((state) => state.pausedLeft)
-  const startedAt = useTimerStore((state) => state.startedAt)
-  const [now, setNow] = useState(0)
-  useEffect(() => {
-    if (endsAt === null) return
-    const interval = window.setInterval(() => setNow(Date.now()), 250)
-    return () => window.clearInterval(interval)
-  }, [endsAt])
-  // Avant la première mise à jour, l'heure du démarrage
-  if (endsAt !== null) return Math.max(0, endsAt - Math.max(now, startedAt))
-  return pausedLeft
-}
-
-/** 4:05, ou 1:02:30 au-delà d'une heure. */
-function formatLeft(ms: number): string {
-  const total = Math.ceil(ms / 1000)
-  const hours = Math.floor(total / 3600)
-  const minutes = Math.floor((total % 3600) / 60)
-  const seconds = String(total % 60).padStart(2, '0')
-  return hours > 0
-    ? `${hours}:${String(minutes).padStart(2, '0')}:${seconds}`
-    : `${minutes}:${seconds}`
+/** Ce qui tourne (Concentration ou compte à rebours) : temps restant pour la barre. */
+function useActive(): {
+  left: number | null
+  running: boolean
+  phase: ReturnType<typeof useFocusStore.getState>['phase']
+} {
+  const phase = useFocusStore((state) => state.phase)
+  const focusLeft = focusCountdown.useTimeLeft()
+  const focusRunning = focusCountdown.useRunning()
+  const left = countdown.useTimeLeft()
+  const running = countdown.useRunning()
+  return phase !== null
+    ? { left: focusLeft, running: focusRunning, phase }
+    : { left, running, phase: null }
 }
 
 /** Minuteur de la barre : le temps restant s'affiche dans la barre pendant qu'il tourne. */
 export function TimerItem(): React.JSX.Element {
   const { t } = useTranslation()
-  const left = useTimeLeft()
-  const running = useTimerStore((state) => state.endsAt !== null)
+  const { left, running, phase } = useActive()
+  // Mode choisi dans le panneau, gardé tant que Tessera est ouvert
+  const [mode, setMode] = useState<TimerMode>('countdown')
+  const Icon = phase === 'shortBreak' || phase === 'longBreak' ? Coffee : phase ? Brain : Timer
 
   return (
     <HeaderPopover
-      label={t('headerBar.names.timer')}
+      label={
+        phase
+          ? `${t('headerBar.names.timer')} · ${t(`headerBar.focus.${phase}`)}`
+          : t('headerBar.names.timer')
+      }
       highlighted={left !== null}
       button={
         <>
-          <Timer size={16} aria-hidden />
+          <Icon size={16} aria-hidden />
           {left !== null && (
             <span className={styles.time} data-paused={!running}>
               {formatLeft(left)}
@@ -128,53 +72,89 @@ export function TimerItem(): React.JSX.Element {
         </>
       }
     >
-      {() => <TimerPanel left={left} running={running} />}
+      {() => <TimerPanel mode={mode} onMode={setMode} />}
     </HeaderPopover>
   )
 }
 
-function TimerPanel({
-  left,
-  running
+/** Panneau du Minuteur, dans la barre ou en bloc. */
+export function TimerPanel({
+  mode,
+  onMode
 }: {
-  left: number | null
-  running: boolean
+  mode: TimerMode
+  onMode: (mode: TimerMode) => void
 }): React.JSX.Element {
+  const phase = useFocusStore((state) => state.phase)
+  const left = countdown.useTimeLeft()
+
+  if (phase !== null) return <FocusRunning />
+  if (left !== null) return <CountdownRunning left={left} />
+  const tabs = <ModeTabs mode={mode} onMode={onMode} />
+  return mode === 'focus' ? <FocusIdle tabs={tabs} /> : <CountdownIdle tabs={tabs} />
+}
+
+function ModeTabs({
+  mode,
+  onMode
+}: {
+  mode: TimerMode
+  onMode: (mode: TimerMode) => void
+}): React.JSX.Element {
+  const { t } = useTranslation()
+  return (
+    <div className={widgetStyles.modeTabs}>
+      <SegmentedControl
+        value={mode}
+        aria-label={t('headerBar.timer.mode')}
+        options={[
+          { value: 'countdown', label: t('headerBar.timer.countdown'), icon: Timer },
+          { value: 'focus', label: t('headerBar.names.focus'), icon: Brain }
+        ]}
+        onChange={onMode}
+      />
+    </div>
+  )
+}
+
+function CountdownRunning({ left }: { left: number }): React.JSX.Element {
+  const { t } = useTranslation()
+  const running = countdown.useRunning()
+  return (
+    <div className={styles.timer}>
+      <PanelTitle title={t('headerBar.names.timer')} />
+      <p className={styles.timerLeft} data-paused={!running}>
+        {formatLeft(left)}
+      </p>
+      <div className={styles.timerActions}>
+        {running ? (
+          <button type="button" className={styles.textButton} onClick={countdown.pause}>
+            <Pause size={14} aria-hidden /> {t('headerBar.timer.pause')}
+          </button>
+        ) : (
+          <button type="button" className={styles.textButton} onClick={countdown.resume}>
+            <Play size={14} aria-hidden /> {t('headerBar.timer.resume')}
+          </button>
+        )}
+        <button type="button" className={styles.textButton} onClick={countdown.stop}>
+          <Square size={14} aria-hidden /> {t('headerBar.timer.stop')}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CountdownIdle({ tabs }: { tabs: React.ReactNode }): React.JSX.Element {
   const { t } = useTranslation()
   const [minutes, setMinutes] = useState('20')
   const custom = Number(minutes.replace(',', '.'))
   const customValid = Number.isFinite(custom) && custom > 0 && custom <= 24 * 60
-  // En bloc, titre comme les autres blocs de la boîte à outils (le bouton de la barre en tient lieu)
-  const title = useBlockSize() !== null && <PanelTitle title={t('headerBar.names.timer')} />
-
-  if (left !== null) {
-    return (
-      <div className={styles.timer}>
-        {title}
-        <p className={styles.timerLeft} data-paused={!running}>
-          {formatLeft(left)}
-        </p>
-        <div className={styles.timerActions}>
-          {running ? (
-            <button type="button" className={styles.textButton} onClick={pause}>
-              <Pause size={14} aria-hidden /> {t('headerBar.timer.pause')}
-            </button>
-          ) : (
-            <button type="button" className={styles.textButton} onClick={resume}>
-              <Play size={14} aria-hidden /> {t('headerBar.timer.resume')}
-            </button>
-          )}
-          <button type="button" className={styles.textButton} onClick={stop}>
-            <Square size={14} aria-hidden /> {t('headerBar.timer.stop')}
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const start = (value: number): void => countdown.start(value * 60_000)
 
   return (
     <div className={styles.timer}>
-      {title}
+      <PanelTitle title={t('headerBar.names.timer')} />
+      {tabs}
       <div className={styles.presets}>
         {PRESETS.map((preset) => (
           <button
@@ -208,11 +188,4 @@ function TimerPanel({
       </form>
     </div>
   )
-}
-
-/** En bloc sur une page : le panneau du widget, sans le bouton de la barre. */
-export function TimerBlock(): React.JSX.Element {
-  const left = useTimeLeft()
-  const running = useTimerStore((state) => state.endsAt !== null)
-  return <TimerPanel left={left} running={running} />
 }

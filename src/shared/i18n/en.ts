@@ -109,6 +109,157 @@ export const en: Translation = {
     crashTitle: '{{name}} stopped',
     crashBody: 'The program ended with an error (code {{code}}).'
   },
+  errors: {
+    common: {
+      unknownAction: 'Unknown action.',
+      invalidAddress: 'Invalid address.',
+      invalidName: 'Invalid name.',
+      invalidNumber: 'Invalid number.',
+      invalidId: 'Invalid ID.',
+      invalidPath: 'Invalid path.',
+      fileNotFound: 'File not found.',
+      folderNotFound: 'Folder not found.',
+      unsupportedFile: 'Unsupported file format.',
+      missingPermission: 'The extension “{{plugin}}” doesn’t have the “{{permission}}” permission.',
+      programNotFound: '{{program}} not found (PATH).',
+      programFailed: '{{program}} failed ({{code}}).',
+      encryptionUnavailable: 'Encryption unavailable.'
+    },
+    files: {
+      insideItself: 'A folder can’t be copied or moved into itself.',
+      invalidName: 'Invalid file name.',
+      exists: 'An item with this name already exists.'
+    },
+    git: {
+      settingsUnreadable: 'GitSpread settings can’t be read: try again in a moment.',
+      unknownProject: 'Unknown project: refresh the list.',
+      notRepository: 'This folder isn’t a git repository.',
+      noGitHubRepository: 'No GitHub repository for this project.',
+      emptyCommitMessage: 'Empty commit message.',
+      noFileSelected: 'No file selected.',
+      invalidBranch: 'Invalid branch name.',
+      branchNotFound: 'Branch not found.',
+      noActiveBranch: 'No active branch.',
+      emptyTitle: 'Empty title.',
+      unknownAccount: 'Unknown account.',
+      invalidAccount: 'Invalid account.',
+      invalidRepository: 'Invalid repository.',
+      invalidFolder: 'Invalid folder.',
+      folderExists: 'The folder “{{name}}” already exists.'
+    },
+    devtools: {
+      protectedProgram: 'Protected program.',
+      notListening: 'This program is no longer listening on any port.',
+      windowsProgram: 'Windows program: it can’t be stopped here.',
+      invalidContainer: 'Invalid container.',
+      keywordMissing: 'Expected text missing',
+      siteUp: '{{name}} is back online',
+      siteDown: '{{name}} is not responding'
+    },
+    news: {
+      tooLarge: 'Feed too large.',
+      noFeed: 'No RSS feed found at this address.',
+      unreadable: 'This feed can’t be read.',
+      alreadyFollowed: 'You already follow this feed.'
+    },
+    spotify: {
+      invalidClientId: 'Invalid ID (32 characters).',
+      invalidPlaylist: 'Invalid playlist.',
+      invalidUri: 'Invalid Spotify address.'
+    },
+    terminal: {
+      tooMany: 'Too many terminals open.',
+      noShell: 'No shell found.'
+    },
+    pluginFiles: {
+      invalidName: 'File name rejected: “{{name}}”.',
+      pathRejected: 'Path rejected.',
+      exists: 'A file with this name already exists.',
+      textExpected: 'Text content expected.',
+      tooLarge: 'File too large (10 MB maximum).',
+      noExtension: 'No accepted file extension.'
+    },
+    processes: {
+      notApproved: 'This program wasn’t chosen by the user.',
+      programNotFound: 'Program not found: {{path}}',
+      unsupportedType: 'Unsupported file type.',
+      missingOwner: 'Missing owner.',
+      alreadyRunning: 'This program is already running.',
+      scriptArguments: 'Arguments rejected for a script (characters & | < > ^ % ").',
+      folderNotFound: 'Working folder not found: {{path}}',
+      runNotFound: 'Run not found.'
+    },
+    integrations: {
+      notDeclared: 'The extension “{{plugin}}” hasn’t declared the “{{integration}}” integration.',
+      devLauncherNotResponding: 'DevLauncher is not responding.',
+      mcpError: 'MCP error',
+      invalidService: 'Invalid service.',
+      invalidProject: 'Invalid project.',
+      invalidProfile: 'Invalid profile.',
+      unknownProject: 'Project unknown to GitSpread.',
+      invalidList: 'Invalid list.',
+      noGitHubPage: 'No GitHub page for this project.',
+      invalidPort: 'Invalid port.',
+      unreadableResponse: 'Unreadable response.',
+      invalidJob: 'Invalid job.'
+    },
+    modules: {
+      packageExpected: '.tessera file expected.',
+      developerModeOff: 'Developer mode is off.',
+      idChanged: 'The manifest ID (“{{id}}”) has changed: “{{expected}}” expected.',
+      noManifest: 'No manifest.json in this folder or in its dist subfolder (run the build first).',
+      manifestUnreadable: 'manifest.json can’t be read ({{detail}}).',
+      entryNotFound: 'Main script not found: “{{entry}}” (entry field).',
+      unsignedUpdate:
+        'The installed version is signed ({{installed}}): this update isn’t, so it is rejected.',
+      otherKey:
+        'Signed with a different key ({{fingerprint}}) than the installed version ({{installed}}): update rejected.',
+      reservedPrefix: 'The “{{prefix}}” prefix is reserved for Tessera’s extensions.',
+      builtIn: '“{{id}}” is already a built-in extension.',
+      noWidget: 'The module must provide at least one widget.',
+      folderTaken: 'The files folder “{{folder}}” is already used by another extension.',
+      missingInPackage: '{{name}} not found in the package.',
+      invalidJson: '{{name}} isn’t valid JSON.',
+      packageTooLarge: 'The package exceeds 50 MB.',
+      noRootManifest: 'Neither manifest.json nor collection.json at the root of the package.',
+      wrongId: '{{label}}: ID “{{id}}”, “{{expected}}” expected.',
+      duplicate: 'Duplicate module.',
+      pathRejected: 'Path rejected: “{{name}}”.',
+      expired: 'Installation expired: reopen the package.',
+      installFailed: 'Installation failed: {{detail}}',
+      notFound: 'Module “{{id}}” not found.'
+    },
+    package: {
+      invalidFileName: 'Invalid file name: “{{name}}”.',
+      backslash: 'Backslash not allowed: “{{name}}”.',
+      absolutePath: 'Absolute path: “{{name}}”.',
+      relativePath: 'Relative path not allowed: “{{name}}”.',
+      tooLarge: 'Archive too large.',
+      notZip: 'This file isn’t a zip archive.',
+      multipart: 'Multi-part archives aren’t supported.',
+      zip64: 'ZIP64 isn’t supported.',
+      tooManyFiles: 'Too many files in the archive.',
+      corrupt: 'Corrupt archive.',
+      corruptDirectory: 'Corrupt archive (central directory).',
+      notUtf8: 'Non-UTF-8 name: “{{name}}”.',
+      encrypted: 'Encrypted archives aren’t supported.',
+      symlink: 'Symbolic link not allowed: “{{name}}”.',
+      link: 'Link not allowed: “{{name}}”.',
+      duplicate: 'Duplicate file: “{{name}}”.',
+      tooLargeUncompressed: 'Archive too large once uncompressed.',
+      pathConflict: 'Path conflict: “{{name}}”.',
+      corruptEntry: 'Corrupt archive (“{{name}}”).',
+      truncated: 'Truncated archive (“{{name}}”).',
+      unreadableEntry: 'File unreadable or larger than declared: “{{name}}”.',
+      compression: 'Unsupported compression method (“{{name}}”).',
+      wrongSize: 'Incorrect size: “{{name}}”.',
+      altered: 'Altered file (checksum): “{{name}}”.',
+      signatureUnreadable: '{{name}} can’t be read.',
+      signatureFiles: 'Invalid signature: the file list doesn’t match.',
+      signatureModified: 'Invalid signature: “{{name}}” has been modified.',
+      signatureInvalid: 'Invalid signature.'
+    }
+  },
   notifications: {
     proposal: {
       title: 'No “{{name}}” block',
@@ -207,7 +358,7 @@ export const en: Translation = {
     copied: 'Copied',
     dragHint: 'Drag to reorder, or onto the page to make it a block',
     names: {
-      datetime: 'Date and time',
+      datetime: 'Clock',
       weather: 'Weather',
       media: 'Now playing',
       sound: 'Sound',
@@ -248,7 +399,9 @@ export const en: Translation = {
       resume: 'Resume',
       stop: 'Stop',
       doneTitle: 'Timer finished',
-      doneBody: 'Your {{minutes}} min are up.'
+      doneBody: 'Your {{minutes}} min are up.',
+      mode: 'Timer mode',
+      countdown: 'Countdown'
     },
     note: {
       placeholder: 'An idea, a number, a list… Kept across pages.'
@@ -390,8 +543,6 @@ export const en: Translation = {
     agenda: {
       now: 'Now',
       accountError: '{{email}}: {{error}}',
-      connect: 'Connect Google Calendar',
-      reconnect: 'Reconnect Google Calendar',
       intro:
         'Your appointments for the next 7 days (Google Calendar), which you can also add and edit here. Google will ask for access to your calendar.',
       today: 'Today',
@@ -622,6 +773,26 @@ export const en: Translation = {
       youtube: 'YouTube account not connected: Settings → Accounts → Sign in with Google.'
     }
   },
+  accountRequired: {
+    title: 'Connect your {{provider}} account',
+    reconnectTitle: 'Reconnect your {{provider}} account',
+    connect: 'Sign in with {{provider}}',
+    reconnect: 'Reconnect with {{provider}}',
+    manage: 'Manage accounts',
+    accountError: '{{account}}: {{error}}',
+    unavailable:
+      'Sign-in unavailable in this version of Tessera: enter your own ID in Settings → Accounts → Advanced.',
+    intro: {
+      gmail:
+        'Your Gmail messages arrive in this block. Another email provider (OVH, Orange, iCloud…) can be added in the accounts.',
+      youtube: 'Your YouTube subscriptions and playlists show up here.',
+      calendar: 'Your upcoming Google Calendar events show up here, and you can create some.',
+      tasks: 'Your Google Tasks lists (the ones on your phone) can show up here.',
+      twitch:
+        'Your followed channels that are live show up here, with a notification for each stream.',
+      spotify: 'Your playlists, liked songs and recent plays show up here.'
+    }
+  },
   settings: {
     title: 'Settings',
     sections: {
@@ -800,6 +971,10 @@ export const en: Translation = {
         'Your followed channels that are live, and a notification each time a stream starts. Twitch shows a pre-filled code: just accept.',
       withTwitch: 'Sign in with Twitch',
       reconnectTwitch: 'Reconnect Twitch',
+      spotifyIntro:
+        'Your playlists, liked songs and recent plays in the Spotify block (a free account works); playback starts in the Spotify app.',
+      withSpotify: 'Sign in with Spotify',
+      reconnectSpotify: 'Reconnect Spotify',
       imapTitle: 'Other email providers',
       imapIntro: 'OVH, Orange, iCloud, Yahoo…: address and password (often an app password).',
       addImap: 'Add an email account…',
@@ -827,11 +1002,14 @@ export const en: Translation = {
       notificationsHint: 'Notifications (new emails, streams) are set in Settings → Notifications.',
       advanced: 'Advanced: your own IDs',
       advancedIntro:
-        'Optional. Tessera has its own IDs at Google and Twitch; you can use yours instead (leave empty: Tessera’s).',
+        'Optional. Tessera has its own IDs at Google, Twitch and Spotify; you can use yours instead (leave empty: Tessera’s).',
       guide: 'Create your own IDs',
       googleClientId: 'Google: client ID',
       googleClientSecret: 'Google: client secret',
       twitchClientId: 'Twitch: client ID (“Public” type)',
+      spotifyClientId: 'Spotify: Client ID (32 characters)',
+      spotifyHelp:
+        'On developer.spotify.com/dashboard, create an app (“Web API”) with the Redirect URI {{uri}}, add your account under “User Management” (Spotify limits a development app to 25 accounts added by hand), then paste its “Client ID”.',
       secretSaved: 'Saved (encrypted)',
       secretPlaceholder: 'Paste the client secret',
       save: 'Save',
@@ -959,6 +1137,26 @@ export const en: Translation = {
         error: 'Could not check for updates: {{message}}',
         check: 'Check for updates',
         install: 'Restart and install'
+      },
+      logs: {
+        title: 'Log',
+        intro:
+          'Tessera records its errors and what it does with installed apps. Useful to understand or report a problem: no personal data is written.',
+        show: 'Show log',
+        openFolder: 'Open folder',
+        refresh: 'Refresh',
+        copy: 'Copy',
+        copied: 'Copied',
+        empty: 'Nothing recorded yet.',
+        names: {
+          tessera: 'Errors',
+          applications: 'Installed apps'
+        },
+        descriptions: {
+          tessera: 'Crashes and errors of Tessera, its pages and updates.',
+          applications:
+            'Apps inserted into their blocks, windows hidden or shown again, keyboard refused.'
+        }
       }
     }
   }

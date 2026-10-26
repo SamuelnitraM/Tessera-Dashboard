@@ -71,6 +71,22 @@ const LEGACY_WIDGET_TYPES: Record<string, string> = {
   'tessera.gitspread/gitspread': 'tessera.git/projects'
 }
 
+/**
+ * Blocs fusionnés (étape 21) et réglages qui leur rendent leur ancien aspect : Date et heure et
+ * Horloges du monde dans l'Horloge, Concentration dans le Minuteur.
+ */
+const MERGED_WIDGETS: Record<string, { type: string; config: Record<string, unknown> }> = {
+  'tessera.toolbox/datetime': {
+    type: 'tessera.clock/clock',
+    config: { showCalendar: true, showWorldClocks: false }
+  },
+  'tessera.toolbox/clocks': {
+    type: 'tessera.clock/clock',
+    config: { showTime: false, showDate: false, showCalendar: false, showWorldClocks: true }
+  },
+  'tessera.toolbox/focus': { type: 'tessera.toolbox/timer', config: { mode: 'focus' } }
+}
+
 export const DEFAULT_DASHBOARD: Dashboard = {
   schemaVersion: 2,
   pages: [
@@ -138,10 +154,11 @@ function sanitizePage(input: unknown, usedIds: Set<string>): DashboardPage | nul
     const widget = asRecord(raw)
     const widgetId = asString(widget.id)
     const rawType = asString(widget.type)
-    const type = LEGACY_WIDGET_TYPES[rawType] ?? rawType
+    const merged = MERGED_WIDGETS[rawType]
+    const type = merged?.type ?? LEGACY_WIDGET_TYPES[rawType] ?? rawType
     if (!widgetId || !type || widgetIds.has(widgetId)) continue
     widgetIds.add(widgetId)
-    widgets.push({ id: widgetId, type, config: asRecord(widget.config) })
+    widgets.push({ id: widgetId, type, config: { ...merged?.config, ...asRecord(widget.config) } })
   }
 
   const layouts = asRecord(page.layouts)

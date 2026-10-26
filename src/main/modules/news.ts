@@ -4,6 +4,7 @@ import { XMLParser } from 'fast-xml-parser'
 import { BuiltinChannels as C } from '@shared/builtin-ipc'
 import type { NewsItem, NewsState } from '@shared/news'
 import { broadcast } from '../broadcast'
+import { errorText } from '../i18n'
 import { JsonStore } from '../json-store'
 import { notifyFromPlugin } from '../notifications'
 
@@ -218,7 +219,7 @@ async function download(url: string): Promise<{ text: string; type: string }> {
   })
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const length = Number(response.headers.get('content-length') ?? 0)
-  if (length > MAX_BYTES) throw new Error('Flux trop volumineux.')
+  if (length > MAX_BYTES) throw new Error(errorText('news', 'tooLarge'))
   const type = response.headers.get('content-type') ?? ''
   const bytes = new Uint8Array(await response.arrayBuffer()).subarray(0, MAX_BYTES)
   return { text: decode(bytes, type), type }
@@ -267,10 +268,10 @@ async function read(url: string, feedId: string): Promise<{ url: string; feed: P
       : null
   if (parsed) return { url, feed: parsed }
   const found = discover(first.text, url)
-  if (!found) throw new Error('Aucun flux RSS trouvé à cette adresse.')
+  if (!found) throw new Error(errorText('news', 'noFeed'))
   const second = await download(found)
   parsed = parseFeed(second.text, feedId, found)
-  if (!parsed) throw new Error('Ce flux est illisible.')
+  if (!parsed) throw new Error(errorText('news', 'unreadable'))
   return { url: found, feed: parsed }
 }
 
@@ -359,12 +360,13 @@ export async function addFeed(address: unknown): Promise<NewsState> {
   try {
     new URL(url)
   } catch {
-    throw new Error('Adresse invalide.')
+    throw new Error(errorText('common', 'invalidAddress'))
   }
   const id = randomUUID()
   const found = await read(url, id)
   const data = store.get()
-  if (data.feeds.some((feed) => feed.url === found.url)) throw new Error('Ce flux est déjà suivi.')
+  if (data.feeds.some((feed) => feed.url === found.url))
+    throw new Error(errorText('news', 'alreadyFollowed'))
   const feed: StoredFeed = {
     id,
     url: found.url,

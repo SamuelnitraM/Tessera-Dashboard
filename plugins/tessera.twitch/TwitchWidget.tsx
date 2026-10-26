@@ -11,12 +11,12 @@ import {
   X
 } from 'lucide-react'
 import {
+  AccountRequired,
   Button,
   closeMediaView,
   MediaView,
   mailErrorMessage,
-  EDIT_ACTIVE,
-  openMediaSettings,
+  needsReconnect,
   parseMediaLink,
   playerUrl,
   twitchChatUrl,
@@ -197,12 +197,8 @@ export function TwitchWidget({
         {connected ? (
           status.name && <span className={styles.account}>{status.name}</span>
         ) : (
-          <button
-            type="button"
-            className={styles.signIn}
-            title={t('signInHint')}
-            onClick={openMediaSettings}
-          >
+          // Retour à l'accueil, où se trouve la connexion
+          <button type="button" className={styles.signIn} title={t('signInHint')} onClick={goHome}>
             <LogIn size={14} aria-hidden />
             {t('signIn')}
           </button>
@@ -259,22 +255,15 @@ function Home({ onWatch }: { onWatch: (channel: string) => void }): React.JSX.El
     }
   }
 
-  if (!status.connected || status.error === 'auth') {
+  if (!status.connected || needsReconnect(status.error)) {
     return (
-      <div className={styles.state}>
-        <Tv size={26} aria-hidden />
-        <p>{status.connected ? t('expired') : t('connect')}</p>
-        <Button
-          {...EDIT_ACTIVE}
-          className="no-drag"
-          variant="primary"
-          icon={LogIn}
-          onClick={openMediaSettings}
-        >
-          {status.connected ? t('reconnect') : t('signIn')}
-        </Button>
+      <AccountRequired
+        service="twitch"
+        error={status.connected ? (status.error ?? undefined) : undefined}
+        account={status.name ?? undefined}
+      >
         <p className={styles.hint}>{t('orSearch')}</p>
-      </div>
+      </AccountRequired>
     )
   }
 

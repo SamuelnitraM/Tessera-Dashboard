@@ -38,8 +38,12 @@ win:
     - target: nsis
       arch: [x64]
   icon: resources/icon.png
-  # Pas de signature pour l'instant : Windows SmartScreen avertit au premier lancement
-  # de l'installeur (« Informations complémentaires » → « Exécuter quand même »)
+  # Signature de code : build/sign.mjs signe chaque .exe avec la commande du fournisseur du
+  # certificat (variable TESSERA_SIGN_COMMAND, voir docs/distribution.md). Sans elle, rien n'est
+  # signé et Windows SmartScreen avertit au premier lancement de l'installeur.
+  signtoolOptions:
+    sign: build/sign.mjs
+    signingHashAlgorithms: [sha256]
 
 nsis:
   oneClick: false

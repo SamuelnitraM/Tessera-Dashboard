@@ -14,7 +14,7 @@ import {
   type ExternalPlayer,
   type LocalMediaFile
 } from '@shared/local-media'
-import { getTranslation } from '../i18n'
+import { errorText, getTranslation } from '../i18n'
 import { JsonStore } from '../json-store'
 import { hasPermission } from '../plugins/manifests'
 import { systemProgram } from '../executables'
@@ -73,7 +73,9 @@ export const flushLocalMedia = (): void => files.flush()
 
 function requirePermission(pluginId: string): void {
   if (!hasPermission(pluginId, 'videos')) {
-    throw new Error(`L'extension « ${pluginId} » n'a pas la permission « videos ».`)
+    throw new Error(
+      errorText('common', 'missingPermission', { plugin: pluginId, permission: 'videos' })
+    )
   }
 }
 
@@ -97,8 +99,9 @@ const samePath = (a: string, b: string): boolean =>
 
 /** Ajoute (ou remonte en tête) un fichier choisi par l'utilisateur. */
 function remember(path: string, pluginId: string): LocalMediaFile {
-  if (!isLocalMediaPath(path)) throw new Error('Format de fichier non pris en charge.')
-  if (!existsSync(path) || !statSync(path).isFile()) throw new Error('Fichier introuvable.')
+  if (!isLocalMediaPath(path)) throw new Error(errorText('common', 'unsupportedFile'))
+  if (!existsSync(path) || !statSync(path).isFile())
+    throw new Error(errorText('common', 'fileNotFound'))
   const current = files.get()
   const existing = current.find((file) => samePath(file.path, path))
   const file: StoredFile = existing
@@ -152,7 +155,7 @@ export async function openLocalMedia(
 /** Fichier déposé sur le bloc (chemin donné par le préchargement, pas par la page). */
 export function addDroppedMedia(pluginId: string, path: unknown): LocalMediaFile {
   requirePermission(pluginId)
-  if (typeof path !== 'string' || !path) throw new Error('Fichier introuvable.')
+  if (typeof path !== 'string' || !path) throw new Error(errorText('common', 'fileNotFound'))
   return remember(path, pluginId)
 }
 
@@ -244,7 +247,7 @@ export async function openLocalMediaExternally(
 ): Promise<ExternalPlayer> {
   requirePermission(pluginId)
   const file = find(id)
-  if (!file || !existsSync(file.path)) throw new Error('Fichier introuvable.')
+  if (!file || !existsSync(file.path)) throw new Error(errorText('common', 'fileNotFound'))
   const vlc = findVlc()
   if (vlc) {
     const start = typeof position === 'number' && position > 0 ? Math.floor(position) : 0

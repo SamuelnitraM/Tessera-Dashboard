@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Globe, Plus, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Place } from '@shared/header-bar'
 import { useSettingsStore } from '../../stores/settings'
-import { useBlockSize } from './helpers'
-import { HeaderPopover } from './HeaderPopover'
 import { PanelTitle, PlaceSearch } from './parts'
 import styles from './Widgets.module.css'
 
@@ -56,8 +54,16 @@ function dayShift(date: Date, timeZone: string): number {
   return there === here ? 0 : there > here ? 1 : -1
 }
 
-/** Horloges du monde : la première dans la barre, toutes dans le panneau. */
-function useClocks(): { clocks: Place[]; now: Date; time: (place: Place) => string } {
+/**
+ * Horloges du monde, sous le calendrier de l'Horloge (barre et bloc). La liste des villes est
+ * commune à la barre et à tous les blocs.
+ */
+export function WorldClocks({
+  hourCycle
+}: {
+  /** Format choisi dans les réglages du bloc (sinon : selon la langue). */
+  hourCycle?: 'h23' | 'h12'
+}): React.JSX.Element {
   const { i18n } = useTranslation()
   const clocks = useSettingsStore((state) => state.settings.headerBar.clocks)
   const now = useNow()
@@ -65,38 +71,10 @@ function useClocks(): { clocks: Place[]; now: Date; time: (place: Place) => stri
     new Intl.DateTimeFormat(i18n.language, {
       hour: '2-digit',
       minute: '2-digit',
+      hourCycle,
       timeZone: place.timeZone
     }).format(now)
-  return { clocks, now, time }
-}
-
-export function ClocksItem(): React.JSX.Element {
-  const { t } = useTranslation()
-  const { clocks, now, time } = useClocks()
-  const first = clocks[0]
-
-  return (
-    <HeaderPopover
-      label={
-        first
-          ? `${t('headerBar.names.clocks')} · ${first.name} ${time(first)}`
-          : t('headerBar.names.clocks')
-      }
-      button={
-        <>
-          <Globe size={16} aria-hidden />
-          {first && (
-            <span className={styles.chipText}>
-              <span className={styles.muted}>{first.name}</span>{' '}
-              <span className={styles.chipValue}>{time(first)}</span>
-            </span>
-          )}
-        </>
-      }
-    >
-      {() => <ClocksPanel clocks={clocks} now={now} time={time} />}
-    </HeaderPopover>
-  )
+  return <ClocksPanel clocks={clocks} now={now} time={time} />
 }
 
 function ClocksPanel({
@@ -110,10 +88,8 @@ function ClocksPanel({
 }): React.JSX.Element {
   const { t, i18n } = useTranslation()
   const update = useSettingsStore((state) => state.update)
-  const [adding, setAdding] = useState(clocks.length === 0)
-  // En bloc, la recherche ne prend le focus qu'après « Ajouter » (sinon la page sauterait jusqu'à lui)
-  const inBlock = useBlockSize() !== null
-  const [addClicked, setAddClicked] = useState(false)
+  // La recherche ne s'ouvre qu'après « Ajouter » : sous le calendrier, elle prendrait le focus
+  const [adding, setAdding] = useState(false)
   const save = (next: Place[]): void => void update({ headerBar: { clocks: next } })
   const localOffset = -now.getTimezoneOffset()
 
@@ -128,16 +104,14 @@ function ClocksPanel({
   return (
     <div className={styles.clocks}>
       <PanelTitle title={t('headerBar.names.clocks')}>
-        {clocks.length < MAX_CLOCKS && !adding && (
+        {clocks.length < MAX_CLOCKS && (
           <button
             type="button"
             className={styles.iconButton}
             title={t('headerBar.clocks.add')}
             aria-label={t('headerBar.clocks.add')}
-            onClick={() => {
-              setAdding(true)
-              setAddClicked(true)
-            }}
+            aria-pressed={adding}
+            onClick={() => setAdding(!adding)}
           >
             <Plus size={15} aria-hidden />
           </button>
@@ -180,7 +154,7 @@ function ClocksPanel({
       )}
       {adding && clocks.length < MAX_CLOCKS && (
         <PlaceSearch
-          autoFocus={!inBlock || addClicked}
+          autoFocus
           onPick={(place) => {
             if (
               !clocks.some((item) => item.timeZone === place.timeZone && item.name === place.name)
@@ -193,10 +167,4 @@ function ClocksPanel({
       )}
     </div>
   )
-}
-
-/** En bloc sur une page : le panneau du widget, sans le bouton de la barre. */
-export function ClocksBlock(): React.JSX.Element {
-  const { clocks, now, time } = useClocks()
-  return <ClocksPanel clocks={clocks} now={now} time={time} />
 }

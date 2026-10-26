@@ -6,6 +6,9 @@ import type { HexColor } from './settings'
  */
 export const IpcChannels = {
   appGetInfo: 'app:get-info',
+  /** Fin d'un journal (`LogName`), pour les paramètres. */
+  logsRead: 'logs:read',
+  logsOpenFolder: 'logs:open-folder',
   settingsGet: 'settings:get',
   settingsUpdate: 'settings:update',
   /** Événement main -> renderer : les réglages ont changé. */
@@ -192,6 +195,10 @@ export const IpcChannels = {
 } as const
 
 /** Informations sur l'application renvoyées par le processus principal. */
+/** Journaux de `%APPDATA%\Tessera Dashboard\logs\` (voir main/log.ts). */
+export const LOG_NAMES = ['tessera', 'applications'] as const
+export type LogName = (typeof LOG_NAMES)[number]
+
 export interface AppInfo {
   name: string
   version: string

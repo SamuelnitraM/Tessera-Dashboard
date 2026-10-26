@@ -18,7 +18,8 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - **Pipette** : l'écran sous la souris est figé le temps du choix (une animation ou une vidéo ne bouge plus) ; un écran à la fois. Clic pour prendre la couleur, Échap ou clic droit pour annuler.
 - **Ordre des widgets** : il se change en mode édition seulement. Un widget glissé sur la page devient un bloc (il reste aussi dans la barre ; les deux partagent leur état : même minuteur, même note).
 - **Prochain événement** : Google Agenda seulement, 7 jours. Création et modification : titre, dates, heures et lieu (ni invités, ni rappels, ni répétition) ; les événements des agendas partagés en lecture seule ne se modifient pas. Avec ses propres identifiants Google (Paramètres → Comptes → Avancé), il faut activer Google Calendar API dans le projet (voir le guide des applications OAuth).
-- Concentration, minuteur et chronomètre s'arrêtent si l'on quitte Tessera.
+- Minuteur (compte à rebours et Concentration) et chronomètre s'arrêtent si l'on quitte Tessera. Le Minuteur fait une chose à la fois : pendant une séance de Concentration, le compte à rebours attend qu'elle soit arrêtée.
+- **Horloge** : les horloges du monde sont les mêmes dans la barre et dans tous les blocs Horloge (8 villes au plus).
 - **Grands blocs** : seuls Météo, Système et Prochain événement changent d'affichage quand le bloc est grand. Les courbes du bloc Système partent de l'ouverture de Tessera (une minute d'historique) ; le processeur total est mesuré une fois par seconde comme le Gestionnaire des tâches (les deux peuvent différer d'un point ou deux, leurs mesures ne tombant pas au même instant) ; le processeur par programme est mesuré entre deux relevés (le premier affiche 0 %) et la mémoire est l'« ensemble de travail » (un peu plus que la colonne Mémoire du Gestionnaire des tâches).
 - Pendant qu'un panneau de la barre est ouvert, les applications installées sont remplacées par une image figée (comme pour les menus et fenêtres de dialogue). Un clic dans une page web intégrée ne referme pas le panneau.
 
@@ -74,12 +75,14 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - **Actualités** : flux RSS, Atom et RDF publics seulement (pas de flux demandant une connexion). Lus toutes les 15 minutes ; les articles lus sont retenus (les 5 000 derniers).
 - **Services locaux** : liste les ports en écoute en TCP (pas UDP). « Arrêter » termine le programme brutalement (comme le Gestionnaire des tâches) ; les programmes de Windows et Tessera ne peuvent pas être arrêtés. Le projet est deviné d'après la ligne de commande (Node, Python, PHP…). Docker est facultatif ; Docker Desktop doit être lancé.
 - **Surveillance de sites** : vérification depuis ce PC seulement (si le PC est hors ligne, tous les sites paraissent en panne), uniquement pendant que Tessera tourne. Historique des 288 dernières vérifications (24 heures à une vérification toutes les 5 minutes).
-- **Spotify** : il faut créer sa propre application sur developer.spotify.com (mode développement : 25 comptes au plus, ajoutés à la main dans « User Management »). Avec un compte gratuit, l'API ne permet pas de piloter la lecture : un clic ouvre le titre dans l'application Spotify. Spotify ne se lit pas dans une page web de Tessera (DRM, voir plus bas) ; l'application Spotify installée, elle, peut être affichée dans un bloc.
+- **Comptes** : la reconnexion d'un compte Google depuis un bloc (Agenda, Tâches, YouTube) laisse choisir le compte sur la page de Google ; seul Mails ouvre directement le bon compte. Le bloc Git utilise les comptes de la commande `gh` (« gh auth login »), pas Paramètres → Comptes.
+- **Spotify** : sans identifiant Spotify fourni avec Tessera, il faut créer sa propre application sur developer.spotify.com et coller son identifiant dans Paramètres → Comptes → Avancé (mode développement : 25 comptes au plus, ajoutés à la main dans « User Management »). Avec un compte gratuit, l'API ne permet pas de piloter la lecture : un clic ouvre le titre dans l'application Spotify. Spotify ne se lit pas dans une page web de Tessera (DRM, voir plus bas) ; l'application Spotify installée, elle, peut être affichée dans un bloc.
 
 ## Sécurité
 
-- L'installeur et les mises à jour ne sont pas encore signés : leur intégrité repose sur le compte GitHub du projet (`latest.yml` et son empreinte). La vérification de l'archive de l'application (fusible `EmbeddedAsarIntegrityValidation`) viendra avec la signature.
-- Les messages d'erreur du processus principal (Git, Actualités, Spotify, Terminal) sont en français, même avec l'interface en anglais.
+- L'installeur et les mises à jour ne sont pas encore signés, faute de certificat (tout est prêt, voir le guide de distribution) : leur intégrité repose sur le compte GitHub du projet (`latest.yml` et son empreinte). La vérification de l'archive de l'application (fusible `EmbeddedAsarIntegrityValidation`) viendra avec la signature.
+- Les messages des validateurs de modules (manifeste ou collection invalide, dans l'aperçu d'installation) restent en français.
+- **Journal** : 2 Mo par fichier (l'ancien est gardé en `.old`) ; Paramètres → À propos en montre la fin (256 Ko). Les erreurs des pages et des blocs eux-mêmes (console) n'y sont pas, seulement les plantages.
 
 ## Modules
 

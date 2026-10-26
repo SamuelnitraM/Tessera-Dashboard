@@ -45,4 +45,11 @@ jobs:
         env:
           # Identifiants OAuth de Tessera (« Se connecter avec Google / Twitch ») : secret du dépôt
           TESSERA_OAUTH_CLIENTS: ${{ secrets.TESSERA_OAUTH_CLIENTS }}
+          # Signature de code (build/sign.mjs) : commande du fournisseur du certificat, et ses
+          # identifiants. Sans ces secrets, l'installeur est construit sans signature.
+          TESSERA_SIGN_COMMAND: ${{ secrets.TESSERA_SIGN_COMMAND }}
+          SIGN_USERNAME: ${{ secrets.SIGN_USERNAME }}
+          SIGN_PASSWORD: ${{ secrets.SIGN_PASSWORD }}
+          SIGN_CREDENTIAL_ID: ${{ secrets.SIGN_CREDENTIAL_ID }}
+          SIGN_TOTP_SECRET: ${{ secrets.SIGN_TOTP_SECRET }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

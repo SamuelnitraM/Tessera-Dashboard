@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { ArrowLeft, LogOut, Music2, Play, RefreshCw, Search } from 'lucide-react'
 import {
+  AccountRequired,
   Button,
-  EDIT_ACTIVE,
   errorMessage,
   mailErrorMessage,
+  needsReconnect,
   usePluginTranslation,
   type WidgetProps
 } from '@tessera/plugin-sdk'
@@ -28,23 +29,31 @@ export function SpotifyWidget({
   const t = usePluginTranslation()
   const api = window.tessera.spotify
   const [state, setState] = useState<SpotifyState | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const tab = config.tab ?? 'playlists'
 
-  const [loadError, setLoadError] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .state()
-      .then(setState)
-      .catch((failure: unknown) => setLoadError(errorMessage(failure)))
-  }, [api])
+  const load = useCallback(
+    () =>
+      void api
+        .state()
+        .then(setState)
+        .catch((failure: unknown) => setLoadError(errorMessage(failure))),
+    [api]
+  )
+  useEffect(load, [load])
 
   if (!state) {
     return <p className={loadError ? styles.error : styles.empty}>{loadError ?? t('loading')}</p>
   }
+  // Pas de compte (ou pas d'identifiant d'application : Paramètres → Comptes → Avancé)
   if (!state.configured || !state.user) {
-    return <Setup state={state} onState={setState} error={error} onError={setError} />
+    return (
+      <div className={styles.spotify}>
+        <AccountRequired service="spotify" onConnected={load}>
+          <p className={styles.footnote}>{t('freeHint')}</p>
+        </AccountRequired>
+      </div>
+    )
   }
 
   return (
@@ -80,80 +89,12 @@ export function SpotifyWidget({
   )
 }
 
-function Setup({
-  state,
-  onState,
-  error,
-  onError
-}: {
-  state: SpotifyState
-  onState: (state: SpotifyState) => void
-  error: string | null
-  onError: (error: string | null) => void
-}): React.JSX.Element {
-  const t = usePluginTranslation()
-  const api = window.tessera.spotify
-  const [clientId, setClientId] = useState(state.ownClientId)
-  const [busy, setBusy] = useState(false)
-
-  const connect = (): void => {
-    setBusy(true)
-    onError(null)
-    api
-      .connect()
-      .then(onState)
-      .catch((failure: unknown) => onError(mailErrorMessage(failure)))
-      .finally(() => setBusy(false))
-  }
-
-  return (
-    // Réglage d'un bloc qui vient d'être ajouté : utilisable en mode édition
-    <div {...EDIT_ACTIVE} className={`${styles.setup} no-drag`}>
-      <Music2 size={28} aria-hidden />
-      <p>{t('intro')}</p>
-      {!state.configured && (
-        <>
-          <ol className={styles.steps}>
-            <li>{t('step1')}</li>
-            <li>{t('step2', { uri: state.redirectUri })}</li>
-            <li>{t('step3')}</li>
-          </ol>
-          <form
-            className={styles.row}
-            onSubmit={(event) => {
-              event.preventDefault()
-              void api
-                .setClientId(clientId)
-                .then(onState)
-                .catch((failure: unknown) => onError(errorMessage(failure)))
-            }}
-          >
-            <input
-              value={clientId}
-              placeholder={t('clientId')}
-              aria-label={t('clientId')}
-              onChange={(event) => setClientId(event.target.value)}
-            />
-            <Button type="submit">{t('saveClientId')}</Button>
-          </form>
-        </>
-      )}
-      {state.configured && (
-        <Button variant="primary" disabled={busy} onClick={connect}>
-          {busy ? t('waiting') : t('connect')}
-        </Button>
-      )}
-      {error && <p className={styles.error}>{error}</p>}
-      <p className={styles.footnote}>{t('freeHint')}</p>
-    </div>
-  )
-}
-
 function Browser({ tab }: { tab: Tab }): React.JSX.Element {
   const t = usePluginTranslation()
   const api = window.tessera.spotify
   const [items, setItems] = useState<SpotifyItem[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  /** Échec du chargement (erreur reçue : un compte à reconnecter s'affiche autrement). */
+  const [error, setError] = useState<unknown>(null)
   const [playlist, setPlaylist] = useState<SpotifyItem | null>(null)
   const [query, setQuery] = useState('')
   const [search, setSearch] = useState('')
@@ -172,7 +113,7 @@ function Browser({ tab }: { tab: Tab }): React.JSX.Element {
         setItems(list)
         setError(null)
       })
-      .catch((failure: unknown) => !cancelled && setError(mailErrorMessage(failure)))
+      .catch((failure: unknown) => !cancelled && setError(failure ?? 'unknown'))
     return () => {
       cancelled = true
     }
@@ -219,9 +160,16 @@ function Browser({ tab }: { tab: Tab }): React.JSX.Element {
           </Button>
         </div>
       )}
-      {error ? (
+      {error && needsReconnect(error) ? (
+        // Jeton révoqué, autorisation retirée… : reconnexion sur place
+        <AccountRequired
+          service="spotify"
+          error={error}
+          onConnected={() => setTick((n) => n + 1)}
+        />
+      ) : error ? (
         <div className={styles.empty}>
-          <p className={styles.error}>{error}</p>
+          <p className={styles.error}>{mailErrorMessage(error)}</p>
           <Button icon={RefreshCw} onClick={() => setTick((n) => n + 1)}>
             {t('retry')}
           </Button>

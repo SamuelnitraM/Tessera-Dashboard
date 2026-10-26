@@ -10,7 +10,7 @@ import {
   type PluginFileErrorCode
 } from '@shared/plugin-files'
 import { PLUGIN_FILES_ROOT } from '@shared/plugins'
-import { getTranslation } from '../i18n'
+import { errorText, getTranslation } from '../i18n'
 import { getPluginManifest, hasPermission } from './manifests'
 
 /**
@@ -28,7 +28,10 @@ function fileError(code: PluginFileErrorCode, detail: string): Error {
 export function getPluginFolder(pluginId: string): string {
   const manifest = getPluginManifest(pluginId)
   if (!manifest?.files || !hasPermission(pluginId, 'files')) {
-    throw fileError('permission', `L'extension « ${pluginId} » n'a pas la permission « files ».`)
+    throw fileError(
+      'permission',
+      errorText('common', 'missingPermission', { plugin: pluginId, permission: 'files' })
+    )
   }
   return join(app.getPath('documents'), PLUGIN_FILES_ROOT, manifest.files.folder)
 }
@@ -43,11 +46,12 @@ async function ensureFolder(pluginId: string): Promise<string> {
 /** Chemin complet d'un fichier, après vérification qu'il reste dans le dossier de l'extension. */
 async function resolveFile(pluginId: string, name: string): Promise<string> {
   if (typeof name !== 'string' || !isValidFileName(name)) {
-    throw fileError('invalid-name', `Nom de fichier refusé : « ${String(name)} ».`)
+    throw fileError('invalid-name', errorText('pluginFiles', 'invalidName', { name: String(name) }))
   }
   const folder = await ensureFolder(pluginId)
   const path = resolve(folder, name)
-  if (!path.startsWith(folder + sep)) throw fileError('invalid-name', 'Chemin refusé.')
+  if (!path.startsWith(folder + sep))
+    throw fileError('invalid-name', errorText('pluginFiles', 'pathRejected'))
   return path
 }
 
@@ -63,8 +67,8 @@ async function guard<T>(operation: () => Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof Error && /^\[[a-z-]+\]/.test(error.message)) throw error
     const code = (error as NodeJS.ErrnoException).code
-    if (code === 'ENOENT') throw fileError('not-found', 'Fichier introuvable.')
-    if (code === 'EEXIST') throw fileError('exists', 'Un fichier porte déjà ce nom.')
+    if (code === 'ENOENT') throw fileError('not-found', errorText('common', 'fileNotFound'))
+    if (code === 'EEXIST') throw fileError('exists', errorText('pluginFiles', 'exists'))
     throw fileError('io', String(error))
   }
 }
@@ -89,9 +93,9 @@ export function writePluginFile(
   content: string
 ): Promise<PluginFileEntry> {
   return guard(async () => {
-    if (typeof content !== 'string') throw fileError('io', 'Contenu texte attendu.')
+    if (typeof content !== 'string') throw fileError('io', errorText('pluginFiles', 'textExpected'))
     if (Buffer.byteLength(content, 'utf8') > MAX_PLUGIN_FILE_SIZE) {
-      throw fileError('io', 'Fichier trop volumineux (10 Mo maximum).')
+      throw fileError('io', errorText('pluginFiles', 'tooLarge'))
     }
     const path = await resolveFile(pluginId, name)
     const tempPath = join(path, '..', `.${name}.tmp`)
@@ -113,7 +117,7 @@ export function renamePluginFile(
     // Windows ignore la casse : « Note » -> « note » est un simple changement de casse
     const sameFile = source.toLowerCase() === target.toLowerCase()
     if (!sameFile && (await exists(target))) {
-      throw fileError('exists', 'Un fichier porte déjà ce nom.')
+      throw fileError('exists', errorText('pluginFiles', 'exists'))
     }
     await rename(source, target)
     return toEntry(target, to)
@@ -142,7 +146,7 @@ export function importPluginFiles(
         )
       : []
     if (accepted.length === 0)
-      throw fileError('invalid-name', 'Aucune extension de fichier acceptée.')
+      throw fileError('invalid-name', errorText('pluginFiles', 'noExtension'))
 
     const text = getTranslation().dialogs
     const options: Electron.OpenDialogOptions = {

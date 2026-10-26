@@ -51,9 +51,18 @@ L'action « CI » (`.github/workflows/ci.yml`) vérifie chaque envoi sur `main` 
 
 ## Signature de code
 
-L'installeur n'est **pas signé** pour l'instant. Au premier lancement, Windows SmartScreen affiche « Windows a protégé votre ordinateur » : il faut cliquer sur **Informations complémentaires**, puis **Exécuter quand même**. Les mises à jour automatiques fonctionnent sans signature.
+Tant qu'aucun certificat n'est configuré, l'installeur n'est **pas signé** : au premier lancement, Windows SmartScreen affiche « Windows a protégé votre ordinateur », il faut cliquer sur **Informations complémentaires**, puis **Exécuter quand même**. Les mises à jour automatiques fonctionnent sans signature.
 
-Pour signer plus tard, rien n'est à refaire : il suffit d'ajouter à `electron-builder.yml` la configuration de signature (`win.azureSignOptions` pour Azure Trusted Signing, ou un certificat avec `win.signtoolOptions`), et les secrets correspondants à l'action « Version ». La réputation SmartScreen s'établit ensuite au fil des téléchargements.
+**Ce qui est prêt** : electron-builder appelle `build/sign.mjs` pour chaque `.exe` (l'application, l'installeur, le désinstalleur). Ce script lance la commande de la variable `TESSERA_SIGN_COMMAND`, où `{file}` est remplacé par le fichier à signer. Sans cette variable, il ne fait rien. L'action « Version » la lit dans les secrets du dépôt, avec `SIGN_USERNAME`, `SIGN_PASSWORD`, `SIGN_CREDENTIAL_ID` et `SIGN_TOTP_SECRET` pour les identifiants du fournisseur.
+
+**Obtenir un certificat** (à faire par l'auteur du projet : il faut prouver son identité et payer) :
+
+- **Azure Artifact Signing** (ex-Trusted Signing, environ 10 $ par mois) : le moins cher, mais réservé aux particuliers des États-Unis et du Canada, et aux entreprises (États-Unis, Canada, Union européenne, Royaume-Uni). electron-builder le gère avec `win.azureSignOptions` (à mettre à la place de `signtoolOptions`).
+- **Certificat « OV » d'une autorité classique**, signé dans le nuage pour être utilisable par GitHub Actions. Exemple avec eSigner de SSL.com : installer CodeSignTool dans l'action, puis le secret `TESSERA_SIGN_COMMAND` vaut
+  `CodeSignTool sign -username="%SIGN_USERNAME%" -password="%SIGN_PASSWORD%" -credential_id="%SIGN_CREDENTIAL_ID%" -totp_secret="%SIGN_TOTP_SECRET%" -input_file_path={file} -override`.
+- **Certificat « Open Source » de Certum** (le moins cher pour un particulier en Europe) : sa clé est dans l'application SimplySign, qui demande un code à chaque connexion. Il sert donc à signer sur son PC (`TESSERA_SIGN_COMMAND` = `signtool sign /n "Open Source Developer, …" /fd sha256 /tr http://time.certum.pl /td sha256 {file}`, puis `npm run dist`), pas dans GitHub Actions.
+
+Une fois les versions signées, ajouter `publisherName` (le nom du certificat) à `win.signtoolOptions` : les mises à jour automatiques vérifieront alors que chaque nouvelle version est signée par ce même nom. Les versions non signées déjà installées acceptent la première version signée. La réputation SmartScreen s'établit ensuite au fil des téléchargements.
 
 ## Fusibles Electron
 

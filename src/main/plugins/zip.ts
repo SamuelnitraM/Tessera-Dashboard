@@ -1,5 +1,7 @@
 import { crc32, inflateRawSync } from 'node:zlib'
 import { PACKAGE_LIMITS } from '@shared/modules'
+import type { Translation } from '@shared/i18n'
+import { errorText } from '../i18n'
 
 /**
  * Lecture des paquets `.tessera` (archives zip), sans dépendance.
@@ -29,20 +31,21 @@ const isValidSegment = (segment: string): boolean =>
 /** Noms réservés par Windows, même avec une extension (`con.js`). */
 const RESERVED_NAME = /^(?:con|prn|aux|nul|com\d|lpt\d)(?:\..*)?$/i
 
-function unsafe(message: string): never {
-  throw new UnsafePackageError(message)
+/** Refus traduit ; `name` : le chemin en cause. */
+function unsafe(key: keyof Translation['errors']['package'], name = ''): never {
+  throw new UnsafePackageError(errorText('package', key, { name }))
 }
 
 /** Vérifie qu'un nom d'entrée est un chemin relatif simple, et le renvoie. */
 export function checkEntryPath(name: string): string {
-  if (name.length === 0 || name.length > 260) unsafe(`Nom de fichier invalide : « ${name} ».`)
-  if (name.includes('\\')) unsafe(`Barre oblique inverse interdite : « ${name} ».`)
-  if (name.startsWith('/') || /^[a-zA-Z]:/.test(name)) unsafe(`Chemin absolu : « ${name} ».`)
+  if (name.length === 0 || name.length > 260) unsafe('invalidFileName', name)
+  if (name.includes('\\')) unsafe('backslash', name)
+  if (name.startsWith('/') || /^[a-zA-Z]:/.test(name)) unsafe('absolutePath', name)
   const segments = name.split('/')
   for (const segment of segments) {
-    if (segment === '..' || segment === '.') unsafe(`Chemin relatif interdit : « ${name} ».`)
+    if (segment === '..' || segment === '.') unsafe('relativePath', name)
     if (!isValidSegment(segment) || RESERVED_NAME.test(segment) || /[. ]$/.test(segment)) {
-      unsafe(`Nom de fichier invalide : « ${name} ».`)
+      unsafe('invalidFileName', name)
     }
   }
   return name
@@ -53,7 +56,7 @@ export function checkEntryPath(name: string): string {
  * implicites. Lève `UnsafePackageError` pour toute archive refusée.
  */
 export function readZip(data: Buffer): Map<string, Buffer> {
-  if (data.length > PACKAGE_LIMITS.archiveBytes) unsafe('Archive trop volumineuse.')
+  if (data.length > PACKAGE_LIMITS.archiveBytes) unsafe('tooLarge')
 
   // Fin du répertoire central : cherchée depuis la fin (après un éventuel commentaire)
   let eocd = -1
@@ -63,18 +66,18 @@ export function readZip(data: Buffer): Map<string, Buffer> {
       break
     }
   }
-  if (eocd < 0) unsafe('Ce fichier n’est pas une archive zip.')
+  if (eocd < 0) unsafe('notZip')
 
   const diskEntries = data.readUInt16LE(eocd + 8)
   const totalEntries = data.readUInt16LE(eocd + 10)
   const centralSize = data.readUInt32LE(eocd + 12)
   const centralOffset = data.readUInt32LE(eocd + 16)
   if (data.readUInt16LE(eocd + 4) !== 0 || diskEntries !== totalEntries) {
-    unsafe('Archive en plusieurs parties non prise en charge.')
+    unsafe('multipart')
   }
-  if (totalEntries === 0xffff || centralOffset === 0xffffffff) unsafe('ZIP64 non pris en charge.')
-  if (totalEntries > PACKAGE_LIMITS.entries) unsafe('Trop de fichiers dans l’archive.')
-  if (centralOffset + centralSize > eocd) unsafe('Archive corrompue.')
+  if (totalEntries === 0xffff || centralOffset === 0xffffffff) unsafe('zip64')
+  if (totalEntries > PACKAGE_LIMITS.entries) unsafe('tooManyFiles')
+  if (centralOffset + centralSize > eocd) unsafe('corrupt')
 
   const files = new Map<string, Buffer>()
   const seen = new Set<string>()
@@ -83,7 +86,7 @@ export function readZip(data: Buffer): Map<string, Buffer> {
 
   for (let index = 0; index < totalEntries; index++) {
     if (offset + 46 > eocd || data.readUInt32LE(offset) !== CENTRAL_SIGNATURE) {
-      unsafe('Archive corrompue (répertoire central).')
+      unsafe('corruptDirectory')
     }
     const flags = data.readUInt16LE(offset + 8)
     const method = data.readUInt16LE(offset + 10)
@@ -99,27 +102,27 @@ export function readZip(data: Buffer): Map<string, Buffer> {
     const rawName = data.subarray(offset + 46, offset + 46 + nameLength)
     // Bit 11 : nom en UTF-8. Sinon, seuls les noms ASCII sont acceptés (pas de devinette)
     const name = rawName.toString(flags & 0x800 ? 'utf8' : 'latin1')
-    if (!(flags & 0x800) && /[^\x20-\x7e]/.test(name)) unsafe(`Nom non UTF-8 : « ${name} ».`)
+    if (!(flags & 0x800) && /[^\x20-\x7e]/.test(name)) unsafe('notUtf8', name)
     offset += 46 + nameLength + extraLength + commentLength
 
-    if (flags & 0x1) unsafe('Archive chiffrée non prise en charge.')
-    if (size === 0xffffffff || compressedSize === 0xffffffff) unsafe('ZIP64 non pris en charge.')
+    if (flags & 0x1) unsafe('encrypted')
+    if (size === 0xffffffff || compressedSize === 0xffffffff) unsafe('zip64')
     // Unix (3) : type de fichier dans les bits hauts. Lien symbolique = 0o120000
     if (madeBy === 3 && ((externalAttributes >>> 16) & 0o170000) === 0o120000) {
-      unsafe(`Lien symbolique interdit : « ${name} ».`)
+      unsafe('symlink', name)
     }
     // MS-DOS : attribut « point d'analyse » (lien, jonction)
-    if (externalAttributes & 0x400) unsafe(`Lien interdit : « ${name} ».`)
+    if (externalAttributes & 0x400) unsafe('link', name)
 
     const isFolder = name.endsWith('/')
     const path = checkEntryPath(isFolder ? name.slice(0, -1) : name)
     const key = path.toLowerCase()
-    if (seen.has(key)) unsafe(`Fichier en double : « ${path} ».`)
+    if (seen.has(key)) unsafe('duplicate', path)
     seen.add(key)
     if (isFolder) continue
 
     declaredTotal += size
-    if (declaredTotal > PACKAGE_LIMITS.totalBytes) unsafe('Archive trop volumineuse décompressée.')
+    if (declaredTotal > PACKAGE_LIMITS.totalBytes) unsafe('tooLargeUncompressed')
     files.set(path, readEntry(data, localOffset, method, compressedSize, size, crc, path))
   }
 
@@ -127,7 +130,7 @@ export function readZip(data: Buffer): Map<string, Buffer> {
   const fileKeys = new Set([...files.keys()].map((path) => path.toLowerCase()))
   for (const key of fileKeys) {
     for (let end = key.indexOf('/'); end >= 0; end = key.indexOf('/', end + 1)) {
-      if (fileKeys.has(key.slice(0, end))) unsafe(`Conflit de chemin : « ${key} ».`)
+      if (fileKeys.has(key.slice(0, end))) unsafe('pathConflict', key)
     }
   }
   return files
@@ -143,11 +146,11 @@ function readEntry(
   path: string
 ): Buffer {
   if (localOffset + 30 > data.length || data.readUInt32LE(localOffset) !== LOCAL_SIGNATURE) {
-    unsafe(`Archive corrompue (« ${path} »).`)
+    unsafe('corruptEntry', path)
   }
   const start =
     localOffset + 30 + data.readUInt16LE(localOffset + 26) + data.readUInt16LE(localOffset + 28)
-  if (start + compressedSize > data.length) unsafe(`Archive tronquée (« ${path} »).`)
+  if (start + compressedSize > data.length) unsafe('truncated', path)
   const raw = data.subarray(start, start + compressedSize)
 
   let content: Buffer
@@ -158,12 +161,12 @@ function readEntry(
       // Décompression bornée à la taille annoncée : une bombe s'arrête là
       content = inflateRawSync(raw, { maxOutputLength: Math.max(size, 1) })
     } catch {
-      unsafe(`Fichier illisible ou plus gros qu’annoncé : « ${path} ».`)
+      unsafe('unreadableEntry', path)
     }
   } else {
-    unsafe(`Méthode de compression non prise en charge (« ${path} »).`)
+    unsafe('compression', path)
   }
-  if (content.length !== size) unsafe(`Taille incorrecte : « ${path} ».`)
-  if (crc32(content) !== crc) unsafe(`Fichier altéré (somme de contrôle) : « ${path} ».`)
+  if (content.length !== size) unsafe('wrongSize', path)
+  if (crc32(content) !== crc) unsafe('altered', path)
   return content
 }

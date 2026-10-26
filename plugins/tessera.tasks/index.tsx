@@ -30,9 +30,6 @@ export default definePlugin({
       noDue: 'sans échéance',
       due: 'Échéance',
       notes: 'Notes…',
-      googleHint: 'Tes listes Google Tasks (celles du téléphone) peuvent s’afficher ici.',
-      connectGoogle: 'Connecter Google Tasks',
-      waiting: 'Connexion dans le navigateur…',
       cancel: 'Annuler',
       accountError: '{{email}} : {{message}}'
     },
@@ -60,9 +57,6 @@ export default definePlugin({
       noDue: 'no due date',
       due: 'Due date',
       notes: 'Notes…',
-      googleHint: 'Your Google Tasks lists (the ones on your phone) can show up here.',
-      connectGoogle: 'Connect Google Tasks',
-      waiting: 'Signing in in the browser…',
       cancel: 'Cancel',
       accountError: '{{email}}: {{message}}'
     }

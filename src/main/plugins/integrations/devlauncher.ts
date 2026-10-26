@@ -8,6 +8,7 @@ import type {
   DevLauncherState,
   McpStatus
 } from '@shared/integrations'
+import { errorText } from '../../i18n'
 import {
   clampInteger,
   field,
@@ -280,7 +281,7 @@ async function mcpRequest(
     })
   } catch (error) {
     if (error instanceof Error && error.name === 'TimeoutError' && timeout > SHORT_TIMEOUT_MS) {
-      throw integrationError('unavailable', 'DevLauncher ne répond plus.')
+      throw integrationError('unavailable', errorText('integrations', 'devLauncherNotResponding'))
     }
     throw new McpFailure('offline')
   }
@@ -296,7 +297,10 @@ async function mcpRequest(
     throw new McpFailure('other-service')
   }
   if (isRecord(body.error)) {
-    throw integrationError('failed', String(body.error.message ?? 'Erreur MCP'))
+    throw integrationError(
+      'failed',
+      String(body.error.message ?? errorText('integrations', 'mcpError'))
+    )
   }
   return body.result
 }
@@ -369,9 +373,12 @@ const parseJson = (text: string): unknown => {
   }
 }
 
-const requireText = (value: unknown, name: string): string => {
+const requireText = (
+  value: unknown,
+  error: 'invalidService' | 'invalidProject' | 'invalidProfile'
+): string => {
   if (typeof value !== 'string' || !value.trim() || value.length > 500) {
-    throw integrationError('invalid', `${name} invalide.`)
+    throw integrationError('invalid', errorText('integrations', error))
   }
   return value.trim()
 }
@@ -442,7 +449,7 @@ export async function readDevLauncherServiceLogs(
   lines: unknown
 ): Promise<string[]> {
   const text = await callTool('read_service_logs', {
-    service: requireText(service, 'Service'),
+    service: requireText(service, 'invalidService'),
     lines: clampInteger(lines, 1, 1000, 200)
   })
   return text === '(journal vide)' ? [] : text.split('\n')
@@ -452,10 +459,10 @@ export function launchDevLauncherProject(project: unknown, profile: unknown): Pr
   return callTool(
     'launch_project',
     {
-      project: requireText(project, 'Projet'),
+      project: requireText(project, 'invalidProject'),
       ...(profile === null || profile === undefined || profile === ''
         ? {}
-        : { profile: requireText(profile, 'Profil') })
+        : { profile: requireText(profile, 'invalidProfile') })
     },
     LAUNCH_TIMEOUT_MS
   )
@@ -468,7 +475,7 @@ export function stopAllDevLauncher(): Promise<string> {
 export function restartDevLauncherService(service: unknown): Promise<string> {
   return callTool(
     'restart_service',
-    { service: requireText(service, 'Service') },
+    { service: requireText(service, 'invalidService') },
     LAUNCH_TIMEOUT_MS
   )
 }

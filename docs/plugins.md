@@ -167,6 +167,7 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
 | `useLatest(valeur)`                                                         | Référence toujours à jour, pour les fonctions asynchrones et les écouteurs                            |
 | `openContextMenu(items)`                                                    | Menu du clic droit de Tessera : `onContextMenu={openContextMenu([{ label, icon, onSelect }])}`        |
 | `Button`, `Dialog`, `ConfirmDialog`, `Select`, `SegmentedControl`, `Switch` | Composants d'interface de l'app, pour un rendu cohérent                                               |
+| `AccountRequired`, `needsReconnect(erreur)`                                 | Bloc sans compte, ou compte à reconnecter : connexion sur place, voir ci-dessous                      |
 | `PLUGIN_API_VERSION`                                                        | Version de l'API fournie par l'app                                                                    |
 
 - **`config`** contient les réglages du manifeste (avec leurs valeurs par défaut) et toute autre donnée enregistrée par le widget. Elle est sauvegardée dans `dashboard.json` avec la page.
@@ -316,6 +317,33 @@ await mail.send(accountId, {
 | `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                      |
 
 Le HTML d'un mail (`message.html`) n'est **pas nettoyé** : l'afficher sans précaution exposerait Tessera. L'extension **Mails** (`plugins/tessera.mail`) montre comment le nettoyer (DOMPurify) et l'isoler dans un cadre sans scripts, images distantes bloquées. Les notifications des nouveaux mails sont envoyées par Tessera elle-même (source par compte).
+
+### Compte à connecter (`AccountRequired`)
+
+Un bloc qui a besoin d'un compte (Gmail, YouTube, Google Agenda, Google Tasks, Twitch, Spotify) affiche `AccountRequired` quand il n'en a pas, ou quand son compte est à reconnecter. Le bouton « Se connecter avec… » lance sur place la même connexion que Paramètres → Comptes (page officielle dans le navigateur, avec Annuler pendant l'attente) ; le lien « Gérer les comptes » ouvre Paramètres → Comptes. Ses boutons restent utilisables en mode édition.
+
+```tsx
+const { accounts, states } = useMailAccounts()
+const account = accounts[0]
+if (!account) return <AccountRequired service="gmail" />
+const error = states[account.id]?.error
+if (needsReconnect(error)) {
+  return <AccountRequired service="gmail" error={error} account={account.address} />
+}
+```
+
+| Prop                   | Rôle                                                                                                     |
+| ---------------------- | -------------------------------------------------------------------------------------------------------- |
+| `service`              | `'gmail'`, `'youtube'`, `'calendar'`, `'tasks'`, `'twitch'` ou `'spotify'`                               |
+| `error`, `account`     | Erreur du compte (code comme `'auth'`, ou erreur reçue) et compte concerné ; sans `error` : aucun compte |
+| `message`              | Ce que le bloc affichera une fois connecté (sinon un texte propre au service)                            |
+| `onConnected`          | Après une connexion réussie (recharger les données)                                                      |
+| `onManage`             | Avant l'ouverture de Paramètres → Comptes (fermer un panneau…)                                           |
+| `signIn`               | Remplace la connexion par défaut, ex. `() => mail.reconnect(compte)` (page ouverte sur le bon compte)    |
+| `compact`, `className` | Bandeau au lieu du centre du bloc (bloc utilisable sans compte, ou au-dessus du contenu) ; placement     |
+| `children`             | Contenu ajouté dessous (ex. « ou colle un lien »)                                                        |
+
+`needsReconnect(erreur)` dit si une erreur de compte demande de le reconnecter : `auth` (jeton révoqué ou expiré), `scope` (autorisation non donnée), `api-disabled`, `not-configured`. Les autres erreurs (`network`, `quota`…) s'affichent normalement, avec un nouvel essai.
 
 ### Lecteurs vidéo (`MediaView`) et YouTube / Twitch (`useMedia`)
 

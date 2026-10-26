@@ -1,6 +1,7 @@
 import { existsSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { app, safeStorage } from 'electron'
+import { errorText } from '../i18n'
 import { JsonStore } from '../json-store'
 
 /**
@@ -57,7 +58,8 @@ export function setSecret(key: string, value: string | null): void {
   const next = { ...store.get() }
   if (value === null) delete next[key]
   else {
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('Chiffrement indisponible')
+    if (!safeStorage.isEncryptionAvailable())
+      throw new Error(errorText('common', 'encryptionUnavailable'))
     next[key] = safeStorage.encryptString(value).toString('base64')
   }
   store.set(next)

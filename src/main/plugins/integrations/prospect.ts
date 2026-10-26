@@ -5,6 +5,7 @@ import type {
   ProspectJob,
   ProspectStatistics
 } from '@shared/integrations'
+import { errorText } from '../../i18n'
 import { field, integrationError, isRecord } from './common'
 
 /**
@@ -20,7 +21,7 @@ const TIMEOUT_MS = 4000
 
 function validPort(port: unknown): number {
   if (typeof port !== 'number' || !Number.isInteger(port) || port < 1024 || port > 65535) {
-    throw integrationError('invalid', 'Port invalide.')
+    throw integrationError('invalid', errorText('integrations', 'invalidPort'))
   }
   return port
 }
@@ -52,7 +53,7 @@ async function request(port: unknown, [method, path]: Route): Promise<unknown> {
   try {
     return await response.json()
   } catch {
-    throw integrationError('failed', 'Réponse illisible.')
+    throw integrationError('failed', errorText('integrations', 'unreadableResponse'))
   }
 }
 
@@ -153,7 +154,7 @@ export async function getProspectJobs(port: unknown): Promise<ProspectJob[]> {
 
 export async function cancelProspectJob(port: unknown, jobId: unknown): Promise<boolean> {
   if (typeof jobId !== 'number' || !Number.isInteger(jobId) || jobId < 0) {
-    throw integrationError('invalid', 'Tâche invalide.')
+    throw integrationError('invalid', errorText('integrations', 'invalidJob'))
   }
   const body = await requireResponse(port, ['POST', `/api/jobs/${jobId}/cancel`])
   return field(body, 'cancelled') === true
@@ -162,7 +163,7 @@ export async function cancelProspectJob(port: unknown, jobId: unknown): Promise<
 /** Appelle un numéro d'une relance : lien `tel:` confié à Windows (application Téléphone…). */
 export async function callProspect(phone: unknown): Promise<void> {
   if (typeof phone !== 'string' || !/^\+?[0-9 ().-]{4,30}$/.test(phone.trim())) {
-    throw integrationError('invalid', 'Numéro invalide.')
+    throw integrationError('invalid', errorText('common', 'invalidNumber'))
   }
   await shell.openExternal(`tel:${phone.replace(/[^0-9+]/g, '')}`)
 }

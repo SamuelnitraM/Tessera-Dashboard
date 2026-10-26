@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, Mail, Menu, PenSquare, RefreshCw, Search, Settings, X } from 'lucide-react'
+import { AlertTriangle, Menu, PenSquare, RefreshCw, Search, X } from 'lucide-react'
 import {
+  AccountRequired,
   Button,
   ConfirmDialog,
-  EDIT_ACTIVE,
   INBOX,
   mailErrorMessage,
+  needsReconnect,
   openMailSettings,
   Select,
   useMail,
@@ -44,21 +45,13 @@ type View =
 
 /** Bloc Mails : boîte de réception d'un compte, lecture et écriture. */
 export function MailWidget({ config, setConfig }: WidgetProps<MailConfig>): React.JSX.Element {
-  const t = usePluginTranslation()
   const { accounts } = useMailAccounts()
   const account = accounts.find((item) => item.id === config.accountId) ?? accounts[0]
 
   if (!account) {
     return (
       <div className={styles.widget}>
-        <div className={styles.state}>
-          <Mail size={24} aria-hidden />
-          <p className={styles.stateTitle}>{t('noAccount')}</p>
-          <p>{t('noAccountText')}</p>
-          <Button {...EDIT_ACTIVE} className="no-drag" variant="primary" onClick={openMailSettings}>
-            {t('addAccount')}
-          </Button>
-        </div>
+        <AccountRequired service="gmail" />
       </div>
     )
   }
@@ -162,14 +155,6 @@ function AccountInbox({
     }
   }
 
-  const reconnect = (): void => {
-    if (account.provider === 'imap') openMailSettings()
-    else
-      void mail
-        .reconnect(account.id)
-        .then(inbox.reload, (failure) => setNotice(mailErrorMessage(failure)))
-  }
-
   const openFolder = (id: string): void =>
     leaveComposer(() => {
       setConfig({ folder: id })
@@ -244,18 +229,25 @@ function AccountInbox({
         </button>
       </header>
 
-      {state?.error && (
-        <div className={styles.banner}>
-          <AlertTriangle size={15} aria-hidden />
-          <span>{mailErrorMessage(new Error(`mail-error:${state.error}`))}</span>
-          {state.error === 'auth' && <Button onClick={reconnect}>{t('reconnect')}</Button>}
-          {state.error === 'not-configured' && (
-            <Button icon={Settings} onClick={openMailSettings}>
-              {t('openSettings')}
-            </Button>
-          )}
-        </div>
-      )}
+      {state?.error &&
+        (account.provider === 'gmail' && needsReconnect(state.error) ? (
+          // Connexion Google à refaire : sur place, la page s'ouvre sur ce compte
+          <AccountRequired
+            compact
+            service="gmail"
+            error={state.error}
+            account={account.address}
+            signIn={() => mail.reconnect(account.id)}
+            onConnected={inbox.reload}
+          />
+        ) : (
+          <div className={styles.banner}>
+            <AlertTriangle size={15} aria-hidden />
+            <span>{mailErrorMessage(new Error(`mail-error:${state.error}`))}</span>
+            {/* Compte IMAP : mot de passe à saisir de nouveau dans Paramètres → Comptes */}
+            {state.error === 'auth' && <Button onClick={openMailSettings}>{t('reconnect')}</Button>}
+          </div>
+        ))}
       {notice && <p className={styles.toast}>{notice.text}</p>}
 
       <div className={styles.layout}>

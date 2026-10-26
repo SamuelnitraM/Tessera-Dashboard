@@ -15,6 +15,7 @@ import {
   stringList
 } from './common'
 import { findProgram, notFound } from '../../executables'
+import { errorText } from '../../i18n'
 
 /**
  * Connecteur GitSpread (https://github.com/SamuelnitraM/GitSpread-Manager-Project).
@@ -303,7 +304,7 @@ function findScanned(path: unknown): ScannedProject {
     typeof path === 'string'
       ? scanned.find((candidate) => samePath(candidate.path, path))
       : undefined
-  if (!project) throw integrationError('invalid', 'Projet inconnu de GitSpread.')
+  if (!project) throw integrationError('invalid', errorText('integrations', 'unknownProject'))
   return project
 }
 
@@ -353,7 +354,7 @@ function runGitStatus(directory: string): Promise<string> {
           reject(
             new Error(
               code === 'ENOENT'
-                ? 'git est introuvable (PATH).'
+                ? errorText('common', 'programNotFound', { program: 'git' })
                 : String(stderr || error.message)
                     .trim()
                     .split(/\r?\n/)[0]
@@ -477,7 +478,7 @@ export async function getGitSpreadState(chosenExecutable: string | null): Promis
 /** État git des projets demandés (parmi ceux trouvés au dernier `getGitSpreadState`). */
 export async function getGitStatuses(paths: unknown): Promise<GitProjectStatus[]> {
   if (!Array.isArray(paths) || paths.length > 500)
-    throw integrationError('invalid', 'Liste invalide.')
+    throw integrationError('invalid', errorText('integrations', 'invalidList'))
   const projects = paths.map(findScanned)
   const results: GitProjectStatus[] = new Array(projects.length)
   let next = 0
@@ -498,7 +499,7 @@ export async function openGitSpreadFolder(path: unknown): Promise<void> {
 
 export async function openGitSpreadWeb(path: unknown): Promise<void> {
   const { webUrl } = findScanned(path)
-  if (!webUrl) throw integrationError('not-found', 'Aucune page GitHub pour ce projet.')
+  if (!webUrl) throw integrationError('not-found', errorText('integrations', 'noGitHubPage'))
   await shell.openExternal(webUrl)
 }
 

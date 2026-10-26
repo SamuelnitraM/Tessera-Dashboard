@@ -862,6 +862,16 @@
 
 /* ---------- Chronomètre et concentration ---------- */
 
+/* Modes du Minuteur (compte à rebours, Concentration) : sur toute la largeur */
+.modeTabs > [role='radiogroup'] {
+  display: flex;
+}
+
+.modeTabs [role='radio'] {
+  flex: 1;
+  justify-content: center;
+}
+
 .stopwatch,
 .focus {
   display: flex;

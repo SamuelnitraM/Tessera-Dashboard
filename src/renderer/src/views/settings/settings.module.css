@@ -674,6 +674,55 @@
   gap: 0.5rem;
 }
 
+/* ---------- Journal (À propos) ---------- */
+
+.logViewer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0 0.5rem 0.25rem;
+}
+
+.logToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.logActions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.logViewer .cardIntro {
+  margin: 0;
+}
+
+.logText {
+  height: min(28rem, calc(100vh - 18rem));
+  margin: 0;
+  padding: 0.75rem;
+  overflow: auto;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.logEmpty {
+  margin: 0;
+  padding: 2rem 0;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
 /* Programme lancé par une application installée (non modifiable) */
 .appPath {
   grid-column: span 2;
@@ -917,41 +966,6 @@
   gap: 0.75rem;
   color: var(--color-text-muted);
   font-size: 0.8125rem;
-}
-
-/* « Se connecter avec… » aux couleurs des fournisseurs */
-.brandButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
-  height: 2.5rem;
-  padding: 0 1rem;
-  background: #ffffff;
-  border: 1px solid #dadce0;
-  border-radius: 999px;
-  color: #1f1f1f;
-  font-weight: 600;
-  font-size: 0.875rem;
-}
-
-.brandButton:hover:not(:disabled) {
-  background: #f6f8fc;
-}
-
-.brandButton[data-brand='twitch'] {
-  background: #9146ff;
-  border-color: #9146ff;
-  border-radius: 6px;
-  color: #ffffff;
-}
-
-.brandButton[data-brand='twitch']:hover:not(:disabled) {
-  background: #772ce8;
-}
-
-.brandButton:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 
 .advanced {

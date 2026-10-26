@@ -112,6 +112,160 @@ export const fr = {
     crashTitle: '{{name}} s’est arrêté',
     crashBody: 'Le programme s’est terminé avec une erreur (code {{code}}).'
   },
+  /** Erreurs du processus principal montrées à l'utilisateur. */
+  errors: {
+    common: {
+      unknownAction: 'Action inconnue.',
+      invalidAddress: 'Adresse invalide.',
+      invalidName: 'Nom invalide.',
+      invalidNumber: 'Numéro invalide.',
+      invalidId: 'Identifiant invalide.',
+      invalidPath: 'Chemin invalide.',
+      fileNotFound: 'Fichier introuvable.',
+      folderNotFound: 'Dossier introuvable.',
+      unsupportedFile: 'Format de fichier non pris en charge.',
+      missingPermission: 'L’extension « {{plugin}} » n’a pas la permission « {{permission}} ».',
+      programNotFound: '{{program}} est introuvable (PATH).',
+      programFailed: '{{program}} a échoué ({{code}}).',
+      encryptionUnavailable: 'Chiffrement indisponible.'
+    },
+    files: {
+      insideItself: 'Un dossier ne peut pas être copié ou déplacé dans lui-même.',
+      invalidName: 'Nom de fichier invalide.',
+      exists: 'Un élément porte déjà ce nom.'
+    },
+    git: {
+      settingsUnreadable: 'Réglages de GitSpread illisibles : réessaie dans un instant.',
+      unknownProject: 'Projet inconnu : actualise la liste.',
+      notRepository: 'Ce dossier n’est pas un dépôt git.',
+      noGitHubRepository: 'Pas de dépôt GitHub pour ce projet.',
+      emptyCommitMessage: 'Message de commit vide.',
+      noFileSelected: 'Aucun fichier choisi.',
+      invalidBranch: 'Nom de branche invalide.',
+      branchNotFound: 'Branche introuvable.',
+      noActiveBranch: 'Aucune branche active.',
+      emptyTitle: 'Titre vide.',
+      unknownAccount: 'Compte inconnu.',
+      invalidAccount: 'Compte invalide.',
+      invalidRepository: 'Dépôt invalide.',
+      invalidFolder: 'Dossier invalide.',
+      folderExists: 'Le dossier « {{name}} » existe déjà.'
+    },
+    devtools: {
+      protectedProgram: 'Programme protégé.',
+      notListening: 'Ce programme n’écoute plus sur aucun port.',
+      windowsProgram: 'Programme de Windows : il ne peut pas être arrêté ici.',
+      invalidContainer: 'Conteneur invalide.',
+      keywordMissing: 'Texte attendu absent',
+      siteUp: '{{name}} est de nouveau en ligne',
+      siteDown: '{{name}} ne répond plus'
+    },
+    news: {
+      tooLarge: 'Flux trop volumineux.',
+      noFeed: 'Aucun flux RSS trouvé à cette adresse.',
+      unreadable: 'Ce flux est illisible.',
+      alreadyFollowed: 'Ce flux est déjà suivi.'
+    },
+    spotify: {
+      invalidClientId: 'Identifiant invalide (32 caractères).',
+      invalidPlaylist: 'Playlist invalide.',
+      invalidUri: 'Adresse Spotify invalide.'
+    },
+    terminal: {
+      tooMany: 'Trop de terminaux ouverts.',
+      noShell: 'Aucun shell trouvé.'
+    },
+    pluginFiles: {
+      invalidName: 'Nom de fichier refusé : « {{name}} ».',
+      pathRejected: 'Chemin refusé.',
+      exists: 'Un fichier porte déjà ce nom.',
+      textExpected: 'Contenu texte attendu.',
+      tooLarge: 'Fichier trop volumineux (10 Mo maximum).',
+      noExtension: 'Aucune extension de fichier acceptée.'
+    },
+    processes: {
+      notApproved: 'Ce programme n’a pas été choisi par l’utilisateur.',
+      programNotFound: 'Programme introuvable : {{path}}',
+      unsupportedType: 'Type de fichier non pris en charge.',
+      missingOwner: 'Propriétaire manquant.',
+      alreadyRunning: 'Ce programme est déjà lancé.',
+      scriptArguments: 'Arguments refusés pour un script (caractères & | < > ^ % ").',
+      folderNotFound: 'Dossier de travail introuvable : {{path}}',
+      runNotFound: 'Exécution introuvable.'
+    },
+    integrations: {
+      notDeclared: 'L’extension « {{plugin}} » n’a pas déclaré l’intégration « {{integration}} ».',
+      devLauncherNotResponding: 'DevLauncher ne répond plus.',
+      mcpError: 'Erreur MCP',
+      invalidService: 'Service invalide.',
+      invalidProject: 'Projet invalide.',
+      invalidProfile: 'Profil invalide.',
+      unknownProject: 'Projet inconnu de GitSpread.',
+      invalidList: 'Liste invalide.',
+      noGitHubPage: 'Aucune page GitHub pour ce projet.',
+      invalidPort: 'Port invalide.',
+      unreadableResponse: 'Réponse illisible.',
+      invalidJob: 'Tâche invalide.'
+    },
+    modules: {
+      packageExpected: 'Fichier .tessera attendu.',
+      developerModeOff: 'Mode développeur désactivé.',
+      idChanged: 'L’identifiant du manifeste (« {{id}} ») a changé : « {{expected}} » attendu.',
+      noManifest:
+        'Aucun manifest.json dans ce dossier ni dans son sous-dossier dist (lance d’abord la construction).',
+      manifestUnreadable: 'manifest.json illisible ({{detail}}).',
+      entryNotFound: 'Script principal introuvable : « {{entry}} » (champ entry).',
+      unsignedUpdate:
+        'La version installée est signée ({{installed}}) : cette mise à jour ne l’est pas, elle est refusée.',
+      otherKey:
+        'Signée par une autre clé ({{fingerprint}}) que la version installée ({{installed}}) : mise à jour refusée.',
+      reservedPrefix: 'Le préfixe « {{prefix}} » est réservé aux extensions de Tessera.',
+      builtIn: '« {{id}} » est déjà une extension intégrée.',
+      noWidget: 'Le module doit fournir au moins un widget.',
+      folderTaken:
+        'Le dossier de fichiers « {{folder}} » est déjà utilisé par une autre extension.',
+      missingInPackage: '{{name}} introuvable dans le paquet.',
+      invalidJson: '{{name}} n’est pas un JSON valide.',
+      packageTooLarge: 'Le paquet dépasse 50 Mo.',
+      noRootManifest: 'Ni manifest.json ni collection.json à la racine du paquet.',
+      wrongId: '{{label}} : identifiant « {{id}} », « {{expected}} » attendu.',
+      duplicate: 'Module en double.',
+      pathRejected: 'Chemin refusé : « {{name}} ».',
+      expired: 'Installation expirée : rouvre le paquet.',
+      installFailed: 'Installation impossible : {{detail}}',
+      notFound: 'Module « {{id}} » introuvable.'
+    },
+    package: {
+      invalidFileName: 'Nom de fichier invalide : « {{name}} ».',
+      backslash: 'Barre oblique inverse interdite : « {{name}} ».',
+      absolutePath: 'Chemin absolu : « {{name}} ».',
+      relativePath: 'Chemin relatif interdit : « {{name}} ».',
+      tooLarge: 'Archive trop volumineuse.',
+      notZip: 'Ce fichier n’est pas une archive zip.',
+      multipart: 'Archive en plusieurs parties non prise en charge.',
+      zip64: 'ZIP64 non pris en charge.',
+      tooManyFiles: 'Trop de fichiers dans l’archive.',
+      corrupt: 'Archive corrompue.',
+      corruptDirectory: 'Archive corrompue (répertoire central).',
+      notUtf8: 'Nom non UTF-8 : « {{name}} ».',
+      encrypted: 'Archive chiffrée non prise en charge.',
+      symlink: 'Lien symbolique interdit : « {{name}} ».',
+      link: 'Lien interdit : « {{name}} ».',
+      duplicate: 'Fichier en double : « {{name}} ».',
+      tooLargeUncompressed: 'Archive trop volumineuse décompressée.',
+      pathConflict: 'Conflit de chemin : « {{name}} ».',
+      corruptEntry: 'Archive corrompue (« {{name}} »).',
+      truncated: 'Archive tronquée (« {{name}} »).',
+      unreadableEntry: 'Fichier illisible ou plus gros qu’annoncé : « {{name}} ».',
+      compression: 'Méthode de compression non prise en charge (« {{name}} »).',
+      wrongSize: 'Taille incorrecte : « {{name}} ».',
+      altered: 'Fichier altéré (somme de contrôle) : « {{name}} ».',
+      signatureUnreadable: '{{name}} illisible.',
+      signatureFiles: 'Signature invalide : la liste des fichiers ne correspond pas.',
+      signatureModified: 'Signature invalide : « {{name}} » a été modifié.',
+      signatureInvalid: 'Signature invalide.'
+    }
+  },
   notifications: {
     proposal: {
       title: 'Aucun bloc « {{name}} »',
@@ -211,7 +365,7 @@ export const fr = {
     copied: 'Copié',
     dragHint: 'Glisse pour changer l’ordre, ou sur la page pour en faire un bloc',
     names: {
-      datetime: 'Date et heure',
+      datetime: 'Horloge',
       weather: 'Météo',
       media: 'Média en cours',
       sound: 'Son',
@@ -252,7 +406,9 @@ export const fr = {
       resume: 'Reprendre',
       stop: 'Arrêter',
       doneTitle: 'Minuteur terminé',
-      doneBody: 'Les {{minutes}} min sont écoulées.'
+      doneBody: 'Les {{minutes}} min sont écoulées.',
+      mode: 'Mode du minuteur',
+      countdown: 'Compte à rebours'
     },
     note: {
       placeholder: 'Une idée, un numéro, une liste… Gardé d’une page à l’autre.'
@@ -395,8 +551,6 @@ export const fr = {
     agenda: {
       now: 'Maintenant',
       accountError: '{{email}} : {{error}}',
-      connect: 'Connecter Google Agenda',
-      reconnect: 'Reconnecter Google Agenda',
       intro:
         'Tes rendez-vous des 7 prochains jours (Google Agenda), que tu peux aussi ajouter et modifier ici. Google te demandera l’accès à ton agenda.',
       today: 'Aujourd’hui',
@@ -627,6 +781,27 @@ export const fr = {
       youtube: 'Compte YouTube non connecté : Paramètres → Comptes → Se connecter avec Google.'
     }
   },
+  /** Bloc sans compte connecté, ou dont le compte est à reconnecter (`AccountRequired`). */
+  accountRequired: {
+    title: 'Connecte ton compte {{provider}}',
+    reconnectTitle: 'Reconnecte ton compte {{provider}}',
+    connect: 'Se connecter avec {{provider}}',
+    reconnect: 'Reconnecter avec {{provider}}',
+    manage: 'Gérer les comptes',
+    accountError: '{{account}} : {{error}}',
+    unavailable:
+      'Connexion indisponible dans cette version de Tessera : renseigne ton propre identifiant dans Paramètres → Comptes → Avancé.',
+    intro: {
+      gmail:
+        'Tes mails Gmail arrivent dans ce bloc. Une autre messagerie (OVH, Orange, iCloud…) s’ajoute dans les comptes.',
+      youtube: 'Tes abonnements et tes playlists YouTube s’affichent ici.',
+      calendar: 'Tes prochains événements Google Agenda s’affichent ici, et tu peux en créer.',
+      tasks: 'Tes listes Google Tasks (celles du téléphone) peuvent s’afficher ici.',
+      twitch:
+        'Tes chaînes suivies en direct s’affichent ici, avec une notification à chaque direct.',
+      spotify: 'Tes playlists, titres likés et écoutes récentes s’affichent ici.'
+    }
+  },
   settings: {
     title: 'Paramètres',
     sections: {
@@ -807,6 +982,10 @@ export const fr = {
         'Tes chaînes suivies en direct, et une notification à chaque début de direct. Twitch affiche un code déjà rempli : il suffit d’accepter.',
       withTwitch: 'Se connecter avec Twitch',
       reconnectTwitch: 'Reconnecter Twitch',
+      spotifyIntro:
+        'Tes playlists, titres likés et écoutes récentes dans le bloc Spotify (un compte gratuit suffit) ; la lecture se lance dans l’application Spotify.',
+      withSpotify: 'Se connecter avec Spotify',
+      reconnectSpotify: 'Reconnecter Spotify',
       imapTitle: 'Autres messageries',
       imapIntro:
         'OVH, Orange, Free, SFR, La Poste, iCloud, Yahoo… : adresse et mot de passe (souvent un mot de passe d’application).',
@@ -836,11 +1015,14 @@ export const fr = {
         'Les notifications (nouveaux mails, directs) se règlent dans Paramètres → Notifications.',
       advanced: 'Avancé : tes propres identifiants',
       advancedIntro:
-        'Facultatif. Tessera a ses propres identifiants chez Google et Twitch ; tu peux utiliser les tiens à la place (laisser vide : ceux de Tessera).',
+        'Facultatif. Tessera a ses propres identifiants chez Google, Twitch et Spotify ; tu peux utiliser les tiens à la place (laisser vide : ceux de Tessera).',
       guide: 'Créer ses identifiants',
       googleClientId: 'Google : ID client',
       googleClientSecret: 'Google : code secret du client',
       twitchClientId: 'Twitch : ID client (type « Public »)',
+      spotifyClientId: 'Spotify : Client ID (32 caractères)',
+      spotifyHelp:
+        'Sur developer.spotify.com/dashboard, crée une application (« Web API ») avec l’adresse de retour (Redirect URI) {{uri}}, ajoute ton compte dans « User Management » (Spotify limite une application de développement à 25 comptes ajoutés à la main), puis colle son « Client ID ».',
       secretSaved: 'Enregistré (chiffré)',
       secretPlaceholder: 'Coller le code secret',
       save: 'Enregistrer',
@@ -970,6 +1152,26 @@ export const fr = {
         error: 'Impossible de vérifier les mises à jour : {{message}}',
         check: 'Rechercher des mises à jour',
         install: 'Redémarrer et installer'
+      },
+      logs: {
+        title: 'Journal',
+        intro:
+          'Tessera note ses erreurs et ce qu’il fait des applications installées. Utile pour comprendre un problème ou le signaler : aucune donnée personnelle n’y est écrite.',
+        show: 'Afficher le journal',
+        openFolder: 'Ouvrir le dossier',
+        refresh: 'Actualiser',
+        copy: 'Copier',
+        copied: 'Copié',
+        empty: 'Rien n’a encore été noté.',
+        names: {
+          tessera: 'Erreurs',
+          applications: 'Applications installées'
+        },
+        descriptions: {
+          tessera: 'Plantages et erreurs de Tessera, de ses pages et des mises à jour.',
+          applications:
+            'Insertion des applications dans leurs blocs, fenêtres masquées ou réaffichées, clavier refusé.'
+        }
       }
     }
   }
