@@ -40,3 +40,14 @@ export function openContextMenu(items: MenuItem[] | (() => MenuItem[])) {
       .open(event.clientX, event.clientY, typeof items === 'function' ? items() : items)
   }
 }
+
+/** Menu sous un bouton (liste déroulante) : `onClick={openMenuBelow(items)}`. */
+export function openMenuBelow(items: MenuItem[] | (() => MenuItem[])) {
+  return (event: React.MouseEvent<HTMLElement>): void => {
+    event.stopPropagation()
+    const rect = event.currentTarget.getBoundingClientRect()
+    useContextMenuStore
+      .getState()
+      .open(rect.left, rect.bottom + 4, typeof items === 'function' ? items() : items)
+  }
+}

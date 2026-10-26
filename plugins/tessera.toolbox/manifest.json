@@ -1,0 +1,337 @@
+{
+  "id": "tessera.toolbox",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": {
+    "fr": "Outils de la barre",
+    "en": "Bar tools"
+  },
+  "description": {
+    "fr": "Les widgets de la barre des pages, en blocs sur tes pages.",
+    "en": "The page bar widgets, as blocks on your pages."
+  },
+  "author": "Tessera Dashboard",
+  "category": "tools",
+  "widgets": [
+    {
+      "type": "datetime",
+      "name": {
+        "fr": "Date et heure",
+        "en": "Date and time"
+      },
+      "description": {
+        "fr": "Date du jour et calendrier du mois.",
+        "en": "Today’s date and the month calendar."
+      },
+      "icon": "clock",
+      "defaultSize": {
+        "w": 5,
+        "h": 6
+      },
+      "minSize": {
+        "w": 4,
+        "h": 5
+      }
+    },
+    {
+      "type": "weather",
+      "name": {
+        "fr": "Météo",
+        "en": "Weather"
+      },
+      "description": {
+        "fr": "Temps actuel et prévisions de ta ville.",
+        "en": "Current weather and forecast for your city."
+      },
+      "icon": "cloud-sun",
+      "defaultSize": {
+        "w": 6,
+        "h": 6
+      },
+      "minSize": {
+        "w": 5,
+        "h": 5
+      }
+    },
+    {
+      "type": "media",
+      "name": {
+        "fr": "Média en cours",
+        "en": "Now playing"
+      },
+      "description": {
+        "fr": "Ce que joue Windows, avec lecture et pause.",
+        "en": "What Windows is playing, with play and pause."
+      },
+      "icon": "music",
+      "defaultSize": {
+        "w": 6,
+        "h": 3
+      },
+      "minSize": {
+        "w": 5,
+        "h": 3
+      }
+    },
+    {
+      "type": "sound",
+      "name": {
+        "fr": "Son",
+        "en": "Sound"
+      },
+      "description": {
+        "fr": "Volume, sortie audio et micro.",
+        "en": "Volume, audio output and microphone."
+      },
+      "icon": "volume-2",
+      "defaultSize": {
+        "w": 6,
+        "h": 4
+      },
+      "minSize": {
+        "w": 5,
+        "h": 4
+      }
+    },
+    {
+      "type": "system",
+      "name": {
+        "fr": "Système",
+        "en": "System"
+      },
+      "description": {
+        "fr": "Processeur, mémoire, disque et réseau.",
+        "en": "Processor, memory, disk and network."
+      },
+      "icon": "cpu",
+      "defaultSize": {
+        "w": 5,
+        "h": 4
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "clipboard",
+      "name": {
+        "fr": "Presse-papiers",
+        "en": "Clipboard"
+      },
+      "description": {
+        "fr": "Les derniers textes et images copiés.",
+        "en": "Your latest copied text and images."
+      },
+      "icon": "clipboard-list",
+      "defaultSize": {
+        "w": 6,
+        "h": 7
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "calculator",
+      "name": {
+        "fr": "Calculatrice",
+        "en": "Calculator"
+      },
+      "description": {
+        "fr": "Calculs rapides, avec historique.",
+        "en": "Quick calculations, with history."
+      },
+      "icon": "calculator",
+      "defaultSize": {
+        "w": 5,
+        "h": 7
+      },
+      "minSize": {
+        "w": 4,
+        "h": 6
+      }
+    },
+    {
+      "type": "timer",
+      "name": {
+        "fr": "Minuteur",
+        "en": "Timer"
+      },
+      "description": {
+        "fr": "Compte à rebours, avec notification à la fin.",
+        "en": "Countdown, with a notification at the end."
+      },
+      "icon": "timer",
+      "defaultSize": {
+        "w": 5,
+        "h": 4
+      },
+      "minSize": {
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "type": "stopwatch",
+      "name": {
+        "fr": "Chronomètre",
+        "en": "Stopwatch"
+      },
+      "description": {
+        "fr": "Chronomètre avec tours.",
+        "en": "Stopwatch with laps."
+      },
+      "icon": "watch",
+      "defaultSize": {
+        "w": 5,
+        "h": 5
+      },
+      "minSize": {
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "type": "focus",
+      "name": {
+        "fr": "Concentration",
+        "en": "Focus"
+      },
+      "description": {
+        "fr": "Séances Pomodoro et Ne pas déranger.",
+        "en": "Pomodoro sessions and Do not disturb."
+      },
+      "icon": "brain",
+      "defaultSize": {
+        "w": 5,
+        "h": 5
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "clocks",
+      "name": {
+        "fr": "Horloges du monde",
+        "en": "World clocks"
+      },
+      "description": {
+        "fr": "L’heure dans les villes de ton choix.",
+        "en": "The time in the cities you choose."
+      },
+      "icon": "globe",
+      "defaultSize": {
+        "w": 5,
+        "h": 4
+      },
+      "minSize": {
+        "w": 4,
+        "h": 3
+      }
+    },
+    {
+      "type": "agenda",
+      "name": {
+        "fr": "Prochain événement",
+        "en": "Next event"
+      },
+      "description": {
+        "fr": "Tes rendez-vous Google Agenda de la semaine.",
+        "en": "Your Google Calendar appointments this week."
+      },
+      "icon": "calendar-clock",
+      "defaultSize": {
+        "w": 7,
+        "h": 7
+      },
+      "minSize": {
+        "w": 5,
+        "h": 4
+      }
+    },
+    {
+      "type": "converter",
+      "name": {
+        "fr": "Convertisseur",
+        "en": "Converter"
+      },
+      "description": {
+        "fr": "Unités et devises.",
+        "en": "Units and currencies."
+      },
+      "icon": "arrow-left-right",
+      "defaultSize": {
+        "w": 6,
+        "h": 5
+      },
+      "minSize": {
+        "w": 5,
+        "h": 5
+      }
+    },
+    {
+      "type": "eyedropper",
+      "name": {
+        "fr": "Pipette",
+        "en": "Eyedropper"
+      },
+      "description": {
+        "fr": "Une couleur prise à l’écran, en HEX, RGB et HSL.",
+        "en": "A colour picked on screen, in HEX, RGB and HSL."
+      },
+      "icon": "pipette",
+      "defaultSize": {
+        "w": 5,
+        "h": 6
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "screenshot",
+      "name": {
+        "fr": "Capture d’écran",
+        "en": "Screenshot"
+      },
+      "description": {
+        "fr": "Capture et dernières captures.",
+        "en": "Capture and latest screenshots."
+      },
+      "icon": "camera",
+      "defaultSize": {
+        "w": 6,
+        "h": 7
+      },
+      "minSize": {
+        "w": 5,
+        "h": 5
+      }
+    },
+    {
+      "type": "note",
+      "name": {
+        "fr": "Note rapide",
+        "en": "Quick note"
+      },
+      "description": {
+        "fr": "La note rapide de la barre des pages.",
+        "en": "The page bar quick note."
+      },
+      "icon": "sticky-note",
+      "defaultSize": {
+        "w": 6,
+        "h": 5
+      },
+      "minSize": {
+        "w": 3,
+        "h": 3
+      }
+    }
+  ]
+}

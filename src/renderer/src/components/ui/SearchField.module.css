@@ -1,0 +1,52 @@
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.375rem 0 0.625rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.search:focus-within {
+  border-color: var(--color-accent);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 2.125rem;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font: inherit;
+}
+
+/* Le cadre du champ montre déjà le focus */
+.search input:focus-visible {
+  box-shadow: none;
+}
+
+/* Croix de Chromium remplacée par la nôtre */
+.search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clear {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.clear:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}

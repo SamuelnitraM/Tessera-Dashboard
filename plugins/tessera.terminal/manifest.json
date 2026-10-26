@@ -1,0 +1,25 @@
+{
+  "id": "tessera.terminal",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Terminal", "en": "Terminal" },
+  "description": {
+    "fr": "Une vraie console dans un bloc : PowerShell, cmd, Git Bash ou WSL, en onglets.",
+    "en": "A real console in a block: PowerShell, cmd, Git Bash or WSL, in tabs."
+  },
+  "author": "Tessera Dashboard",
+  "category": "development",
+  "widgets": [
+    {
+      "type": "terminal",
+      "name": { "fr": "Terminal", "en": "Terminal" },
+      "description": {
+        "fr": "Onglets, shell au choix, dossier de départ propre au bloc.",
+        "en": "Tabs, shell of your choice, start folder per block."
+      },
+      "icon": "square-terminal",
+      "defaultSize": { "w": 12, "h": 6 },
+      "minSize": { "w": 5, "h": 3 }
+    }
+  ]
+}

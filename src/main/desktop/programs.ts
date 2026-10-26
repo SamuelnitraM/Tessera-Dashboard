@@ -52,7 +52,7 @@ function findShortcuts(folder: string, depth = 0, found: string[] = []): string[
   return found
 }
 
-async function iconOf(path: string): Promise<string | null> {
+export async function iconOf(path: string): Promise<string | null> {
   try {
     return (await app.getFileIcon(path, { size: 'large' })).toDataURL()
   } catch {
@@ -102,7 +102,9 @@ export async function listPrograms(): Promise<InstalledProgram[]> {
 }
 
 /** Ajoute (ou retrouve) une application installée dans les réglages. */
-function addApp(program: Omit<InstalledProgram, 'key'>): DesktopApp {
+export function addApp(
+  program: Omit<InstalledProgram, 'key'> & Pick<DesktopApp, 'release'>
+): DesktopApp {
   const items = getSettings().apps.items
   const existing = items.find(
     (item): item is DesktopApp =>
@@ -121,7 +123,8 @@ function addApp(program: Omit<InstalledProgram, 'key'>): DesktopApp {
     processName: program.processName,
     icon: program.icon,
     minWidth: 0,
-    minHeight: 0
+    minHeight: 0,
+    ...(program.release && { release: program.release })
   }
   updateSettings({ apps: { items: [...items, desktopApp] } })
   return desktopApp

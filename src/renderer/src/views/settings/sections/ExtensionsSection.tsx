@@ -18,8 +18,15 @@ import {
   type ModulePreview,
   type ModuleSelection
 } from '@shared/modules'
-import { localize, PLUGIN_FILES_ROOT, type PluginManifest } from '@shared/plugins'
+import {
+  localize,
+  PLUGIN_FILES_ROOT,
+  type PluginCategory,
+  type PluginManifest
+} from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
+import { SearchField } from '../../../components/ui/SearchField'
+import { groupByCategory, matchesSearch } from '../../../lib/catalog'
 import { Button } from '../../../components/ui/Button'
 import { Dialog } from '../../../components/ui/Dialog'
 import { Switch } from '../../../components/ui/Switch'
@@ -55,6 +62,8 @@ export function ExtensionsSection(): React.JSX.Element {
   )
   const [error, setError] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [query, setQuery] = useState('')
+  const language = useResolvedLanguage()
 
   const describeError = (cause: unknown): string => {
     const code = getModuleErrorCode(cause)
@@ -113,14 +122,40 @@ export function ExtensionsSection(): React.JSX.Element {
     }
   }
 
-  // Extensions intégrées, puis modules seuls, puis collections (regroupées)
+  // Widgets intégrés, puis modules seuls, rangés par catégorie ; enfin les collections
+  // (regroupées). La recherche porte sur le nom, la description, l'auteur et les blocs.
+  const nameOf = (plugin: LoadedPlugin): string =>
+    plugin.manifest ? localize(plugin.manifest.name, language) : plugin.id
+  const categoryOf = (plugin: LoadedPlugin): PluginCategory => plugin.manifest?.category ?? 'other'
+  const matches = (plugin: LoadedPlugin): boolean =>
+    matchesSearch(query, [
+      nameOf(plugin),
+      plugin.manifest ? localize(plugin.manifest.description, language) : '',
+      plugin.manifest?.author ?? '',
+      ...(plugin.manifest?.widgets.map((widget) => localize(widget.name, language)) ?? []),
+      t(`blocks.categories.${categoryOf(plugin)}`),
+      plugin.module?.collection ? localize(plugin.module.collection.name, language) : ''
+    ])
   const plugins = getPlugins()
+  const builtIns = groupByCategory(
+    plugins.filter((plugin) => plugin.builtIn && matches(plugin)),
+    categoryOf,
+    nameOf
+  )
+  const modules = groupByCategory(
+    plugins.filter((plugin) => !plugin.builtIn && !plugin.module?.collection && matches(plugin)),
+    categoryOf,
+    nameOf
+  )
   const collections = new Map<string, LoadedPlugin[]>()
   for (const plugin of plugins) {
     const collection = plugin.module?.collection
-    if (collection)
+    if (collection && matches(plugin))
       collections.set(collection.id, [...(collections.get(collection.id) ?? []), plugin])
   }
+  const searching = query.trim() !== ''
+  const hasModules = plugins.some((plugin) => !plugin.builtIn)
+  const categoryTitle = (category: PluginCategory): string => t(`blocks.categories.${category}`)
   return (
     <div
       className={styles.extensionsPage}
@@ -153,16 +188,63 @@ export function ExtensionsSection(): React.JSX.Element {
         </p>
       )}
 
-      <ul className={styles.extensionList}>
-        {plugins
-          .filter((plugin) => !plugin.module?.collection)
-          .map((plugin) => (
-            <ExtensionCard key={plugin.id} plugin={plugin} />
+      <SearchField
+        value={query}
+        onChange={setQuery}
+        placeholder={t('settings.extensions.search')}
+      />
+      {searching && builtIns.length === 0 && modules.length === 0 && collections.size === 0 && (
+        <p className={styles.extensionMeta}>
+          {t('settings.extensions.noResults', { query: query.trim() })}
+        </p>
+      )}
+
+      {builtIns.length > 0 && (
+        <section className={styles.catalog}>
+          <h3 className={styles.catalogTitle}>{t('settings.extensions.widgetsTitle')}</h3>
+          {builtIns.map(({ category, items }) => (
+            <div key={category} className={styles.catalogGroup}>
+              <h4 className={styles.catalogCategory}>{categoryTitle(category)}</h4>
+              <ul className={styles.extensionList}>
+                {items.map((plugin) => (
+                  <ExtensionCard key={plugin.id} plugin={plugin} />
+                ))}
+              </ul>
+            </div>
           ))}
-        {[...collections].map(([id, members]) => (
-          <CollectionGroup key={id} plugins={members} />
-        ))}
-      </ul>
+        </section>
+      )}
+
+      {(!searching || modules.length > 0 || collections.size > 0) && (
+        <section className={styles.catalog}>
+          <h3 className={styles.catalogTitle}>{t('settings.extensions.modulesTitle')}</h3>
+          {!hasModules && (
+            <p className={styles.extensionMeta}>{t('settings.extensions.noModules')}</p>
+          )}
+          {modules.map(({ category, items }) => (
+            <div key={category} className={styles.catalogGroup}>
+              <h4 className={styles.catalogCategory}>{categoryTitle(category)}</h4>
+              <ul className={styles.extensionList}>
+                {items.map((plugin) => (
+                  <ExtensionCard key={plugin.id} plugin={plugin} />
+                ))}
+              </ul>
+            </div>
+          ))}
+          {collections.size > 0 && (
+            <div className={styles.catalogGroup}>
+              <h4 className={styles.catalogCategory}>
+                {t('settings.extensions.collectionsTitle')}
+              </h4>
+              <ul className={styles.extensionList}>
+                {[...collections].map(([id, members]) => (
+                  <CollectionGroup key={id} plugins={members} />
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
 
       <SettingsCard title={t('settings.extensions.dev.title')}>
         <SettingRow

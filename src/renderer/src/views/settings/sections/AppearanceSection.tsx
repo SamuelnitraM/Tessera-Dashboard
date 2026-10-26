@@ -1,6 +1,8 @@
 import { Monitor, Moon, PanelLeft, PanelTop, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { HEADER_ALIGNS } from '@shared/header-bar'
 import { SegmentedControl } from '../../../components/ui/SegmentedControl'
+import { Select } from '../../../components/ui/Select'
 import { Switch } from '../../../components/ui/Switch'
 import { useSettingsStore } from '../../../stores/settings'
 import { SettingRow, SettingsCard } from '../SettingRow'
@@ -10,6 +12,7 @@ export function AppearanceSection(): React.JSX.Element {
   const { t } = useTranslation()
   const appearance = useSettingsStore((state) => state.settings.appearance)
   const update = useSettingsStore((state) => state.update)
+  const headerAlign = useSettingsStore((state) => state.settings.headerBar.align)
 
   return (
     <SettingsCard>
@@ -69,6 +72,23 @@ export function AppearanceSection(): React.JSX.Element {
               { value: 'expanded', label: t('settings.sidebar.expanded'), icon: PanelLeft },
               { value: 'collapsed', label: t('settings.sidebar.collapsed'), icon: PanelTop }
             ]}
+          />
+        )}
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.headerAlign.label')}
+        description={t('settings.headerAlign.description')}
+      >
+        {({ labelId }) => (
+          <Select
+            aria-labelledby={labelId}
+            value={headerAlign}
+            onChange={(align) => void update({ headerBar: { align } })}
+            options={HEADER_ALIGNS.map((align) => ({
+              value: align,
+              label: t(`settings.headerAlign.${align}`)
+            }))}
           />
         )}
       </SettingRow>

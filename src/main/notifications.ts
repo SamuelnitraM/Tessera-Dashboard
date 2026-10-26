@@ -268,6 +268,15 @@ export function sendTestNotification(): Promise<TesseraNotification | null> {
   return notify(TESSERA_SOURCE, { title: text.testTitle, body: text.testBody })
 }
 
+/** Notification de Tessera envoyée par l'interface (fin du minuteur…) : texte seulement. */
+export function notifyFromTessera(input: NotifyInput): Promise<TesseraNotification | null> {
+  return notify(TESSERA_SOURCE, {
+    title: input?.title,
+    body: input?.body,
+    tag: typeof input?.tag === 'string' ? input.tag : undefined
+  })
+}
+
 /** Notification d'un widget ou d'un module (permission `notifications`). */
 export function notifyFromPlugin(
   pluginId: string,

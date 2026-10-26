@@ -89,8 +89,9 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
     }
   }, [editing, page.id, measured])
 
-  // Mode édition ou autre page : plus de bloc actif
-  useEffect(() => setActiveBlock(null), [editing, page.id])
+  // Mode édition ou autre page : plus de bloc actif. Le focus reste (bloc d'une notification
+  // dont la page s'ouvre) ; en mode édition, les blocs ne l'affichent pas.
+  useEffect(() => useActiveBlockStore.setState({ activeId: null }), [editing, page.id])
 
   const openPicker = (): void => {
     setEditing(true)

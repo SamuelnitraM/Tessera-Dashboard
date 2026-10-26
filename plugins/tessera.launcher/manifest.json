@@ -8,6 +8,7 @@
     "en": "Launches your programs (.exe, .bat, shortcuts), tracks their state and shows their logs."
   },
   "author": "Tessera Dashboard",
+  "category": "tools",
   "permissions": ["processes", "notifications"],
   "widgets": [
     {

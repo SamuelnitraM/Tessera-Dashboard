@@ -3,6 +3,8 @@ import { GOOGLE_SERVICES, type AccountProviders, type GoogleService } from '@sha
 import { availableProviders, hasBuiltInClient } from './auth/clients'
 import { apiJson } from './auth/http'
 import { authorize, authorizeDevice } from './auth/oauth'
+import { saveCalendar } from './calendar'
+import { saveTasksAccount } from './modules/tasks'
 import { GOOGLE_SCOPES, googleClient, twitchClient } from './auth/providers'
 import { getSettings } from './settings-store'
 import { saveOAuthAccount } from './mail'
@@ -26,7 +28,7 @@ export function getAccountProviders(): AccountProviders {
 }
 
 /**
- * Une seule connexion Google pour les services cochés (Gmail, YouTube) : Google demande
+ * Une seule connexion Google pour les services cochés (Gmail, YouTube, Agenda) : Google demande
  * l'accord une fois. Un service décoché par l'utilisateur sur la page de Google est ignoré.
  */
 export async function connectGoogle(
@@ -54,6 +56,8 @@ export async function connectGoogle(
   if (granted.includes('youtube')) {
     await saveYouTube(email, tokens.refreshToken, tokens.accessToken, profile.picture ?? '')
   }
+  if (granted.includes('calendar')) saveCalendar(email, tokens.refreshToken)
+  if (granted.includes('tasks')) saveTasksAccount(email, tokens.refreshToken)
   return { email, services: granted }
 }
 
@@ -65,16 +69,18 @@ export async function connectTwitch(): Promise<void> {
 
 /**
  * « Reconnecter » dans un bloc Mails : la page de connexion s'ouvre sur le compte concerné.
- * La connexion Google garde YouTube s'il était branché sur la même adresse.
+ * La connexion Google garde YouTube et l'agenda s'ils étaient branchés sur la même adresse.
  */
 export async function reconnectMailAccount(pluginId: string, accountId: string): Promise<void> {
   if (!hasPermission(pluginId, 'mail')) throw mailError('permission')
-  const { mail, media } = getSettings()
+  const { mail, media, calendar, tasks } = getSettings()
   const account = mail.accounts.find((item) => item.id === accountId)
   if (!account) throw mailError('not-found', 'account')
   if (account.provider === 'imap') throw mailError('invalid', 'imap')
-  const sameYouTube = media.youtubeAccounts.some(
-    (item) => item.email.toLowerCase() === account.address.toLowerCase()
-  )
-  await connectGoogle(sameYouTube ? ['gmail', 'youtube'] : ['gmail'], account.address)
+  const same = (email: string): boolean => email.toLowerCase() === account.address.toLowerCase()
+  const services: GoogleService[] = ['gmail']
+  if (media.youtubeAccounts.some((item) => same(item.email))) services.push('youtube')
+  if (calendar.accounts.some((item) => same(item.email))) services.push('calendar')
+  if (tasks.accounts.some((item) => same(item.email))) services.push('tasks')
+  await connectGoogle(services, account.address)
 }

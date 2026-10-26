@@ -1,0 +1,25 @@
+{
+  "id": "tessera.services",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Services locaux", "en": "Local services" },
+  "description": {
+    "fr": "Ce qui tourne sur ton PC : ports en écoute, programme et projet, conteneurs Docker.",
+    "en": "What runs on your PC: listening ports, program and project, Docker containers."
+  },
+  "author": "Tessera Dashboard",
+  "category": "development",
+  "widgets": [
+    {
+      "type": "services",
+      "name": { "fr": "Services locaux", "en": "Local services" },
+      "description": {
+        "fr": "Serveurs de développement, bases de données, conteneurs : ouvrir ou arrêter.",
+        "en": "Dev servers, databases, containers: open or stop."
+      },
+      "icon": "network",
+      "defaultSize": { "w": 10, "h": 6 },
+      "minSize": { "w": 5, "h": 3 }
+    }
+  ]
+}

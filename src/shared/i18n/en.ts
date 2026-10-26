@@ -11,8 +11,10 @@ export const en: Translation = {
   },
   updates: {
     readyTitle: '{{name}} {{version}} is ready',
+    button: 'Update ({{version}})',
+    buttonHint: 'Version {{version}} is ready: click to restart Tessera and install it',
     readyBody:
-      'The update will be installed when you quit Tessera, or right away from Settings → About.'
+      'The update will be installed when you quit Tessera, or right away with “Update” in the side menu.'
   },
   dialogs: {
     pickProgram: 'Choose a program',
@@ -57,6 +59,8 @@ export const en: Translation = {
     }
   },
   nav: {
+    fullScreen: 'Full screen',
+    exitFullScreen: 'Exit full screen',
     pages: 'Pages',
     home: 'Home',
     newPage: 'New page',
@@ -99,6 +103,14 @@ export const en: Translation = {
     crashBody: 'The program ended with an error (code {{code}}).'
   },
   notifications: {
+    proposal: {
+      title: 'No “{{name}}” block',
+      message:
+        'This notification comes from {{name}}, which has no block on any of your pages. Add a {{name}} block to the current page?',
+      add: 'Add the block',
+      openTab: 'Open in a tab',
+      cancel: 'Cancel'
+    },
     testTitle: 'Test notification',
     testBody: 'Tessera notifications are working.',
     center: {
@@ -120,6 +132,8 @@ export const en: Translation = {
   desktopApps: {
     starting: 'Opening {{name}}…',
     closed: '{{name}} is closed.',
+    missing: 'Is {{name}} not showing?',
+    refresh: 'Show again',
     reopen: 'Reopen',
     elsewhere: 'This app is shown somewhere else (another block or tab).',
     showHere: 'Show it here',
@@ -169,7 +183,355 @@ export const en: Translation = {
       'Narrow window: you are editing the compact layout, separate from the full-size one.',
     resetCompact: 'Regenerate automatically'
   },
+  headerBar: {
+    label: 'Bar widgets',
+    add: 'Add a widget to the bar',
+    remove: 'Remove “{{name}}” from the bar',
+    more: 'More widgets ({{count}})',
+    settings: 'Widget settings',
+    back: 'Back',
+    loading: 'Loading…',
+    retry: 'Try again',
+    offline: 'No Internet connection?',
+    unavailable: 'Unavailable right now.',
+    noResults: 'No results.',
+    copy: 'Copy',
+    copied: 'Copied',
+    dragHint: 'Drag to reorder, or onto the page to make it a block',
+    names: {
+      datetime: 'Date and time',
+      weather: 'Weather',
+      media: 'Now playing',
+      sound: 'Sound',
+      system: 'System',
+      clipboard: 'Clipboard',
+      calculator: 'Calculator',
+      timer: 'Timer',
+      stopwatch: 'Stopwatch',
+      focus: 'Focus',
+      clocks: 'World clocks',
+      agenda: 'Next event',
+      converter: 'Converter',
+      eyedropper: 'Eyedropper',
+      screenshot: 'Screenshot',
+      note: 'Quick note'
+    },
+    calendar: {
+      previous: 'Previous month',
+      next: 'Next month',
+      today: 'Today',
+      week: 'Wk',
+      weekHint: 'Week number'
+    },
+    calculator: {
+      input: 'Calculation',
+      history: 'Recent calculations',
+      reuse: 'Reuse this result',
+      incomplete: 'Incomplete calculation',
+      backspace: 'Delete the last character',
+      copy: 'Copy the result',
+      copyShort: 'Copy'
+    },
+    timer: {
+      preset: '{{minutes}} min',
+      minutes: 'minutes',
+      start: 'Start',
+      pause: 'Pause',
+      resume: 'Resume',
+      stop: 'Stop',
+      doneTitle: 'Timer finished',
+      doneBody: 'Your {{minutes}} min are up.'
+    },
+    note: {
+      placeholder: 'An idea, a number, a list… Kept across pages.'
+    },
+    places: {
+      search: 'Search for a city…',
+      noResults: 'No city found.'
+    },
+    weather: {
+      choosePlace: 'Choose your city to see the weather.',
+      removePlace: 'Remove this city',
+      source: 'Forecasts by Open-Meteo, no account needed.',
+      error: 'Weather unavailable (Internet connection?).',
+      feelsLike: 'Feels like {{value}}°',
+      humidity: 'Humidity {{value}}%',
+      wind: 'Wind {{value}} km/h',
+      today: 'Today',
+      updated: 'Open-Meteo · updated at {{time}}',
+      kinds: {
+        clear: 'Clear sky',
+        mainlyClear: 'Mainly clear',
+        partlyCloudy: 'Partly cloudy',
+        overcast: 'Overcast',
+        fog: 'Fog',
+        drizzle: 'Drizzle',
+        freezingDrizzle: 'Freezing drizzle',
+        rain: 'Rain',
+        freezingRain: 'Freezing rain',
+        snow: 'Snow',
+        snowGrains: 'Snow grains',
+        showers: 'Showers',
+        snowShowers: 'Snow showers',
+        thunderstorm: 'Thunderstorm',
+        thunderstormHail: 'Thunderstorm with hail'
+      }
+    },
+    media: {
+      nothing: 'Nothing playing. Start some music or a video (Spotify, YouTube in a browser…).',
+      from: 'In {{app}}',
+      previous: 'Previous',
+      next: 'Next',
+      play: 'Play',
+      pause: 'Pause'
+    },
+    sound: {
+      output: 'Output',
+      input: 'Microphone',
+      muted: 'muted',
+      mute: 'Mute',
+      unmute: 'Unmute',
+      micMute: 'Mute the microphone',
+      micUnmute: 'Unmute the microphone',
+      noOutput: 'No audio output.',
+      noInput: 'No microphone plugged in.',
+      outputDevice: 'Audio output',
+      inputDevice: 'Microphone in use',
+      volume: 'Volume',
+      micVolume: 'Microphone volume'
+    },
+    system: {
+      cpu: 'Processor',
+      memory: 'Memory',
+      disk: 'Disk',
+      network: 'Network',
+      diskOf: 'Disk {{drive}}',
+      free: '{{free}} free of {{total}}',
+      showInBar: 'Show in the bar',
+      shownInBar: 'Shown in the bar',
+      uptime: 'Windows running for {{duration}}',
+      top: 'Most demanding programs',
+      sortCpu: 'Processor',
+      sortMemory: 'Memory',
+      processes: '{{count}} processes'
+    },
+    duration: {
+      days: '{{count}}d',
+      hours: '{{count}}h',
+      minutes: '{{count}} min'
+    },
+    clipboard: {
+      copy: 'Copy',
+      image: 'Image {{width}} × {{height}}',
+      pin: 'Pin (kept after closing)',
+      unpin: 'Unpin',
+      remove: 'Remove',
+      clear: 'Clear all',
+      search: 'Search…',
+      pinLimit: 'Can’t pin: 30 items at most, images up to 6 MB.',
+      empty: 'Copy some text or an image: it will show up here.',
+      pinned: 'Pinned',
+      recent: 'Recent',
+      privacy:
+        'Kept in memory and cleared when Tessera closes (except pinned items). Passwords copied from a password manager are ignored.'
+    },
+    stopwatch: {
+      start: 'Start',
+      pause: 'Pause',
+      resume: 'Resume',
+      reset: 'Reset',
+      lap: 'Lap',
+      laps: 'Laps',
+      lapNumber: 'Lap {{number}}'
+    },
+    focus: {
+      work: 'Focus',
+      shortBreak: 'Short break',
+      longBreak: 'Long break',
+      intro:
+        '{{work}}-minute sessions with {{shortBreak}}-minute breaks, and a {{longBreak}}-minute break now and then (Pomodoro technique).',
+      start: 'Start',
+      pause: 'Pause',
+      resume: 'Resume',
+      skip: 'Skip',
+      stop: 'Stop',
+      round: 'Session {{current}} of {{total}}',
+      dndOn: 'Do not disturb is on until the break.',
+      breakTitle: 'Break time',
+      breakBody: '{{minutes}}-minute break. Well done!',
+      workTitle: 'Back to work',
+      workBody: '{{minutes}}-minute session.',
+      settings: {
+        work: 'Focus (min)',
+        shortBreak: 'Short break (min)',
+        longBreak: 'Long break (min)',
+        rounds: 'Sessions before the long break',
+        doNotDisturb: 'Turn on Do not disturb while focusing'
+      }
+    },
+    clocks: {
+      add: 'Add a city',
+      empty: 'Add the cities whose time you want to see.',
+      sameTime: 'same time',
+      offset: '{{value}}h',
+      today: 'today',
+      tomorrow: 'tomorrow',
+      yesterday: 'yesterday',
+      remove: 'Remove {{name}}'
+    },
+    agenda: {
+      now: 'Now',
+      connect: 'Connect Google Calendar',
+      reconnect: 'Reconnect Google Calendar',
+      intro:
+        'Your appointments for the next 7 days (Google Calendar), which you can also add and edit here. Google will ask for access to your calendar.',
+      today: 'Today',
+      tomorrow: 'Tomorrow',
+      refresh: 'Refresh',
+      empty: 'Nothing planned in the next 7 days.',
+      allDay: 'All day',
+      untitled: '(No title)',
+      join: 'Join',
+      open: 'Open in Google Calendar',
+      manage: 'Connected accounts (Settings → Accounts)',
+      form: {
+        new: 'New event',
+        edit: 'Edit event',
+        title: 'Title',
+        calendar: 'Calendar',
+        date: 'Date',
+        from: 'From',
+        to: 'To',
+        start: 'Start',
+        end: 'End',
+        location: 'Location (optional)',
+        save: 'Save',
+        cancel: 'Cancel',
+        delete: 'Delete'
+      }
+    },
+    converter: {
+      category: 'Conversion type',
+      value: 'Value to convert',
+      from: 'From unit',
+      to: 'To unit',
+      swap: 'Swap',
+      ratesDate: 'European Central Bank rates of {{date}}',
+      ratesError: 'Exchange rates unavailable (Internet connection?).',
+      categories: {
+        length: 'Length',
+        mass: 'Mass',
+        temperature: 'Temperature',
+        volume: 'Volume',
+        area: 'Area',
+        speed: 'Speed',
+        time: 'Duration',
+        data: 'Data',
+        currency: 'Currencies'
+      },
+      units: {
+        mm: 'millimetres (mm)',
+        cm: 'centimetres (cm)',
+        m: 'metres (m)',
+        km: 'kilometres (km)',
+        in: 'inches (in)',
+        ft: 'feet (ft)',
+        yd: 'yards (yd)',
+        mi: 'miles (mi)',
+        nmi: 'nautical miles',
+        mg: 'milligrams (mg)',
+        g: 'grams (g)',
+        kg: 'kilograms (kg)',
+        t: 'tonnes (t)',
+        oz: 'ounces (oz)',
+        lb: 'pounds (lb)',
+        st: 'stones (st)',
+        c: 'degrees Celsius (°C)',
+        f: 'degrees Fahrenheit (°F)',
+        k: 'kelvins (K)',
+        ml: 'millilitres (ml)',
+        cl: 'centilitres (cl)',
+        l: 'litres (l)',
+        m3: 'cubic metres (m³)',
+        tsp: 'US teaspoons',
+        tbsp: 'US tablespoons',
+        floz: 'US fluid ounces (fl oz)',
+        cup: 'US cups',
+        pt: 'US pints (pt)',
+        gal: 'US gallons (gal)',
+        galuk: 'imperial gallons',
+        cm2: 'square centimetres (cm²)',
+        m2: 'square metres (m²)',
+        ha: 'hectares (ha)',
+        km2: 'square kilometres (km²)',
+        ft2: 'square feet (ft²)',
+        acre: 'acres',
+        mi2: 'square miles (mi²)',
+        mps: 'metres per second (m/s)',
+        kmh: 'kilometres per hour (km/h)',
+        mph: 'miles per hour (mph)',
+        kn: 'knots (kn)',
+        s: 'seconds',
+        min: 'minutes',
+        h: 'hours',
+        d: 'days',
+        wk: 'weeks',
+        bit: 'bits',
+        B: 'bytes (B)',
+        KB: 'kilobytes (KB)',
+        MB: 'megabytes (MB)',
+        GB: 'gigabytes (GB)',
+        TB: 'terabytes (TB)',
+        KiB: 'kibibytes (KiB)',
+        MiB: 'mebibytes (MiB)',
+        GiB: 'gibibytes (GiB)',
+        TiB: 'tebibytes (TiB)'
+      }
+    },
+    eyedropper: {
+      pick: 'Pick a colour on screen',
+      clear: 'Clear colours',
+      unsupported: 'The eyedropper couldn’t capture the screen.',
+      hint: 'Click: pick the colour · Esc: cancel',
+      copy: 'Copy {{value}}',
+      recent: 'Recent colours',
+      empty: 'No colours yet.'
+    },
+    screenshot: {
+      capture: 'Capture',
+      region: 'Region',
+      screen: 'Full screen',
+      window: 'Window',
+      chooseWindow: 'Choose the window',
+      failed: 'The capture failed.',
+      recent: 'Latest screenshots',
+      none: 'No screenshots in the folder.',
+      dragHint: 'Click: open · drag into another app',
+      show: 'Show in folder',
+      openFolder: 'Open the screenshots folder',
+      tool: 'Capture tool',
+      tools: {
+        windows: 'Windows Snipping Tool',
+        windowsHint:
+          'Region, window, screen or freeform, with annotation. Windows saves the capture in Pictures\\Screenshots.',
+        tessera: 'Tessera’s tool',
+        tesseraHint:
+          'Region, full screen or window (even hidden). Copied and saved in the folder below.'
+      },
+      folder: 'Screenshots folder',
+      defaultFolder: 'Pictures\\Screenshots (default)',
+      chooseFolder: 'Choose…',
+      resetFolder: 'Default',
+      windowsFolderHint:
+        'The latest screenshots are read from this folder. The Windows tool saves in Pictures\\Screenshots.',
+      filePrefix: 'Screenshot',
+      savedTitle: 'Screenshot saved',
+      savedBody: 'Copied to the clipboard and saved in the screenshots folder.',
+      hint: 'Drag to choose the region · click: full screen · Esc: cancel'
+    }
+  },
   common: {
+    clear: 'Clear',
     close: 'Close'
   },
   blocks: {
@@ -184,7 +546,21 @@ export const en: Translation = {
       noWidgets: 'No widget enabled (Settings → Widgets and modules).',
       noModules: 'No module installed yet.',
       otherSite: 'Other website…',
-      otherSiteDescription: 'Any address you like'
+      otherSiteDescription: 'Any address you like',
+      search: 'Search for a widget, app or module…',
+      noResults: 'No results for “{{query}}”.'
+    },
+    categories: {
+      video: 'Video and music',
+      images: 'Images',
+      communication: 'Communication',
+      productivity: 'Productivity',
+      development: 'Development',
+      apps: 'Apps',
+      info: 'News and info',
+      games: 'Games',
+      tools: 'Tools',
+      other: 'Other'
     },
     settings: 'Block settings',
     remove: 'Remove block',
@@ -217,6 +593,10 @@ export const en: Translation = {
       permission: 'This widget has no access to email.',
       invalid: 'Invalid information.',
       quota: 'Daily limit of the service reached: try again tomorrow.',
+      'api-disabled':
+        'This API isn’t enabled in Tessera’s Google Cloud project (Google Tasks API, Google Calendar API…): enable it, wait a minute, then try again.',
+      scope:
+        'Tessera didn’t get this permission: reconnect the account and leave every box ticked.',
       unknown: 'Unexpected error.'
     }
   },
@@ -285,6 +665,15 @@ export const en: Translation = {
       label: 'Icon in the accent color',
       description:
         'The logo, the taskbar icon and the notification area icon use your accent color.'
+    },
+    headerAlign: {
+      label: 'Page bar widgets',
+      description: 'Where the widgets sit between the page title and its buttons.',
+      start: 'Left (after the title)',
+      center: 'Centred',
+      end: 'Right (before “Edit”)',
+      'space-between': 'Spread (touching the edges)',
+      'space-around': 'Spread (even spacing)'
     },
     sidebar: {
       label: 'Side menu',
@@ -389,11 +778,13 @@ export const en: Translation = {
       intro:
         'Connect your accounts: your emails, YouTube subscriptions and Twitch streams show up in your blocks. You sign in on the official Google or Twitch page, in your browser (often already signed in: one click). Tessera never sees your password.',
       googleIntro:
-        'One sign-in for Gmail and YouTube: tick the services you want, then pick your Google account.',
+        'One sign-in for Gmail, YouTube, Calendar and Tasks: tick the services you want, then pick your Google account.',
       googleServices: 'Services:',
       withGoogle: 'Sign in with Google',
-      addGmail: 'Add Gmail',
-      addYouTube: 'Add YouTube',
+      calendar: 'Calendar',
+      tasks: 'Tasks',
+      addService: 'Add {{name}}',
+      addServices: 'Add the other services',
       twitchIntro:
         'Your followed channels that are live, and a notification each time a stream starts. Twitch shows a pre-filled code: just accept.',
       withTwitch: 'Sign in with Twitch',
@@ -458,6 +849,12 @@ export const en: Translation = {
       intro:
         'Widgets come with Tessera; modules are made by others and add their own blocks. When disabled, a widget or module disappears from the add list; its blocks already placed stay on hold on your pages.',
       builtIn: 'Built-in widget',
+      search: 'Search for a widget or module…',
+      noResults: 'No widget or module matches “{{query}}”.',
+      widgetsTitle: 'Widgets',
+      modulesTitle: 'Modules',
+      collectionsTitle: 'Collections',
+      noModules: 'No module installed. Install a .tessera file with the button above.',
       module: 'Module',
       invalid: 'Invalid module',
       author: 'By {{author}}',

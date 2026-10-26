@@ -1,10 +1,12 @@
 import { join } from 'node:path'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { APP_NAME } from '@shared/app'
+import { IpcChannels } from '@shared/ipc'
 import { getAppIcons } from './app-icon'
 import { protectModuleFrames } from './plugins/module-protocol'
 import { getSettings } from './settings-store'
 import { getWindowBackground } from './system'
+import { checkForUpdatesOnClose } from './updater'
 import { secureWebviews } from './web'
 import { loadWindowState, saveWindowState } from './window-state'
 
@@ -74,9 +76,10 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
     // Sans arrière-plan, la fenêtre se ferme normalement et l'app quitte (voir index.ts)
     if (isQuitting || !getSettings().window.closeToTray) return
 
-    // L'app continue de tourner dans la zone de notification
+    // L'app continue de tourner dans la zone de notification (et regarde s'il y a une mise à jour)
     event.preventDefault()
     mainWindow?.hide()
+    checkForUpdatesOnClose()
   })
 
   mainWindow.on('closed', () => {
@@ -87,6 +90,12 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
   const updateBackground = (): void => mainWindow?.setBackgroundColor(getWindowBackground())
   nativeTheme.on('updated', updateBackground)
   mainWindow.on('closed', () => nativeTheme.off('updated', updateBackground))
+
+  // Plein écran (F11 ou bouton du menu latéral) : l'interface met son bouton à jour
+  const sendFullScreen = (): void =>
+    mainWindow?.webContents.send(IpcChannels.windowFullScreenChanged, mainWindow.isFullScreen())
+  mainWindow.on('enter-full-screen', sendFullScreen)
+  mainWindow.on('leave-full-screen', sendFullScreen)
 
   protectNavigation(mainWindow)
 
@@ -100,6 +109,13 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
 
   return mainWindow
 }
+
+/** Plein écran (comme F11), ou retour à la fenêtre. */
+export function toggleFullScreen(): void {
+  mainWindow?.setFullScreen(!mainWindow.isFullScreen())
+}
+
+export const isFullScreen = (): boolean => mainWindow?.isFullScreen() ?? false
 
 /** Affiche la fenêtre principale (la recrée si besoin) et lui donne le focus. */
 export function showMainWindow(): void {

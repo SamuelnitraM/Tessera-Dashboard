@@ -61,10 +61,14 @@ export interface Dashboard {
 
 export const MAIN_PAGE_ID = 'home'
 
-/** Types de widgets de la v1 (avant le système d'extensions) et leur nouveau nom. */
+/**
+ * Anciens types de widgets et leur nouveau nom : v1 (avant le système d'extensions), et bloc
+ * GitSpread remplacé par le module Git (étape 19).
+ */
 const LEGACY_WIDGET_TYPES: Record<string, string> = {
   clock: 'tessera.clock/clock',
-  heading: 'tessera.heading/heading'
+  heading: 'tessera.heading/heading',
+  'tessera.gitspread/gitspread': 'tessera.git/projects'
 }
 
 export const DEFAULT_DASHBOARD: Dashboard = {

@@ -2,10 +2,14 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  container-type: inline-size;
 }
 
 /* Barre du bloc : la fenêtre de l'application occupe tout le reste (clic droit = menu du bloc) */
 .header {
+  /* Bloc qui a le focus : la barre se colore (variable posée par le cadre du bloc) */
+  background: var(--block-bar-background, transparent);
+  transition: background 120ms;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -130,4 +134,67 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+
+/* Navigateur affiché : un bouton par navigateur installé (logo et nom), l'actuel en relief.
+   Bloc étroit : les logos seuls. */
+.browsers {
+  display: flex;
+  flex: 1;
+  gap: 0.25rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.browserButton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.375rem;
+  height: 24px;
+  padding: 0 0.5rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.browserButton img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.browserButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.browserButton[data-current='true'] {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border);
+  color: var(--color-text);
+  cursor: default;
+}
+
+/* Les navigateurs inactifs sont plus discrets */
+.browserButton[data-current='false'] img {
+  opacity: 0.75;
+}
+
+.browserButton[data-current='false']:hover img {
+  opacity: 1;
+}
+
+@container (max-width: 420px) {
+  .browserButton span {
+    display: none;
+  }
+
+  .browserButton {
+    padding: 0 0.375rem;
+  }
 }

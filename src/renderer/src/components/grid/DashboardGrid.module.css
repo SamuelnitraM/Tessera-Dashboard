@@ -87,10 +87,3 @@
   border-radius: var(--radius-lg);
   background: color-mix(in srgb, var(--color-accent) 14%, transparent);
 }
-
-/* Bloc actif (clic dedans) : la molette fait défiler son contenu, pas la page */
-.grid :global(.react-grid-item)[data-active='true'] {
-  outline: 1px solid color-mix(in srgb, var(--color-accent) 70%, transparent);
-  outline-offset: 2px;
-  border-radius: var(--radius-lg);
-}

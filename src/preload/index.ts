@@ -1,7 +1,22 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type SystemPreferences } from '@shared/ipc'
-import type { InstalledBrowser } from '@shared/browsers'
+import type { BrowserChoice, InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
+import type {
+  AudioFlow,
+  AudioState,
+  CalendarEventInput,
+  CalendarState,
+  ClipboardEntry,
+  CurrencyRates,
+  MediaCommand,
+  MediaSession,
+  Place,
+  Screenshot,
+  SystemStats,
+  TopProcess,
+  WeatherReport
+} from '@shared/header-bar'
 import type { AccountProviders, GoogleService } from '@shared/accounts'
 import type { ExternalPlayer, LocalMediaFile } from '@shared/local-media'
 import type { UpdateState } from '@shared/updates'
@@ -44,6 +59,7 @@ import type { PluginFileEntry } from '@shared/plugin-files'
 import type { PluginPermission } from '@shared/plugins'
 import type { LaunchOptions, PickedTarget, ProcessRun } from '@shared/plugin-processes'
 import type { Settings, SettingsPatch } from '@shared/settings'
+import { builtinsApi } from './builtins'
 import { integrationsApi } from './integrations'
 
 /** S'abonne à un événement envoyé par le processus principal. Renvoie la fonction de désabonnement. */
@@ -162,6 +178,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.desktopAppsClose, appId),
     takeOut: (appId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsTakeOut, appId),
+    /** Bloc resté vide : la fenêtre est vérifiée et remise dans son bloc. */
+    refresh: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsRefresh, appId),
     capture: (): Promise<Record<string, DesktopAppSnapshot>> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsCapture),
     setSuspended: (value: boolean): Promise<void> =>
@@ -198,6 +217,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.notificationsTest),
     notify: (pluginId: string, input: NotifyInput): Promise<TesseraNotification | null> =>
       ipcRenderer.invoke(IpcChannels.notificationsNotify, pluginId, input),
+    /** Notification de Tessera elle-même (fin du minuteur de la barre des pages…). */
+    notifyTessera: (input: NotifyInput): Promise<TesseraNotification | null> =>
+      ipcRenderer.invoke(IpcChannels.notificationsNotifyTessera, input),
     importSound: (): Promise<CustomSound | null> =>
       ipcRenderer.invoke(IpcChannels.notificationsImportSound),
     deleteSound: (id: string): Promise<void> =>
@@ -377,10 +399,98 @@ const api = {
   browsers: {
     list: (): Promise<InstalledBrowser[]> => ipcRenderer.invoke(IpcChannels.browsersList),
     open: (browserId: string, url: string): Promise<boolean> =>
-      ipcRenderer.invoke(IpcChannels.browsersOpen, browserId, url)
+      ipcRenderer.invoke(IpcChannels.browsersOpen, browserId, url),
+    /** Navigateurs installés, et l'application de Tessera qui affiche chacun. */
+    choices: (): Promise<BrowserChoice[]> => ipcRenderer.invoke(IpcChannels.browsersChoices),
+    /** Application installée qui affiche ce navigateur (créée au besoin). */
+    appFor: (browserId: string): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannels.browsersAppFor, browserId),
+    /** Page web dans le navigateur d'un bloc (sinon celui du PC) : application qui l'a reçue. */
+    openPage: (url: string): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannels.browsersOpenPage, url)
   },
   /** Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`). */
   integrations: integrationsApi,
+  /** Modules intégrés : fichiers, jeux, Git… */
+  ...builtinsApi,
+  /** Widgets de la barre des pages : météo, média, son, système, presse-papiers, capture… */
+  headerBar: {
+    searchPlaces: (query: string, language: string): Promise<Place[]> =>
+      ipcRenderer.invoke(IpcChannels.headerBarSearchPlaces, query, language),
+    weather: (latitude: number, longitude: number): Promise<WeatherReport> =>
+      ipcRenderer.invoke(IpcChannels.headerBarWeather, latitude, longitude),
+    rates: (): Promise<CurrencyRates> => ipcRenderer.invoke(IpcChannels.headerBarRates),
+    /** Pipette : couleur choisie à l'écran (`#rrggbb`), `null` si annulé. */
+    pickColor: (): Promise<string | null> => ipcRenderer.invoke(IpcChannels.headerBarPickColor),
+    media: (): Promise<MediaSession | null> => ipcRenderer.invoke(IpcChannels.headerBarMedia),
+    mediaCommand: (action: MediaCommand): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.headerBarMediaCommand, action),
+    audio: (): Promise<AudioState> => ipcRenderer.invoke(IpcChannels.headerBarAudio),
+    setVolume: (flow: AudioFlow, value: number): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.headerBarAudioVolume, flow, value),
+    setMute: (flow: AudioFlow, value: boolean): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.headerBarAudioMute, flow, value),
+    setAudioDevice: (id: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.headerBarAudioDevice, id),
+    system: (network: boolean): Promise<SystemStats> =>
+      ipcRenderer.invoke(IpcChannels.headerBarSystem, network),
+    topProcesses: (sort: 'cpu' | 'memory'): Promise<TopProcess[]> =>
+      ipcRenderer.invoke(IpcChannels.headerBarTopProcesses, sort),
+    clipboard: {
+      list: (): Promise<ClipboardEntry[]> => ipcRenderer.invoke(IpcChannels.headerBarClipboardList),
+      copy: (id: string): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarClipboardCopy, id),
+      pin: (id: string, pinned: boolean): Promise<boolean> =>
+        ipcRenderer.invoke(IpcChannels.headerBarClipboardPin, id, pinned),
+      remove: (id: string): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarClipboardRemove, id),
+      clear: (): Promise<void> => ipcRenderer.invoke(IpcChannels.headerBarClipboardClear),
+      onChange: (callback: (entries: ClipboardEntry[]) => void) =>
+        subscribe(IpcChannels.headerBarClipboardChanged, callback)
+    },
+    screenshot: {
+      windowsTool: (): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotWindowsTool),
+      capture: (mode: 'region' | 'screen'): Promise<Screenshot | null> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotCapture, mode),
+      windows: (): Promise<{ id: string; name: string; preview: string }[]> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotWindows),
+      captureWindow: (id: string): Promise<Screenshot | null> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotCaptureWindow, id),
+      recent: (): Promise<Screenshot[]> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotRecent),
+      open: (path: string): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotOpen, path),
+      show: (path: string): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotShow, path),
+      copy: (path: string): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotCopy, path),
+      openFolder: (): Promise<void> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotOpenFolder),
+      pickFolder: (): Promise<string | null> =>
+        ipcRenderer.invoke(IpcChannels.headerBarScreenshotPickFolder),
+      /** À appeler au début du glissement (`dragstart`). */
+      drag: (path: string): void => ipcRenderer.send(IpcChannels.headerBarScreenshotDrag, path)
+    }
+  },
+  /** Fenêtre de Tessera : plein écran (comme F11). */
+  window: {
+    isFullScreen: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.windowIsFullScreen),
+    toggleFullScreen: (): Promise<void> => ipcRenderer.invoke(IpcChannels.windowToggleFullScreen),
+    onFullScreenChange: (callback: (fullScreen: boolean) => void) =>
+      subscribe(IpcChannels.windowFullScreenChanged, callback)
+  },
+  calendar: {
+    get: (force = false): Promise<CalendarState> =>
+      ipcRenderer.invoke(IpcChannels.calendarGet, force),
+    disconnect: (accountId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.calendarDisconnect, accountId),
+    /** Crée ou modifie un événement ; renvoie l'agenda à jour. */
+    saveEvent: (input: CalendarEventInput): Promise<CalendarState> =>
+      ipcRenderer.invoke(IpcChannels.calendarSaveEvent, input),
+    deleteEvent: (accountId: string, calendarId: string, eventId: string): Promise<CalendarState> =>
+      ipcRenderer.invoke(IpcChannels.calendarDeleteEvent, accountId, calendarId, eventId)
+  },
   system: {
     getPreferences: (): Promise<SystemPreferences> =>
       ipcRenderer.invoke(IpcChannels.systemGetPreferences),

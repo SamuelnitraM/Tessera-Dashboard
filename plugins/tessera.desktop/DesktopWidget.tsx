@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react'
-import { AppWindow, ExternalLink, Pencil, Plus } from 'lucide-react'
+import { AppWindow, ExternalLink, Globe, Pencil, Plus, RotateCw } from 'lucide-react'
 import {
   addInstalledApp,
   Button,
+  installedAppForBrowser,
   InstalledAppView,
+  refreshInstalledApp,
   takeOutInstalledApp,
+  useBrowserChoices,
   useInstalledApps,
   usePluginTranslation,
   type PanOffset,
@@ -19,6 +22,8 @@ interface DesktopConfig {
   appId?: string | null
   /** Partie affichée quand la fenêtre est plus grande que le bloc. */
   offset?: PanOffset
+  /** Navigateurs mis de côté par « Changer de navigateur » : restent ouverts, cachés. */
+  parked?: string[]
 }
 
 export function DesktopWidget({
@@ -32,9 +37,26 @@ export function DesktopWidget({
   // La barre du bloc sert de poignée pour déplacer le contenu d'une fenêtre rognée
   const header = useRef<HTMLDivElement>(null)
   const app = config.appId ? apps.find((candidate) => candidate.id === config.appId) : undefined
+  // Bloc qui affiche un navigateur : on passe à un autre en un clic. Le précédent reste ouvert,
+  // caché, avec ses onglets : y revenir l'affiche aussitôt.
+  const browsers = useBrowserChoices()
+  const browser = app ? browsers.find((choice) => choice.appId === app.id) : undefined
+  const switchBrowser = (browserId: string): void =>
+    void installedAppForBrowser(browserId).then(
+      (appId) =>
+        appId &&
+        setConfig({
+          appId,
+          offset: { x: 0, y: 0 },
+          parked: [
+            ...(config.parked ?? []).filter((id) => id !== appId && id !== config.appId),
+            ...(config.appId ? [config.appId] : [])
+          ]
+        })
+    )
 
   const choose = (appId: string): void => {
-    setConfig({ appId, offset: { x: 0, y: 0 } })
+    setConfig({ appId, offset: { x: 0, y: 0 }, parked: [] })
     setChanging(false)
   }
 
@@ -52,8 +74,47 @@ export function DesktopWidget({
     <div className={styles.desktop}>
       {config.showHeader && (
         <div ref={header} className={styles.header}>
-          <AppIcon app={app} size={16} />
-          <span className={styles.name}>{app?.name}</span>
+          {browser && browsers.length > 1 ? (
+            // Navigateur : tous les navigateurs installés, un bouton chacun (logo et nom)
+            <div className={styles.browsers} role="group" aria-label={t('switchBrowser')}>
+              {browsers.map((choice) => (
+                <button
+                  key={choice.id}
+                  type="button"
+                  className={styles.browserButton}
+                  data-current={choice.id === browser.id}
+                  aria-pressed={choice.id === browser.id}
+                  title={
+                    choice.id === browser.id ? choice.name : t('switchTo', { name: choice.name })
+                  }
+                  onClick={() => choice.id !== browser.id && switchBrowser(choice.id)}
+                >
+                  {choice.icon ? (
+                    <img src={choice.icon} alt="" width={16} height={16} />
+                  ) : (
+                    <Globe size={14} aria-hidden />
+                  )}
+                  <span>{choice.name}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <>
+              <AppIcon app={app} size={16} />
+              <span className={styles.name}>{app?.name}</span>
+            </>
+          )}
+          {app && (
+            <button
+              type="button"
+              className={styles.iconButton}
+              title={t('refresh')}
+              aria-label={t('refresh')}
+              onClick={() => void refreshInstalledApp(app.id)}
+            >
+              <RotateCw size={14} aria-hidden />
+            </button>
+          )}
           {app && (
             <button
               type="button"

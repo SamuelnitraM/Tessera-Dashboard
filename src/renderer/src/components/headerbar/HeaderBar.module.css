@@ -1,0 +1,498 @@
+/* ---------- Barre ---------- */
+
+/* Toute la place entre le titre et les boutons de la page ; position des widgets réglable */
+.bar {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+/* Glisser pour réordonner (mode édition) : trait à l'endroit du dépôt */
+.bar[data-editing='true'] .item {
+  cursor: grab;
+}
+
+.item[data-drop-before='true']::before,
+.bar[data-drop-end='true'] > .item:nth-last-child(1 of [data-widget])::after {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  background: var(--color-accent);
+  border-radius: 2px;
+  content: '';
+}
+
+.item[data-drop-before='true']::before {
+  left: -5px;
+}
+
+.bar[data-drop-end='true'] > .item:nth-last-child(1 of [data-widget])::after {
+  right: -5px;
+}
+
+/* Séparée des boutons de la page par un trait */
+.bar:not(:last-child) {
+  padding-right: 0.625rem;
+  margin-right: 0.125rem;
+  border-right: 1px solid var(--color-border);
+}
+
+.item {
+  position: relative;
+}
+
+.remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  color: var(--color-text-muted);
+}
+
+.remove:hover {
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
+}
+
+.add {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  background: none;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+}
+
+.add:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ---------- Bouton d'un widget ---------- */
+
+.popoverRoot {
+  position: relative;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  justify-content: center;
+  padding: 0 0.625rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.chip:hover,
+.chip[data-open='true'] {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.chip[data-highlighted='true'] {
+  border-color: color-mix(in oklab, var(--color-accent) 55%, var(--color-border));
+  color: var(--color-accent);
+}
+
+.time {
+  color: var(--color-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.chip[data-highlighted='true'] .time {
+  color: var(--color-accent);
+}
+
+.time[data-paused='true'] {
+  opacity: 0.6;
+}
+
+.date::first-letter {
+  text-transform: uppercase;
+}
+
+/* Fenêtre étroite : l'heure seule */
+@media (max-width: 960px) {
+  .date {
+    display: none;
+  }
+}
+
+/* Note non vide */
+.dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  background: var(--color-accent);
+  border-radius: 50%;
+}
+
+/* ---------- Panneau déplié ---------- */
+
+.panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 900;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.28);
+  font-size: 0.8125rem;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.textButton,
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 30px;
+  padding: 0 0.75rem;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.textButton:hover {
+  background: var(--color-surface-hover);
+}
+
+.primaryButton {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+}
+
+/* ---------- Calendrier ---------- */
+
+.calendar {
+  width: 17rem;
+}
+
+.longDate {
+  margin: 0 0 0.5rem;
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.longDate::first-letter,
+.monthName::first-letter {
+  text-transform: uppercase;
+}
+
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.monthName {
+  flex: 1;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.calendarHeader .textButton {
+  height: 26px;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+}
+
+.calendarGrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.calendarGrid th {
+  padding: 0.25rem 0;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.calendarGrid td {
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+}
+
+.calendarGrid td[data-outside='true'] {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+}
+
+.calendarGrid td[data-today='true'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+.calendarGrid .weekNumber {
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+}
+
+/* ---------- Calculatrice ---------- */
+
+.calculator {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  width: 15.5rem;
+}
+
+.history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history button {
+  width: 100%;
+  padding: 0.125rem 0.25rem;
+  overflow: hidden;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history button span {
+  color: var(--color-text-muted);
+}
+
+.history button:hover {
+  background: var(--color-surface-hover);
+}
+
+.calcInput {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 1.125rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.preview {
+  margin: 0;
+  min-height: 1.25rem;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.25rem;
+}
+
+.key {
+  display: grid;
+  place-items: center;
+  height: 2.125rem;
+  padding: 0;
+  background: var(--color-surface-hover);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.key:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--color-text) 12%, var(--color-surface));
+}
+
+.key:disabled {
+  opacity: 0.45;
+}
+
+.key[data-kind='digit'] {
+  background: var(--color-bg);
+}
+
+.key[data-kind='operator'] {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.key[data-kind='action'] {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.key[data-kind='equals'] {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-weight: 700;
+}
+
+.key[data-kind='equals']:hover {
+  background: var(--color-accent-hover);
+}
+
+/* ---------- Minuteur ---------- */
+
+.timer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: 16rem;
+}
+
+.presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.customTimer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--color-text-muted);
+}
+
+.customTimer .primaryButton {
+  margin-left: auto;
+}
+
+.minutesInput {
+  width: 4rem;
+  padding: 0.3125rem 0.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-align: right;
+}
+
+.timerLeft {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 2rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.timerLeft[data-paused='true'] {
+  color: var(--color-text-muted);
+}
+
+.timerActions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ---------- Note rapide ---------- */
+
+.note {
+  display: block;
+  width: 20rem;
+  height: 12rem;
+  padding: 0.5rem;
+  resize: both;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font: inherit;
+  line-height: 1.45;
+}
+
+/* ---------- Widgets repliés (menu « … ») ---------- */
+
+.overflow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  min-width: 13rem;
+}
+
+.overflowRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--color-text-muted);
+}
+
+.overflowRow > span {
+  white-space: nowrap;
+}
+
+/* Panneau d'un widget replié : à gauche du menu, sans le recouvrir */
+.overflow .panel {
+  top: -0.375rem;
+  right: calc(100% + 0.75rem + 8px);
+}

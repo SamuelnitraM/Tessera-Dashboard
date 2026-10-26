@@ -9,16 +9,19 @@ import { notify } from './notifications'
 
 /**
  * Mises à jour automatiques de la version installée (electron-updater) : les versions publiées
- * sur GitHub (`publish` dans electron-builder.yml) sont vérifiées au démarrage puis toutes les
- * 6 heures, téléchargées en arrière-plan, et installées en quittant Tessera. Une notification
- * prévient quand une mise à jour est prête.
+ * sur GitHub (`publish` dans electron-builder.yml) sont vérifiées au lancement, toutes les
+ * 3 heures et à la fermeture de la fenêtre, téléchargées en arrière-plan, et installées en
+ * quittant Tessera. Une notification et l'icône de mise à jour (menu latéral) préviennent quand
+ * une mise à jour est prête : un clic l'installe.
  */
 
 const { autoUpdater } = electronUpdater
 
-/** Première vérification peu après le démarrage (laisser l'app se charger). */
-const FIRST_CHECK_MS = 30_000
-const CHECK_EVERY_MS = 6 * 60 * 60_000
+/** Première vérification peu après le lancement (laisser l'app se charger). */
+const FIRST_CHECK_MS = 10_000
+const CHECK_EVERY_MS = 3 * 60 * 60_000
+/** Fermeture de la fenêtre : pas de nouvelle vérification si la dernière est si récente. */
+const CLOSE_CHECK_AFTER_MS = 5 * 60_000
 
 let state: UpdateState = { status: 'unsupported' }
 let checkedAt: number | null = null
@@ -46,6 +49,15 @@ export async function checkForUpdates(): Promise<void> {
   } catch {
     // L'erreur est signalée par l'événement « error »
   }
+}
+
+/**
+ * Fenêtre fermée (Tessera reste dans la zone de notification) : vérification, sauf si la
+ * dernière est récente. Une mise à jour trouvée se télécharge et s'installera en quittant.
+ */
+export function checkForUpdatesOnClose(): void {
+  if (checkedAt !== null && Date.now() - checkedAt < CLOSE_CHECK_AFTER_MS) return
+  void checkForUpdates()
 }
 
 /** Quitte Tessera et installe la mise à jour téléchargée. */

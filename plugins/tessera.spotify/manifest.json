@@ -1,0 +1,25 @@
+{
+  "id": "tessera.spotify",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Spotify", "en": "Spotify" },
+  "description": {
+    "fr": "Tes playlists, titres likés, écoutes récentes et la recherche Spotify ; la lecture se lance dans l’application Spotify.",
+    "en": "Your playlists, liked songs, recent plays and Spotify search; playback starts in the Spotify app."
+  },
+  "author": "Tessera Dashboard",
+  "category": "video",
+  "widgets": [
+    {
+      "type": "spotify",
+      "name": { "fr": "Spotify", "en": "Spotify" },
+      "description": {
+        "fr": "Playlists, titres likés, récents et recherche (compte gratuit accepté).",
+        "en": "Playlists, liked songs, recent and search (free account works)."
+      },
+      "icon": "music-2",
+      "defaultSize": { "w": 8, "h": 8 },
+      "minSize": { "w": 4, "h": 4 }
+    }
+  ]
+}

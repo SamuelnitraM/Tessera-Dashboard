@@ -280,6 +280,8 @@ export interface ImapAccountInput {
  * - `permission` : l'extension n'a pas la permission `mail`
  * - `invalid` : données invalides (adresse, serveur…)
  * - `quota` : limite quotidienne du fournisseur atteinte (recherche YouTube…)
+ * - `api-disabled` : l'API n'est pas activée dans le projet Google Cloud (Tasks, Agenda…)
+ * - `scope` : le compte n'a pas donné cette autorisation (case décochée à la connexion)
  * - `unknown`
  */
 export const MAIL_ERROR_CODES = [
@@ -292,6 +294,8 @@ export const MAIL_ERROR_CODES = [
   'permission',
   'invalid',
   'quota',
+  'api-disabled',
+  'scope',
   'unknown'
 ] as const
 export type MailErrorCode = (typeof MAIL_ERROR_CODES)[number]

@@ -7,6 +7,7 @@
 }
 
 .title {
+  max-width: 45%;
   font-size: 1.5rem;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -15,9 +16,16 @@
   white-space: nowrap;
 }
 
+/* Boutons à droite ; la barre des pages (s'il y en a une) prend la place entre eux et le titre */
 .actions {
   display: flex;
+  flex: 1 1 auto;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
+  min-width: 0;
+}
+
+.actions > :not([role='group']) {
   flex-shrink: 0;
 }

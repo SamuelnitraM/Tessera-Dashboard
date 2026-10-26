@@ -8,6 +8,7 @@
     "en": "Section headings to organize your pages."
   },
   "author": "Tessera Dashboard",
+  "category": "tools",
   "widgets": [
     {
       "type": "heading",

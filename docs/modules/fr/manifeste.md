@@ -20,6 +20,7 @@
     "en": "The current temperature in a city."
   },
   "author": "Camille",
+  "category": "info",
   "homepage": "https://camille.example/meteo",
   "permissions": ["network", "notifications"],
   "network": ["https://api.open-meteo.com"],
@@ -65,6 +66,7 @@
 | `name`        | oui            | Nom du module, [texte traduit](#textes-traduits)                                                                                                                                                                                                  |
 | `description` | oui            | Une phrase, texte traduit                                                                                                                                                                                                                         |
 | `author`      | oui            | Ton nom ou celui de ton organisation (texte libre)                                                                                                                                                                                                |
+| `category`    | non            | Catégorie de tes widgets, pour les ranger dans Paramètres et « Ajouter un bloc » : `video`, `images`, `communication`, `productivity`, `development`, `apps`, `info`, `games`, `tools` ou `other` (par défaut)                                    |
 | `homepage`    | non            | Site du module, adresse `https://…` : un lien « Site du module » s'affiche dans Paramètres                                                                                                                                                        |
 | `entry`       | non            | Script principal, relatif au dossier construit. `index.js` par défaut, et c'est ce que produit `tesseraModule()` : ne le change pas                                                                                                               |
 | `permissions` | non            | Accès demandés : `files`, `processes`, `web`, `apps`, `notifications`, `mail`, `media`, `videos`, `network`. Voir [Les permissions](permissions.md)                                                                                               |

@@ -9,6 +9,22 @@
 
 /* Image de la fenêtre en taille réelle (décalée si elle est rognée), affichée pendant qu'elle
    est masquée (dialogue, mode édition) */
+/* Fenêtre de l'application absente (normalement, elle recouvre ce message) : il n'apparaît
+   qu'après un instant, pour ne pas clignoter pendant un déplacement */
+.missing {
+  display: contents;
+}
+
+.missing > * {
+  animation: missing-in 200ms ease-out 1.5s both;
+}
+
+@keyframes missing-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .snapshot {
   position: absolute;
   top: 0;

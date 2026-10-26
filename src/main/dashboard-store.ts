@@ -7,6 +7,7 @@ const store = new JsonStore<Dashboard>('dashboard.json', sanitizeDashboard)
 export const loadDashboard = (): Dashboard => store.load()
 export const getDashboard = (): Dashboard => store.get()
 export const flushDashboard = (): void => store.flush()
+export const onDashboardChange = store.onChange.bind(store)
 
 /** Remplace tout le tableau de bord (revalidé avant d'être sauvegardé). */
 export const saveDashboard = (dashboard: unknown): Dashboard => store.set(dashboard)

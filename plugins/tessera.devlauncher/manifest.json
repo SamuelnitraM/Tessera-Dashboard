@@ -8,6 +8,7 @@
     "en": "Your DevLauncher projects: launch with a profile, services and logs, stop everything."
   },
   "author": "Tessera Dashboard",
+  "category": "development",
   "permissions": ["integrations", "notifications"],
   "integrations": ["devlauncher"],
   "widgets": [

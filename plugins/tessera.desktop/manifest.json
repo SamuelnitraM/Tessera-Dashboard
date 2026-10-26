@@ -11,6 +11,7 @@
     "en": "Shows the window of a program installed on your PC (Discord, Obsidian…) in a block. The app keeps its sign-in and notifications."
   },
   "author": "Tessera Dashboard",
+  "category": "apps",
   "permissions": ["apps"],
   "widgets": [
     {

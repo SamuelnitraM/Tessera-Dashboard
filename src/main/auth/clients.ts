@@ -17,6 +17,7 @@ import { getSettings } from '../settings-store'
 interface BuiltInClients {
   google?: { clientId?: string; clientSecret?: string }
   twitch?: { clientId?: string }
+  spotify?: { clientId?: string }
 }
 
 declare const __OAUTH_CLIENTS__: BuiltInClients | undefined
@@ -24,6 +25,9 @@ declare const __OAUTH_CLIENTS__: BuiltInClients | undefined
 const builtIn: BuiltInClients = typeof __OAUTH_CLIENTS__ === 'object' ? __OAUTH_CLIENTS__ : {}
 
 export type Provider = 'google' | 'twitch'
+
+/** Identifiant de l'application Spotify de Tessera, s'il a été fourni à la compilation. */
+export const builtInSpotifyClientId = (): string => builtIn.spotify?.clientId ?? ''
 
 /** Identifiants utilisés (ceux de l'utilisateur s'il en a saisi, sinon ceux de Tessera). */
 export function clientFor(provider: Provider): { clientId: string; clientSecret?: string } {

@@ -440,7 +440,7 @@ The widgets that come with Tessera use an internal SDK with the same names ([doc
 | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Import                                                                            | `@tessera/module-sdk` (instead of `@tessera/plugin-sdk`)                                                    |
 | `WebView`, `MediaView`, `InstalledAppView`                                        | Not available yet: a block can embed neither a web page, nor a YouTube / Twitch player, nor an app's window |
-| `useWebApps`, `addInstalledApp`, `takeOutInstalledApp`                            | Not available                                                                                               |
+| `useWebApps`, `addInstalledApp`, `takeOutInstalledApp`, `refreshInstalledApp`     | Not available                                                                                               |
 | `useLocalMedia().addDropped`                                                      | Not available (use `open()`)                                                                                |
 | `useMailOpenRequest`, `openMailSettings`, `openMediaSettings`, `mailErrorMessage` | Not available                                                                                               |
 | `openContextMenu`                                                                 | Items without icons                                                                                         |

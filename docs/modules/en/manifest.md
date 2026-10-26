@@ -20,6 +20,7 @@
     "en": "The current temperature in a city."
   },
   "author": "Camille",
+  "category": "info",
   "homepage": "https://camille.example/meteo",
   "permissions": ["network", "notifications"],
   "network": ["https://api.open-meteo.com"],
@@ -65,6 +66,7 @@
 | `name`        | yes            | Module name, [translated text](#translated-texts)                                                                                                                                                                       |
 | `description` | yes            | One sentence, translated text                                                                                                                                                                                           |
 | `author`      | yes            | Your name or your organisation's (free text)                                                                                                                                                                            |
+| `category`    | no             | Category of your widgets, used to sort them in Settings and “Add a block”: `video`, `images`, `communication`, `productivity`, `development`, `apps`, `info`, `games`, `tools` or `other` (default)                     |
 | `homepage`    | no             | Module website, an `https://…` address: a “Module website” link is shown in Settings                                                                                                                                    |
 | `entry`       | no             | Main script, relative to the built folder. `index.js` by default, which is what `tesseraModule()` produces: don't change it                                                                                             |
 | `permissions` | no             | Requested access: `files`, `processes`, `web`, `apps`, `notifications`, `mail`, `media`, `videos`, `network`. See [Permissions](permissions.md)                                                                         |

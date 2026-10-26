@@ -8,6 +8,7 @@
     "en": "A YouTube player, your subscriptions and your playlists. Playback continues in a mini-player when you change pages."
   },
   "author": "Tessera Dashboard",
+  "category": "video",
   "permissions": ["web", "media"],
   "widgets": [
     {

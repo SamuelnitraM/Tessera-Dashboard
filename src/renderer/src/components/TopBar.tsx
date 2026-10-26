@@ -14,6 +14,8 @@ import { AppIcon } from './AppIcon'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
 import { NotificationBell } from './notifications/NotificationBell'
+import { FullScreenButton } from './FullScreenButton'
+import { UpdateButton } from './UpdateButton'
 import styles from './TopBar.module.css'
 
 /**
@@ -81,11 +83,13 @@ export function TopBar(): React.JSX.Element {
       )}
 
       <div className={styles.end}>
+        <UpdateButton variant="icon" className={styles.iconButton} />
         <NotificationBell
           variant="icon"
           className={styles.iconButton}
           badgeClassName={styles.appBadge}
         />
+        <FullScreenButton variant="icon" className={styles.iconButton} />
         <button
           type="button"
           className={styles.iconButton}

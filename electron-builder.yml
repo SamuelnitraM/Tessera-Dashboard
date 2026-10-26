@@ -21,6 +21,8 @@ extraResources:
 asarUnpack:
   - node_modules/koffi/**
   - node_modules/@koromix/**
+  # Console du module Terminal (node-pty, binaire précompilé)
+  - node_modules/@lydell/**
 
 electronFuses:
   # L'hébergeur des cadres des applications installées est lancé en mode Node (frames.ts)

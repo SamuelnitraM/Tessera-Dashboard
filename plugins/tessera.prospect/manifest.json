@@ -8,6 +8,7 @@
     "en": "Your Prospect Solution prospecting: server, key figures, today's follow-ups, running jobs and full interface."
   },
   "author": "Tessera Dashboard",
+  "category": "productivity",
   "permissions": ["integrations", "processes", "web", "notifications"],
   "integrations": ["prospect"],
   "widgets": [

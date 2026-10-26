@@ -20,6 +20,7 @@ import {
   setFrameWheel,
   setFrameWheelListeners
 } from './frames'
+import { logDocking } from './log'
 import { saveMinSize } from './programs'
 import { childStyle, returnWindow, saveWindow, type SavedWindow } from './saved-window'
 import * as w from './win32'
@@ -58,6 +59,8 @@ interface DockedWindow {
   pannable: boolean
   /** Masquée par l'application elle-même (Discord fermé dans sa zone de notification…). */
   hiddenByApp: boolean
+  /** Masquée par Tessera avec son cadre (dialogue, autre page…) : ce n'est pas l'application. */
+  hiddenByUs: boolean
   /** Rectangle de la fenêtre (écran) après le dernier placement, et emplacement visé. */
   placed: w.Rect | null
   target: string | null
@@ -212,9 +215,16 @@ function layoutFor(docked: DockedWindow): Layout | null {
   }
 }
 
+/**
+ * Masque le cadre et la fenêtre qu'il contient. La fenêtre est masquée elle aussi : une
+ * application Chromium (Discord, navigateurs) sait alors qu'elle n'est plus visible, et se
+ * redessine quand elle réapparaît. Sans cela, elle pouvait rester grise.
+ */
 function hideFrame(docked: DockedWindow): void {
   if (!docked.shown) return
   docked.shown = false
+  docked.hiddenByUs = true
+  w.showWindowAsync(docked.hwnd, w.SW.HIDE)
   w.showWindow(docked.frame, w.SW.HIDE)
 }
 
@@ -234,6 +244,30 @@ function place(docked: DockedWindow): void {
   const layout = layoutFor(docked)
   if (!layout) return hideFrame(docked)
 
+  // La fenêtre a quitté son cadre (l'application l'a replacée sur le bureau) : remise dedans
+  if (w.getParent(docked.hwnd) !== docked.frame) {
+    logDocking(`${docked.appId} : fenêtre sortie de son cadre, remise dedans (${describe(docked)})`)
+    w.setParent(docked.hwnd, docked.frame)
+    docked.target = null
+  }
+  // L'application a remis son style de fenêtre normale (Brave, Chrome : au passage en plein
+  // écran, ou de lui-même) : plus « enfant » du cadre, elle échappe au placement et prend la
+  // taille de l'écran. Elle redevient une fenêtre enfant, puis est remise dans son bloc.
+  const style = w.getStyle(docked.hwnd)
+  if (style !== childStyle(style)) {
+    logDocking(`${docked.appId} : style rétabli (0x${(style >>> 0).toString(16)})`)
+    w.setStyle(docked.hwnd, childStyle(style))
+    w.setWindowPos(
+      docked.hwnd,
+      0,
+      0,
+      0,
+      0,
+      w.SWP.NOMOVE | w.SWP.NOSIZE | w.SWP.NOZORDER | w.SWP.FRAMECHANGED | w.SWP.NOACTIVATE
+    )
+    docked.target = null
+  }
+
   const { frame, window } = layout
   if (docked.pannable !== layout.cropped) {
     docked.pannable = layout.cropped
@@ -243,6 +277,9 @@ function place(docked: DockedWindow): void {
     docked.pageWheel = layout.pageWheel
     setFrameWheel(docked.frame, layout.pageWheel)
   }
+  // Cadre masqué sans nous (fenêtre de Tessera réduite puis rendue…) : il sera réaffiché
+  if (docked.shown && !w.isVisible(docked.frame) && hostIsVisible()) docked.shown = false
+
   const key = JSON.stringify(layout)
   const current = w.getWindowRect(docked.hwnd)
   if (docked.shown && key === docked.target && sameRect(docked.placed, current)) return
@@ -268,11 +305,13 @@ function place(docked: DockedWindow): void {
   }
   docked.raised = layout.raised
 
-  if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) w.showWindow(docked.hwnd, w.SW.SHOWNA)
+  // Cadre d'abord, puis la fenêtre : elle apparaît déjà visible à l'écran, et se redessine
   if (!docked.shown) {
     docked.shown = true
     w.showWindow(docked.frame, w.SW.SHOWNA)
   }
+  if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) w.showWindowAsync(docked.hwnd, w.SW.SHOWNA)
+  docked.hiddenByUs = false
 }
 
 function placeAll(): void {
@@ -294,6 +333,9 @@ function forget(docked: DockedWindow): void {
  * apparaître sur le bureau). Sinon, elle retrouve sa place et son apparence d'origine.
  */
 function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
+  logDocking(
+    `${docked.appId} : sortie du cadre (${mode === 'close' ? 'fermée' : 'rendue au bureau'})`
+  )
   docked.unwatch()
   if (windows.get(docked.appId) === docked) windows.delete(docked.appId)
   if (w.isWindow(docked.hwnd)) {
@@ -351,6 +393,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       shown: false,
       pannable: false,
       hiddenByApp: false,
+      hiddenByUs: false,
       placed: null,
       target: null,
       size: { width: 0, height: 0 },
@@ -363,6 +406,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       if (target === hwnd) onWindowEvent(docked, event)
     })
     windows.set(appId, docked)
+    logDocking(`${appId} : insérée (${describe(docked)})`)
     setState(appId, { status: 'running', error: null })
     w.showWindow(hwnd, w.SW.SHOWNA)
     place(docked)
@@ -377,13 +421,16 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
   const visible = (w.getStyle(docked.hwnd) & w.WS.VISIBLE) !== 0
   switch (event) {
     case w.WinEvent.OBJECT_DESTROY:
+      logDocking(`${docked.appId} : fenêtre détruite par l'application`)
       forget(docked)
       setState(docked.appId, { status: 'closed' })
       return
 
     case w.WinEvent.OBJECT_HIDE:
-      // Masquée par l'application : fermée dans sa zone de notification (Discord…)
-      if (!visible && !docked.hiddenByApp) {
+      // Masquée par l'application : fermée dans sa zone de notification (Discord…). Pas
+      // quand c'est Tessera qui l'a masquée avec son cadre.
+      if (!visible && !docked.hiddenByApp && !docked.hiddenByUs) {
+        logDocking(`${docked.appId} : fenêtre masquée par l'application`)
         docked.hiddenByApp = true
         hideFrame(docked)
         setState(docked.appId, { status: 'closed' })
@@ -393,6 +440,7 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
     case w.WinEvent.OBJECT_SHOW:
       // Réaffichée par l'application (rouverte, clic sur sa notification…)
       if (visible && docked.hiddenByApp) {
+        logDocking(`${docked.appId} : fenêtre réaffichée par l'application`)
         docked.hiddenByApp = false
         docked.target = null
         setState(docked.appId, { status: 'running', error: null })
@@ -424,7 +472,12 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       if (!docked.shown || sameRect(docked.placed, w.getWindowRect(docked.hwnd))) return
       const now = Date.now()
       if (now - docked.corrections.since > 1000) docked.corrections = { count: 0, since: now }
-      if (++docked.corrections.count > 20) return
+      if (++docked.corrections.count > 20) {
+        if (docked.corrections.count === 21) {
+          logDocking(`${docked.appId} : trop de repositionnements, pause (${describe(docked)})`)
+        }
+        return
+      }
       docked.target = null
       place(docked)
     }
@@ -555,10 +608,63 @@ export function takeOutApp(appId: string): void {
   setState(appId, { status: 'outside', error: null })
 }
 
+/**
+ * « Rafraîchir » (barre du bloc) ou « Réafficher » (bloc resté vide) : la fenêtre est vérifiée,
+ * masquée puis remise dans son bloc, et redessinée ; sa taille change d'un pixel le temps d'un
+ * instant, ce qui force une application qui ne se dessinait plus (bloc gris) à se redessiner.
+ * Si elle n'est plus suivie, elle est retrouvée (ou l'application relancée).
+ */
+export function refreshApp(appId: string): void {
+  const docked = windows.get(appId)
+  logDocking(`${appId} : réaffichage demandé (${docked ? describe(docked) : 'non suivie'})`)
+  if (!docked) {
+    const desktopApp = findApp(appId)
+    if (desktopApp && !connect(desktopApp)) void launchApp(appId)
+    return
+  }
+  if (!w.isWindow(docked.hwnd)) return place(docked)
+  // Masquée sans que Tessera le voie : réaffichée
+  if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) {
+    docked.hiddenByApp = false
+    w.showWindow(docked.hwnd, w.SW.SHOWNA)
+    setState(appId, { status: 'running', error: null })
+  }
+  docked.target = null
+  hideFrame(docked)
+  place(docked)
+  if (!docked.shown) return
+  const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
+  const { width, height } = docked.size
+  w.setWindowPos(docked.hwnd, 0, 0, width - 1, height, quiet | w.SWP.NOMOVE)
+  setTimeout(() => {
+    if (windows.get(appId) !== docked || !w.isWindow(docked.hwnd)) return
+    docked.target = null
+    place(docked)
+    w.redrawWindow(docked.frame)
+  }, 150)
+}
+
+/** État d'une fenêtre insérée, pour le journal. */
+function describe(docked: DockedWindow): string {
+  if (!w.isWindow(docked.hwnd)) return 'fenêtre disparue'
+  const rect = w.getWindowRect(docked.hwnd)
+  return [
+    `style 0x${(w.getStyle(docked.hwnd) >>> 0).toString(16)}`,
+    `parent ${w.getParent(docked.hwnd) === docked.frame ? 'cadre' : w.getParent(docked.hwnd)}`,
+    `fenêtre ${rect.right - rect.left}x${rect.bottom - rect.top} à ${rect.left},${rect.top}`,
+    `visible ${w.isVisible(docked.hwnd)}`,
+    `cadre ${docked.shown ? 'affiché' : 'masqué'}${w.isVisible(docked.frame) ? '' : ' (invisible)'}`,
+    docked.hiddenByApp ? 'masquée par l’application' : ''
+  ]
+    .filter(Boolean)
+    .join(', ')
+}
+
 /** Masque les fenêtres pendant que l'interface de Tessera passe au-dessus (dialogue, édition…). */
 export function setSuspended(value: boolean): void {
   if (suspended === value) return
   suspended = value
+  logDocking(value ? 'fenêtres masquées (interface par-dessus)' : 'fenêtres réaffichées')
   placeAll()
 }
 
@@ -602,6 +708,7 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
 
   // L'hébergeur des cadres s'est arrêté : les fenêtres insérées ont disparu avec ses cadres
   setFrameHostLostListener(() => {
+    logDocking("l'hébergeur des cadres s'est arrêté")
     for (const docked of [...windows.values()]) {
       docked.unwatch()
       windows.delete(docked.appId)
@@ -629,7 +736,12 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
       const hostId = hostOfFrame(wheel)
       if (hostId) listeners.wheel(hostId, (-delta / 120) * 100)
     },
-    active: ({ active }) => listeners.activate(active ? hostOfFrame(active) : null)
+    active: ({ active }) => {
+      listeners.activate(active ? hostOfFrame(active) : null)
+      // Clic dans l'application : sa fenêtre est revérifiée (style, place)
+      const docked = [...windows.values()].find((candidate) => candidate.frame === active)
+      if (docked) place(docked)
+    }
   })
 
   // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement).
@@ -639,6 +751,7 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
     placeAll()
   })
   window.on('resize', placeAll)
+  window.on('focus', placeAll)
   window.on('maximize', placeAll)
   window.on('unmaximize', placeAll)
   window.on('minimize', placeAll)

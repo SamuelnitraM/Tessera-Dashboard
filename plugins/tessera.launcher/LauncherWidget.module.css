@@ -11,6 +11,9 @@
 }
 
 .header {
+  /* Bloc qui a le focus : la barre se colore (variable posée par le cadre du bloc) */
+  background: var(--block-bar-background, transparent);
+  transition: background 120ms;
   display: flex;
   align-items: center;
   gap: 0.75rem;

@@ -9,7 +9,14 @@ import {
   sanitizeNotificationSettings,
   type NotificationSettings
 } from './notifications'
+import {
+  sanitizeCalendarSettings,
+  sanitizeTasksSettings,
+  type CalendarSettings,
+  type TasksSettings
+} from './accounts'
 import { QUIT_MODES, type QuitMode } from './desktop-apps'
+import { DEFAULT_HEADER_BAR, sanitizeHeaderBar, type HeaderBarSettings } from './header-bar'
 import { DEFAULT_MAIL_SETTINGS, sanitizeMailSettings, type MailSettings } from './mail'
 import { DEFAULT_MEDIA_SETTINGS, sanitizeMediaSettings, type MediaSettings } from './media'
 import { sanitizeUserApps, type UserApp } from './user-apps'
@@ -70,6 +77,12 @@ export interface Settings {
   mail: MailSettings
   /** YouTube et Twitch : comptes connectés, application Twitch, vérification des directs. */
   media: MediaSettings
+  /** Google Agenda : comptes qui ont donné accès à leur agenda. */
+  calendar: CalendarSettings
+  /** Google Tasks : comptes qui ont donné accès à leurs tâches (module Tâches). */
+  tasks: TasksSettings
+  /** Barre des pages : petits widgets affichés (dans l'ordre) et leurs réglages. */
+  headerBar: HeaderBarSettings
 }
 
 type SettingsSections = Omit<Settings, 'schemaVersion'>
@@ -119,7 +132,10 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   notifications: DEFAULT_NOTIFICATION_SETTINGS,
   mail: DEFAULT_MAIL_SETTINGS,
-  media: DEFAULT_MEDIA_SETTINGS
+  media: DEFAULT_MEDIA_SETTINGS,
+  calendar: { accounts: [] },
+  tasks: { accounts: [] },
+  headerBar: DEFAULT_HEADER_BAR
 }
 
 export function isHexColor(value: unknown): value is HexColor {
@@ -188,7 +204,10 @@ export function sanitizeSettings(input: unknown): Settings {
     },
     notifications: sanitizeNotificationSettings(root.notifications),
     mail: sanitizeMailSettings(root.mail),
-    media: sanitizeMediaSettings(root.media)
+    media: sanitizeMediaSettings(root.media),
+    calendar: sanitizeCalendarSettings(root.calendar),
+    tasks: sanitizeTasksSettings(root.tasks),
+    headerBar: sanitizeHeaderBar(root.headerBar)
   }
 }
 
@@ -203,7 +222,10 @@ export function applySettingsPatch(current: Settings, patch: SettingsPatch): Set
     apps: { ...current.apps, ...patch.apps },
     notifications: { ...current.notifications, ...patch.notifications },
     mail: { ...current.mail, ...patch.mail },
-    media: { ...current.media, ...patch.media }
+    media: { ...current.media, ...patch.media },
+    calendar: { ...current.calendar, ...patch.calendar },
+    tasks: { ...current.tasks, ...patch.tasks },
+    headerBar: { ...current.headerBar, ...patch.headerBar }
   })
 }
 

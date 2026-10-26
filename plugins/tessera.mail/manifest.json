@@ -8,6 +8,7 @@
     "en": "Your Gmail or IMAP inbox: read, sort, write and reply."
   },
   "author": "Tessera Dashboard",
+  "category": "communication",
   "permissions": ["mail"],
   "widgets": [
     {

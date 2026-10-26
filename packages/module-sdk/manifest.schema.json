@@ -147,6 +147,21 @@
     "name": { "$ref": "#/definitions/localizedText" },
     "description": { "$ref": "#/definitions/localizedText" },
     "author": { "type": "string", "minLength": 1 },
+    "category": {
+      "description": "Catégorie des widgets (« other » par défaut). — Widgets category (\"other\" by default).",
+      "enum": [
+        "video",
+        "images",
+        "communication",
+        "productivity",
+        "development",
+        "apps",
+        "info",
+        "games",
+        "tools",
+        "other"
+      ]
+    },
     "homepage": {
       "description": "Site du module (https). — Module website (https).",
       "type": "string",

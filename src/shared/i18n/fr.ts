@@ -13,8 +13,10 @@ export const fr = {
   },
   updates: {
     readyTitle: '{{name}} {{version}} est prêt',
+    button: 'Mettre à jour ({{version}})',
+    buttonHint: 'La version {{version}} est prête : cliquer pour redémarrer Tessera et l’installer',
     readyBody:
-      'La mise à jour sera installée en quittant Tessera, ou tout de suite depuis Paramètres → À propos.'
+      'La mise à jour sera installée en quittant Tessera, ou tout de suite avec « Mettre à jour » dans le menu latéral.'
   },
   dialogs: {
     pickProgram: 'Choisir un programme',
@@ -60,6 +62,8 @@ export const fr = {
     }
   },
   nav: {
+    fullScreen: 'Plein écran',
+    exitFullScreen: 'Quitter le plein écran',
     pages: 'Pages',
     home: 'Accueil',
     newPage: 'Nouvelle page',
@@ -102,6 +106,14 @@ export const fr = {
     crashBody: 'Le programme s’est terminé avec une erreur (code {{code}}).'
   },
   notifications: {
+    proposal: {
+      title: 'Aucun bloc « {{name}} »',
+      message:
+        'Cette notification vient de {{name}}, qui n’a de bloc sur aucune de tes pages. Ajouter un bloc {{name}} sur la page affichée ?',
+      add: 'Ajouter le bloc',
+      openTab: 'Ouvrir dans un onglet',
+      cancel: 'Annuler'
+    },
     testTitle: 'Notification de test',
     testBody: 'Les notifications de Tessera fonctionnent.',
     center: {
@@ -123,6 +135,8 @@ export const fr = {
   desktopApps: {
     starting: 'Ouverture de {{name}}…',
     closed: '{{name}} est fermé.',
+    missing: '{{name}} n’apparaît pas ?',
+    refresh: 'Réafficher',
     reopen: 'Rouvrir',
     elsewhere: 'Cette application est affichée ailleurs (autre bloc ou onglet).',
     showHere: 'L’afficher ici',
@@ -173,7 +187,356 @@ export const fr = {
       'Fenêtre étroite : tu modifies la disposition compacte, indépendante de celle en grand écran.',
     resetCompact: 'Régénérer automatiquement'
   },
+  headerBar: {
+    label: 'Widgets de la barre',
+    add: 'Ajouter un widget à la barre',
+    remove: 'Retirer « {{name}} » de la barre',
+    more: 'Autres widgets ({{count}})',
+    settings: 'Réglages du widget',
+    back: 'Retour',
+    loading: 'Chargement…',
+    retry: 'Réessayer',
+    offline: 'Pas de connexion à Internet ?',
+    unavailable: 'Indisponible pour le moment.',
+    noResults: 'Aucun résultat.',
+    copy: 'Copier',
+    copied: 'Copié',
+    dragHint: 'Glisse pour changer l’ordre, ou sur la page pour en faire un bloc',
+    names: {
+      datetime: 'Date et heure',
+      weather: 'Météo',
+      media: 'Média en cours',
+      sound: 'Son',
+      system: 'Système',
+      clipboard: 'Presse-papiers',
+      calculator: 'Calculatrice',
+      timer: 'Minuteur',
+      stopwatch: 'Chronomètre',
+      focus: 'Concentration',
+      clocks: 'Horloges du monde',
+      agenda: 'Prochain événement',
+      converter: 'Convertisseur',
+      eyedropper: 'Pipette',
+      screenshot: 'Capture d’écran',
+      note: 'Note rapide'
+    },
+    calendar: {
+      previous: 'Mois précédent',
+      next: 'Mois suivant',
+      today: 'Aujourd’hui',
+      week: 'Sem.',
+      weekHint: 'Numéro de la semaine'
+    },
+    calculator: {
+      input: 'Calcul',
+      history: 'Derniers calculs',
+      reuse: 'Reprendre ce résultat',
+      incomplete: 'Calcul incomplet',
+      backspace: 'Effacer le dernier caractère',
+      copy: 'Copier le résultat',
+      copyShort: 'Copier'
+    },
+    timer: {
+      preset: '{{minutes}} min',
+      minutes: 'minutes',
+      start: 'Démarrer',
+      pause: 'Pause',
+      resume: 'Reprendre',
+      stop: 'Arrêter',
+      doneTitle: 'Minuteur terminé',
+      doneBody: 'Les {{minutes}} min sont écoulées.'
+    },
+    note: {
+      placeholder: 'Une idée, un numéro, une liste… Gardé d’une page à l’autre.'
+    },
+    places: {
+      search: 'Rechercher une ville…',
+      noResults: 'Aucune ville trouvée.'
+    },
+    weather: {
+      choosePlace: 'Choisis ta ville pour voir la météo.',
+      removePlace: 'Retirer cette ville',
+      source: 'Prévisions Open-Meteo, sans compte.',
+      error: 'Météo indisponible (connexion à Internet ?).',
+      feelsLike: 'Ressenti {{value}}°',
+      humidity: 'Humidité {{value}} %',
+      wind: 'Vent {{value}} km/h',
+      today: 'Aujourd’hui',
+      updated: 'Open-Meteo · mis à jour à {{time}}',
+      kinds: {
+        clear: 'Ciel dégagé',
+        mainlyClear: 'Plutôt dégagé',
+        partlyCloudy: 'Partiellement nuageux',
+        overcast: 'Couvert',
+        fog: 'Brouillard',
+        drizzle: 'Bruine',
+        freezingDrizzle: 'Bruine verglaçante',
+        rain: 'Pluie',
+        freezingRain: 'Pluie verglaçante',
+        snow: 'Neige',
+        snowGrains: 'Grains de neige',
+        showers: 'Averses',
+        snowShowers: 'Averses de neige',
+        thunderstorm: 'Orage',
+        thunderstormHail: 'Orage avec grêle'
+      }
+    },
+    media: {
+      nothing:
+        'Rien en lecture. Lance une musique ou une vidéo (Spotify, YouTube dans un navigateur…).',
+      from: 'Dans {{app}}',
+      previous: 'Précédent',
+      next: 'Suivant',
+      play: 'Lecture',
+      pause: 'Pause'
+    },
+    sound: {
+      output: 'Sortie',
+      input: 'Micro',
+      muted: 'son coupé',
+      mute: 'Couper le son',
+      unmute: 'Rétablir le son',
+      micMute: 'Couper le micro',
+      micUnmute: 'Rétablir le micro',
+      noOutput: 'Aucune sortie audio.',
+      noInput: 'Aucun micro branché.',
+      outputDevice: 'Sortie audio',
+      inputDevice: 'Micro utilisé',
+      volume: 'Volume',
+      micVolume: 'Volume du micro'
+    },
+    system: {
+      cpu: 'Processeur',
+      memory: 'Mémoire',
+      disk: 'Disque',
+      network: 'Réseau',
+      diskOf: 'Disque {{drive}}',
+      free: '{{free}} libres sur {{total}}',
+      showInBar: 'Afficher dans la barre',
+      shownInBar: 'Affiché dans la barre',
+      uptime: 'Windows allumé depuis {{duration}}',
+      top: 'Programmes les plus gourmands',
+      sortCpu: 'Processeur',
+      sortMemory: 'Mémoire',
+      processes: '{{count}} processus'
+    },
+    duration: {
+      days: '{{count}} j',
+      hours: '{{count}} h',
+      minutes: '{{count}} min'
+    },
+    clipboard: {
+      copy: 'Copier',
+      image: 'Image {{width}} × {{height}}',
+      pin: 'Épingler (gardé après la fermeture)',
+      unpin: 'Désépingler',
+      remove: 'Retirer',
+      clear: 'Tout effacer',
+      search: 'Rechercher…',
+      pinLimit: 'Impossible d’épingler : 30 éléments au plus, images de 6 Mo au plus.',
+      empty: 'Copie un texte ou une image : il apparaîtra ici.',
+      pinned: 'Épinglés',
+      recent: 'Récents',
+      privacy:
+        'Gardé en mémoire et effacé à la fermeture de Tessera (sauf les éléments épinglés). Les mots de passe copiés depuis un gestionnaire sont ignorés.'
+    },
+    stopwatch: {
+      start: 'Démarrer',
+      pause: 'Pause',
+      resume: 'Reprendre',
+      reset: 'Remettre à zéro',
+      lap: 'Tour',
+      laps: 'Tours',
+      lapNumber: 'Tour {{number}}'
+    },
+    focus: {
+      work: 'Concentration',
+      shortBreak: 'Petite pause',
+      longBreak: 'Grande pause',
+      intro:
+        'Des séances de {{work}} min entrecoupées de pauses de {{shortBreak}} min, et une grande pause de {{longBreak}} min de temps en temps (méthode Pomodoro).',
+      start: 'Commencer',
+      pause: 'Pause',
+      resume: 'Reprendre',
+      skip: 'Passer',
+      stop: 'Arrêter',
+      round: 'Séance {{current}} sur {{total}}',
+      dndOn: 'Ne pas déranger est activé jusqu’à la pause.',
+      breakTitle: 'C’est la pause',
+      breakBody: '{{minutes}} min de pause. Bravo !',
+      workTitle: 'On s’y remet',
+      workBody: 'Séance de {{minutes}} min.',
+      settings: {
+        work: 'Concentration (min)',
+        shortBreak: 'Petite pause (min)',
+        longBreak: 'Grande pause (min)',
+        rounds: 'Séances avant la grande pause',
+        doNotDisturb: 'Activer Ne pas déranger pendant la concentration'
+      }
+    },
+    clocks: {
+      add: 'Ajouter une ville',
+      empty: 'Ajoute les villes dont tu veux connaître l’heure.',
+      sameTime: 'même heure',
+      offset: '{{value}} h',
+      today: 'aujourd’hui',
+      tomorrow: 'demain',
+      yesterday: 'hier',
+      remove: 'Retirer {{name}}'
+    },
+    agenda: {
+      now: 'Maintenant',
+      connect: 'Connecter Google Agenda',
+      reconnect: 'Reconnecter Google Agenda',
+      intro:
+        'Tes rendez-vous des 7 prochains jours (Google Agenda), que tu peux aussi ajouter et modifier ici. Google te demandera l’accès à ton agenda.',
+      today: 'Aujourd’hui',
+      tomorrow: 'Demain',
+      refresh: 'Actualiser',
+      empty: 'Rien de prévu dans les 7 prochains jours.',
+      allDay: 'Toute la journée',
+      untitled: '(Sans titre)',
+      join: 'Rejoindre',
+      open: 'Ouvrir dans Google Agenda',
+      manage: 'Comptes connectés (Paramètres → Comptes)',
+      form: {
+        new: 'Nouvel événement',
+        edit: 'Modifier l’événement',
+        title: 'Titre',
+        calendar: 'Agenda',
+        date: 'Date',
+        from: 'Du',
+        to: 'Au',
+        start: 'Début',
+        end: 'Fin',
+        location: 'Lieu (facultatif)',
+        save: 'Enregistrer',
+        cancel: 'Annuler',
+        delete: 'Supprimer'
+      }
+    },
+    converter: {
+      category: 'Type de conversion',
+      value: 'Valeur à convertir',
+      from: 'Unité de départ',
+      to: 'Unité d’arrivée',
+      swap: 'Inverser',
+      ratesDate: 'Taux de la Banque centrale européenne du {{date}}',
+      ratesError: 'Taux de change indisponibles (connexion à Internet ?).',
+      categories: {
+        length: 'Longueur',
+        mass: 'Masse',
+        temperature: 'Température',
+        volume: 'Volume',
+        area: 'Surface',
+        speed: 'Vitesse',
+        time: 'Durée',
+        data: 'Données',
+        currency: 'Devises'
+      },
+      units: {
+        mm: 'millimètres (mm)',
+        cm: 'centimètres (cm)',
+        m: 'mètres (m)',
+        km: 'kilomètres (km)',
+        in: 'pouces (in)',
+        ft: 'pieds (ft)',
+        yd: 'yards (yd)',
+        mi: 'miles (mi)',
+        nmi: 'milles marins',
+        mg: 'milligrammes (mg)',
+        g: 'grammes (g)',
+        kg: 'kilogrammes (kg)',
+        t: 'tonnes (t)',
+        oz: 'onces (oz)',
+        lb: 'livres (lb)',
+        st: 'stones (st)',
+        c: 'degrés Celsius (°C)',
+        f: 'degrés Fahrenheit (°F)',
+        k: 'kelvins (K)',
+        ml: 'millilitres (ml)',
+        cl: 'centilitres (cl)',
+        l: 'litres (l)',
+        m3: 'mètres cubes (m³)',
+        tsp: 'cuillères à café US',
+        tbsp: 'cuillères à soupe US',
+        floz: 'onces liquides US (fl oz)',
+        cup: 'tasses US',
+        pt: 'pintes US (pt)',
+        gal: 'gallons US (gal)',
+        galuk: 'gallons impériaux',
+        cm2: 'centimètres carrés (cm²)',
+        m2: 'mètres carrés (m²)',
+        ha: 'hectares (ha)',
+        km2: 'kilomètres carrés (km²)',
+        ft2: 'pieds carrés (ft²)',
+        acre: 'acres',
+        mi2: 'miles carrés (mi²)',
+        mps: 'mètres par seconde (m/s)',
+        kmh: 'kilomètres par heure (km/h)',
+        mph: 'miles par heure (mph)',
+        kn: 'nœuds (kn)',
+        s: 'secondes',
+        min: 'minutes',
+        h: 'heures',
+        d: 'jours',
+        wk: 'semaines',
+        bit: 'bits',
+        B: 'octets (o)',
+        KB: 'kilooctets (Ko)',
+        MB: 'mégaoctets (Mo)',
+        GB: 'gigaoctets (Go)',
+        TB: 'téraoctets (To)',
+        KiB: 'kibioctets (Kio)',
+        MiB: 'mébioctets (Mio)',
+        GiB: 'gibioctets (Gio)',
+        TiB: 'tébioctets (Tio)'
+      }
+    },
+    eyedropper: {
+      pick: 'Choisir une couleur à l’écran',
+      clear: 'Effacer les couleurs',
+      unsupported: 'La pipette n’a pas pu capturer l’écran.',
+      hint: 'Clic : prendre la couleur · Échap : annuler',
+      copy: 'Copier {{value}}',
+      recent: 'Couleurs récentes',
+      empty: 'Aucune couleur pour le moment.'
+    },
+    screenshot: {
+      capture: 'Capturer',
+      region: 'Zone',
+      screen: 'Écran entier',
+      window: 'Fenêtre',
+      chooseWindow: 'Choisir la fenêtre',
+      failed: 'La capture a échoué.',
+      recent: 'Dernières captures',
+      none: 'Aucune capture dans le dossier.',
+      dragHint: 'Clic : ouvrir · glisser vers une autre application',
+      show: 'Afficher dans le dossier',
+      openFolder: 'Ouvrir le dossier des captures',
+      tool: 'Outil de capture',
+      tools: {
+        windows: 'Outil Capture de Windows',
+        windowsHint:
+          'Zone, fenêtre, écran ou forme libre, avec annotation. Windows enregistre la capture dans Images\\Captures d’écran.',
+        tessera: 'Outil de Tessera',
+        tesseraHint:
+          'Zone, écran entier ou fenêtre (même cachée). Copiée et enregistrée dans le dossier ci-dessous.'
+      },
+      folder: 'Dossier des captures',
+      defaultFolder: 'Images\\Captures d’écran (par défaut)',
+      chooseFolder: 'Choisir…',
+      resetFolder: 'Par défaut',
+      windowsFolderHint:
+        'Les dernières captures sont lues dans ce dossier. L’outil de Windows enregistre dans Images\\Captures d’écran.',
+      filePrefix: 'Capture',
+      savedTitle: 'Capture d’écran enregistrée',
+      savedBody: 'Copiée dans le presse-papiers et enregistrée dans le dossier des captures.',
+      hint: 'Fais glisser pour choisir la zone · clic : écran entier · Échap : annuler'
+    }
+  },
   common: {
+    clear: 'Effacer',
     close: 'Fermer'
   },
   blocks: {
@@ -188,7 +551,21 @@ export const fr = {
       noWidgets: 'Aucun widget activé (Paramètres → Widgets et modules).',
       noModules: 'Aucun module installé pour le moment.',
       otherSite: 'Autre site web…',
-      otherSiteDescription: 'Une adresse de ton choix'
+      otherSiteDescription: 'Une adresse de ton choix',
+      search: 'Rechercher un widget, une application, un module…',
+      noResults: 'Aucun résultat pour « {{query}} ».'
+    },
+    categories: {
+      video: 'Vidéo et musique',
+      images: 'Images',
+      communication: 'Communication',
+      productivity: 'Productivité',
+      development: 'Développement',
+      apps: 'Applications',
+      info: 'Informations',
+      games: 'Jeux',
+      tools: 'Outils',
+      other: 'Autres'
     },
     settings: 'Réglages du bloc',
     remove: 'Retirer le bloc',
@@ -221,6 +598,10 @@ export const fr = {
       permission: 'Ce widget n’a pas accès aux mails.',
       invalid: 'Informations invalides.',
       quota: 'Limite quotidienne du service atteinte : réessaie demain.',
+      'api-disabled':
+        'Cette API n’est pas activée dans le projet Google Cloud de Tessera (Google Tasks API, Google Calendar API…) : active-la, attends une minute, puis réessaie.',
+      scope:
+        'Tessera n’a pas reçu cette autorisation : reconnecte le compte en laissant toutes les cases cochées.',
       unknown: 'Erreur inattendue.'
     }
   },
@@ -290,6 +671,15 @@ export const fr = {
       label: 'Icône aux couleurs de l’accent',
       description:
         'Le logo, l’icône de la barre des tâches et celle de la zone de notification prennent ta couleur d’accent.'
+    },
+    headerAlign: {
+      label: 'Widgets de la barre des pages',
+      description: 'Où se placent les widgets entre le titre de la page et ses boutons.',
+      start: 'À gauche (après le titre)',
+      center: 'Au centre',
+      end: 'À droite (avant « Modifier »)',
+      'space-between': 'Répartis (bords collés)',
+      'space-around': 'Répartis (espaces égaux)'
     },
     sidebar: {
       label: 'Menu latéral',
@@ -395,11 +785,13 @@ export const fr = {
       intro:
         'Connecte tes comptes : tes mails, tes abonnements YouTube et les directs Twitch arrivent dans tes blocs. La connexion se fait sur la page officielle de Google ou de Twitch, dans ton navigateur (souvent déjà connecté : un clic suffit). Tessera ne voit jamais ton mot de passe.',
       googleIntro:
-        'Une seule connexion pour Gmail et YouTube : coche les services voulus, puis choisis ton compte Google.',
+        'Une seule connexion pour Gmail, YouTube, Agenda et Tâches : coche les services voulus, puis choisis ton compte Google.',
       googleServices: 'Services :',
       withGoogle: 'Se connecter avec Google',
-      addGmail: 'Ajouter Gmail',
-      addYouTube: 'Ajouter YouTube',
+      calendar: 'Agenda',
+      tasks: 'Tâches',
+      addService: 'Ajouter {{name}}',
+      addServices: 'Ajouter les autres services',
       twitchIntro:
         'Tes chaînes suivies en direct, et une notification à chaque début de direct. Twitch affiche un code déjà rempli : il suffit d’accepter.',
       withTwitch: 'Se connecter avec Twitch',
@@ -466,6 +858,12 @@ export const fr = {
       intro:
         'Les widgets sont fournis avec Tessera ; les modules sont développés par d’autres et ajoutent leurs propres blocs. Désactivé, un widget ou un module disparaît de la liste d’ajout ; ses blocs déjà placés restent en attente sur tes pages.',
       builtIn: 'Widget intégré',
+      search: 'Rechercher un widget ou un module…',
+      noResults: 'Aucun widget ni module ne correspond à « {{query}} ».',
+      widgetsTitle: 'Widgets',
+      modulesTitle: 'Modules',
+      collectionsTitle: 'Collections',
+      noModules: 'Aucun module installé. Installe un fichier .tessera avec le bouton ci-dessus.',
       module: 'Module',
       invalid: 'Module invalide',
       author: 'Par {{author}}',

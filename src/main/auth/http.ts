@@ -64,6 +64,19 @@ export async function apiFetch(
   if (response.status === 403 && /quotaExceeded|rateLimitExceeded|dailyLimitExceeded/.test(body)) {
     throw mailError('quota', body)
   }
+  // API pas activée dans le projet Google Cloud, ou autorisation non donnée à la connexion
+  if (
+    response.status === 403 &&
+    /SERVICE_DISABLED|accessNotConfigured|has not been used/.test(body)
+  ) {
+    throw mailError('api-disabled', body)
+  }
+  if (
+    response.status === 403 &&
+    /ACCESS_TOKEN_SCOPE_INSUFFICIENT|insufficientPermissions/.test(body)
+  ) {
+    throw mailError('scope', body)
+  }
   if (response.status === 401 || response.status === 403) throw mailError('auth', body)
   if (response.status === 404) throw mailError('not-found', body)
   throw mailError('unknown', `HTTP ${response.status} ${body}`)

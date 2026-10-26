@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Check, LayoutDashboard, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MAIN_PAGE_ID, type DashboardPage, type LayoutMode } from '@shared/dashboard'
+import { HeaderBar } from '../../components/headerbar/HeaderBar'
 import { PageHeader } from '../../components/PageHeader'
 import { Button } from '../../components/ui/Button'
 import { Switch } from '../../components/ui/Switch'
@@ -48,6 +49,7 @@ export function PageToolbar({
   if (!editing) {
     return (
       <PageHeader title={name}>
+        <HeaderBar editing={false} />
         <Button icon={Pencil} onClick={() => setEditing(true)}>
           {t('pages.edit')}
         </Button>
@@ -77,6 +79,7 @@ export function PageToolbar({
         />
       }
     >
+      <HeaderBar editing />
       <Button
         icon={LayoutDashboard}
         title={t('pages.arrange.hint')}

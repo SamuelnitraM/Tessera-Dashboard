@@ -4,6 +4,12 @@ import { GridBackground } from 'react-grid-layout/extras'
 import 'react-grid-layout/css/styles.css'
 import { GRID, type DashboardPage, type GridItem, type LayoutMode } from '@shared/dashboard'
 import {
+  HEADER_WIDGET_DRAG,
+  HEADER_WIDGETS,
+  toolboxWidgetType,
+  type HeaderWidget
+} from '@shared/header-bar'
+import {
   colsFor,
   layoutBottom,
   normalizeLayout,
@@ -16,6 +22,7 @@ import {
 import { leaveBlock, setActiveBlock, useActiveBlockStore } from '../../stores/activeBlock'
 import { useDashboardStore } from '../../stores/dashboard'
 import { getDefaultSize, getMinSize } from '../../plugins/registry'
+import { getDraggedWidget } from '../headerbar/drag'
 import { WidgetFrame } from './WidgetFrame'
 import styles from './DashboardGrid.module.css'
 
@@ -65,6 +72,7 @@ export function DashboardGrid({
   height
 }: DashboardGridProps): React.JSX.Element {
   const setLayout = useDashboardStore((state) => state.setLayout)
+  const addWidget = useDashboardStore((state) => state.addWidget)
   const activeId = useActiveBlockStore((state) => state.activeId)
   const root = useRef<HTMLDivElement>(null)
 
@@ -84,6 +92,8 @@ export function DashboardGrid({
   )
 
   const [moving, setMoving] = useState<Moving | null>(null)
+  /** Widget de la barre des pages glissé sur la grille : case où il serait posé. */
+  const [dropSpot, setDropSpot] = useState<GridItem | null>(null)
   /** Change après un déplacement : la grille reprend la disposition enregistrée. */
   const [revision, setRevision] = useState(0)
 
@@ -167,6 +177,45 @@ export function DashboardGrid({
     height: item.h * rowHeight + (item.h - 1) * gap
   })
 
+  /** Case sous la souris pour un widget de la barre glissé (taille par défaut de son bloc). */
+  const spotAt = (event: React.DragEvent): GridItem => {
+    const box = root.current!.getBoundingClientRect()
+    const size = getDefaultSize(toolboxWidgetType(getDraggedWidget() ?? 'datetime'))
+    const w = Math.min(size.w, cols)
+    return {
+      i: '',
+      x: Math.max(0, Math.min(cols - w, Math.floor((event.clientX - box.left) / (colWidth + gap)))),
+      y: Math.max(0, Math.floor((event.clientY - box.top) / (rowHeight + gap))),
+      w,
+      h: size.h
+    }
+  }
+
+  const acceptsDrop = (event: React.DragEvent): boolean =>
+    editing && event.dataTransfer.types.includes(HEADER_WIDGET_DRAG)
+
+  const onDragOver = (event: React.DragEvent): void => {
+    if (!acceptsDrop(event)) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    const spot = spotAt(event)
+    if (!dropSpot || !sameCell(dropSpot, spot)) setDropSpot(spot)
+  }
+
+  const onDrop = (event: React.DragEvent): void => {
+    setDropSpot(null)
+    const widget = event.dataTransfer.getData(HEADER_WIDGET_DRAG) as HeaderWidget
+    if (!acceptsDrop(event) || !HEADER_WIDGETS.includes(widget)) return
+    event.preventDefault()
+    const spot = spotAt(event)
+    addWidget(
+      page.id,
+      toolboxWidgetType(widget),
+      {},
+      mode === 'wide' ? { x: spot.x, y: spot.y } : undefined
+    )
+  }
+
   const displaced = new Set(moving?.plan.moved ?? [])
   // Mode « Automatique » : le bloc tenu sera rangé ailleurs que la case visée
   const finalOfMoving = moving?.plan.layout.find((item) => item.i === moving.id)
@@ -180,6 +229,11 @@ export function DashboardGrid({
       data-editing={editing}
       data-moving={moving !== null}
       style={editing ? { minHeight: rows * (rowHeight + gap) } : undefined}
+      onDragOver={onDragOver}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropSpot(null)
+      }}
+      onDrop={onDrop}
     >
       {editing && (
         <GridBackground
@@ -225,6 +279,13 @@ export function DashboardGrid({
           </div>
         ))}
       </ReactGridLayout>
+
+      {/* Widget de la barre glissé sur la page : le bloc sera posé ici */}
+      {dropSpot && (
+        <div className={styles.preview} aria-hidden>
+          <div className={styles.finalSpot} style={cellBox(dropSpot)} />
+        </div>
+      )}
 
       {/* Aperçu : future place des blocs qui s'écarteront (et du bloc tenu, s'il sera rangé) */}
       {moving && (

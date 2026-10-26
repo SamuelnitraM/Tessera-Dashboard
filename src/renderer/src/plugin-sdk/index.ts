@@ -233,7 +233,17 @@ export { normalizeWebUrl } from '@shared/web-apps'
 // Applications installées (permission `apps`)
 // ---------------------------------------------------------------------------
 
-export { takeOutInstalledApp, useInstalledApps, type UserInstalledApp } from './apps'
+export {
+  installedAppForBrowser,
+  openWebPage,
+  refreshInstalledApp,
+  revealInstalledApp,
+  takeOutInstalledApp,
+  useBrowserChoices,
+  useInstalledApps,
+  type BrowserChoice,
+  type UserInstalledApp
+} from './apps'
 export { InstalledAppView, type InstalledAppViewProps, type PanOffset } from './installed'
 /** Fenêtre d'ajout d'une application installée : renvoie l'application ajoutée, ou `null`. */
 export { pickInstalledApp as addInstalledApp } from '../stores/programPicker'
@@ -361,7 +371,12 @@ export {
 
 export { Button } from '../components/ui/Button'
 /** Menu du clic droit de Tessera : `onContextMenu={openContextMenu([...])}`. */
-export { openContextMenu, type MenuItem, type MenuAction } from '../stores/contextMenu'
+export {
+  openContextMenu,
+  openMenuBelow,
+  type MenuItem,
+  type MenuAction
+} from '../stores/contextMenu'
 export { ConfirmDialog, type ConfirmAction } from '../components/ui/ConfirmDialog'
 export { Dialog } from '../components/ui/Dialog'
 export { SegmentedControl } from '../components/ui/SegmentedControl'

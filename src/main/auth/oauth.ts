@@ -22,6 +22,8 @@ export interface OAuthClient {
   extraParams?: Record<string, string>
   /** Port fixe de l'adresse de retour (adresse exacte enregistrée chez le fournisseur). */
   redirectPort?: number
+  /** Hôte de l'adresse de retour (`localhost` par défaut ; Spotify exige `127.0.0.1`). */
+  redirectHost?: string
 }
 
 export interface OAuthTokens {
@@ -158,7 +160,7 @@ export async function authorize(client: OAuthClient, loginHint?: string): Promis
     else if (error === 'access_denied') settle(mailError('cancelled'))
     else settle(mailError('auth', error ?? 'state'))
   }, client.redirectPort)
-  const redirectUri = `http://localhost:${server.port}`
+  const redirectUri = `http://${client.redirectHost ?? 'localhost'}:${server.port}`
 
   const url = new URL(client.authorizeUrl)
   const params: Record<string, string> = {

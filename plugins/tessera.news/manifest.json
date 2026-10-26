@@ -1,0 +1,26 @@
+{
+  "id": "tessera.news",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Actualités", "en": "News" },
+  "description": {
+    "fr": "Tes sites et blogs préférés en une liste (flux RSS) : lu / non lu, recherche, notifications.",
+    "en": "Your favourite sites and blogs in one list (RSS feeds): read / unread, search, notifications."
+  },
+  "author": "Tessera Dashboard",
+  "category": "info",
+  "permissions": ["notifications"],
+  "widgets": [
+    {
+      "type": "news",
+      "name": { "fr": "Actualités (RSS)", "en": "News (RSS)" },
+      "description": {
+        "fr": "Les articles de plusieurs sites dans une seule liste.",
+        "en": "Articles from several sites in one list."
+      },
+      "icon": "rss",
+      "defaultSize": { "w": 10, "h": 8 },
+      "minSize": { "w": 4, "h": 4 }
+    }
+  ]
+}

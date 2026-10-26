@@ -8,6 +8,13 @@
   border-radius: var(--radius-lg);
 }
 
+/* Bloc qui a le focus (clic dedans) : bordure et barre du haut à la couleur d'accent. Les
+   barres des widgets utilisent --block-bar-background. */
+.frame[data-focused='true'] {
+  --block-bar-background: color-mix(in oklab, var(--color-accent) 22%, var(--color-surface));
+  border-color: color-mix(in oklab, var(--color-accent) 60%, var(--color-border));
+}
+
 .frame[data-editing='true'] {
   border-color: color-mix(in oklab, var(--color-accent) 45%, var(--color-border));
   user-select: none;

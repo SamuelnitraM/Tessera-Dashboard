@@ -1,0 +1,26 @@
+/* Mise à jour prête : texte et icône à la couleur d'accent, l'icône clignote doucement */
+.update {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.icon {
+  animation: blink 1.4s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+/* Réglage « réduire les animations » de Windows : l'icône ne clignote pas */
+@media (prefers-reduced-motion: reduce) {
+  .icon {
+    animation: none;
+  }
+}

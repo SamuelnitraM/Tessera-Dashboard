@@ -5,6 +5,7 @@ import {
   parseManifest,
   widgetKey,
   type GridSizeSpec,
+  type PluginCategory,
   type PluginManifest,
   type WidgetManifest
 } from '@shared/plugins'
@@ -47,6 +48,8 @@ export interface RegisteredWidget {
   context: PluginContextValue
   /** Widget intégré à Tessera (sinon : module d'un développeur tiers). */
   builtIn: boolean
+  /** Catégorie de son extension (classement dans « Ajouter un bloc »). */
+  category: PluginCategory
 }
 
 /** Bloc « application web » (extension intégrée tessera.web), configuré par `{ url, appId }`. */
@@ -115,7 +118,8 @@ function loadPlugin(
       manifest: widget,
       component: module.widgets[widget.type],
       context,
-      builtIn: true
+      builtIn: true,
+      category: manifest.category
     })
   }
   return { id: manifest.id, manifest, error: null, builtIn: true, module: null }
@@ -168,7 +172,8 @@ function getModuleRegistry(): ModuleRegistry {
           manifest: widget,
           component: moduleComponent(module.id, widget.type),
           context,
-          builtIn: false
+          builtIn: false,
+          category: manifest.category ?? 'other'
         })
       }
     }

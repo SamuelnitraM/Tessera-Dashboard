@@ -22,6 +22,11 @@ export interface DesktopApp {
    */
   minWidth: number
   minHeight: number
+  /**
+   * Quand plus aucun bloc ne l'affiche : fermée (par défaut), ou rendue au bureau (`desktop` :
+   * fenêtre d'un jeu affichée dans le bloc Jeux, qu'on ne veut pas quitter).
+   */
+  release?: 'close' | 'desktop'
 }
 
 /** Programme trouvé dans le menu Démarrer, proposé à l'ajout. */

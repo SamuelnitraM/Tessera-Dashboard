@@ -8,6 +8,7 @@
     "en": "A Twitch player with its chat, and your followed channels that are live (notified when a stream starts)."
   },
   "author": "Tessera Dashboard",
+  "category": "video",
   "permissions": ["web", "media", "notifications"],
   "widgets": [
     {

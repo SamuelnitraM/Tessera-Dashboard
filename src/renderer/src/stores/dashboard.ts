@@ -7,7 +7,15 @@ import {
   type GridItem,
   type LayoutMode
 } from '@shared/dashboard'
-import { colsFor, findFreeSpot, packLayout, resolveLayout, toCompactSize } from '../lib/grid'
+import {
+  colsFor,
+  findFreeSpot,
+  normalizeLayout,
+  packLayout,
+  planMove,
+  resolveLayout,
+  toCompactSize
+} from '../lib/grid'
 import { getDefaultSize } from '../plugins/registry'
 
 interface DashboardState {
@@ -22,7 +30,16 @@ interface DashboardState {
   /** La page principale ne peut pas être supprimée. */
   deletePage: (pageId: string) => void
   /** Ajoute un bloc ; `config` = configuration de départ (ex. application web choisie). */
-  addWidget: (pageId: string, type: string, config?: Record<string, unknown>) => void
+  /**
+   * Ajoute un bloc à la première place libre, ou à la case `at` de la disposition large (les
+   * blocs gênés s'écartent) ; renvoie son identifiant.
+   */
+  addWidget: (
+    pageId: string,
+    type: string,
+    config?: Record<string, unknown>,
+    at?: { x: number; y: number }
+  ) => string | null
   removeWidget: (pageId: string, widgetId: string) => void
   updateWidgetConfig: (pageId: string, widgetId: string, config: Record<string, unknown>) => void
   setLayout: (pageId: string, mode: LayoutMode, layout: GridItem[]) => void
@@ -99,9 +116,9 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
       })
     },
 
-    addWidget: (pageId, type, config = {}) => {
+    addWidget: (pageId, type, config = {}, at) => {
       const page = get().dashboard.pages.find((candidate) => candidate.id === pageId)
-      if (!page) return
+      if (!page) return null
 
       // Position dans la disposition large : première place libre (la page défile : il y en
       // a toujours une, au besoin sous les autres blocs)
@@ -115,8 +132,24 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
 
       const id = crypto.randomUUID()
       const placed: GridItem = { ...wideItem, i: id }
+      // Case choisie (déposé depuis la barre des pages) : comme un bloc qu'on déplace
+      const wideLayout = at
+        ? normalizeLayout(
+            planMove(
+              [...wide, placed],
+              id,
+              {
+                ...placed,
+                x: Math.max(0, Math.min(GRID.wideCols - size.w, at.x)),
+                y: Math.max(0, at.y)
+              },
+              GRID.wideCols,
+              page.autoArrange
+            ).layout
+          )
+        : [...wide, placed]
       updatePage(pageId, (current) => {
-        const layouts = { ...current.layouts, wide: [...wide, placed] }
+        const layouts = { ...current.layouts, wide: wideLayout }
 
         // Disposition compacte personnalisée : le widget s'ajoute sous les autres
         if (current.layouts.compact) {
@@ -131,6 +164,7 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
           layouts
         })
       })
+      return id
     },
 
     removeWidget: (pageId, widgetId) =>

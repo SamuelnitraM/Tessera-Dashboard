@@ -77,6 +77,7 @@ const api = {
     'intptr_t __stdcall DefWindowProcW(intptr_t hwnd, uint32_t message, uintptr_t wParam, intptr_t lParam)'
   ),
   SetFocus: user32.func('intptr_t __stdcall SetFocus(intptr_t hwnd)'),
+  SetForegroundWindow: user32.func('bool __stdcall SetForegroundWindow(intptr_t hwnd)'),
   PostMessageW: user32.func(
     'bool __stdcall PostMessageW(intptr_t hwnd, uint32_t message, uintptr_t wParam, intptr_t lParam)'
   )
@@ -92,6 +93,7 @@ const MWMO_INPUTAVAILABLE = 0x4
 
 const WM_SETFOCUS = 0x0007
 const WM_ACTIVATE = 0x0006
+const WA_INACTIVE = 0
 
 /** Fenêtre insérée dans un cadre, ou 0. */
 function windowIn(frame: number): number {
@@ -103,13 +105,22 @@ function windowIn(frame: number): number {
  * Procédure des cadres. Windows active le cadre (clic dans l'application) et lui donne le
  * focus : il relaie l'activation à la fenêtre insérée (Chromium — Discord, navigateurs… —
  * n'accepte le clavier que dans une fenêtre qui se sait active) et lui passe le focus.
+ *
+ * La fenêtre insérée devient aussi la fenêtre active de Windows : Chromium vérifie
+ * `GetActiveWindow()` avant de donner le focus à ses propres champs (barre d'adresse de Brave),
+ * même quand il a reçu l'activation relayée.
  */
 const frameProc = koffi.register(
   (hwnd: number, message: number, wParam: number, lParam: number): number => {
     if (message === WM_ACTIVATE) {
       const window = windowIn(Number(hwnd))
-      // Message posté (jamais attendu) : une application occupée ne bloque pas le cadre
-      if (window) api.PostMessageW(window, WM_ACTIVATE, Number(wParam) & 0xffff, 0)
+      const state = Number(wParam) & 0xffff
+      // Le cadre cède l'activation à sa propre fenêtre insérée : rien à relayer
+      if (window && !(state === WA_INACTIVE && Number(lParam) === window)) {
+        // Message posté (jamais attendu) : une application occupée ne bloque pas le cadre
+        api.PostMessageW(window, WM_ACTIVATE, state, 0)
+        if (state !== WA_INACTIVE && w.isWindow(window)) api.SetForegroundWindow(window)
+      }
     }
     if (message === WM_SETFOCUS) {
       const window = windowIn(Number(hwnd))

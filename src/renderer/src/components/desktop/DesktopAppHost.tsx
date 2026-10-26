@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 import type { DesktopApp, HostRect } from '@shared/desktop-apps'
 import {
   blockIdOf,
+  leaveBlock,
   scrollPage,
   setActiveBlock,
   useActiveBlockStore
@@ -356,7 +357,7 @@ export function DesktopAppHost({
     })
     const stopActivate = window.tessera.desktopApps.onActivate((activated) => {
       if (activated === hostId) setActiveBlock(blockId)
-      else if (useActiveBlockStore.getState().activeId === blockId) setActiveBlock(null)
+      else leaveBlock(blockId)
     })
     return () => {
       stopWheel()
@@ -485,6 +486,17 @@ export function DesktopAppHost({
           {t('desktopApps.reopen')}
         </Button>
       </Message>
+    )
+  } else if (state.status === 'running') {
+    // Caché par la fenêtre de l'application, posée au-dessus : visible seulement si elle manque
+    content = (
+      <div className={styles.missing}>
+        <Message icon={<AppIcon app={app} />} text={t('desktopApps.missing', { name: app.name })}>
+          <Button icon={RotateCw} onClick={() => void window.tessera.desktopApps.refresh(app.id)}>
+            {t('desktopApps.refresh')}
+          </Button>
+        </Message>
+      </div>
     )
   } else if (state.status === 'error') {
     content = (

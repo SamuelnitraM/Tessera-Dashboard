@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { BookOpen, LoaderCircle, LogOut, Plus, RefreshCw, Server, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { REPOSITORY_URL } from '@shared/app'
-import type { AccountProviders, GoogleService } from '@shared/accounts'
+import { GOOGLE_SERVICES, type AccountProviders, type GoogleService } from '@shared/accounts'
 import { CHECK_MINUTES, type MailAccount } from '@shared/mail'
 import { LIVE_CHECK_MINUTES } from '@shared/media'
 import { Button } from '../../../components/ui/Button'
@@ -20,6 +20,13 @@ import { BrandButton } from './BrandButton'
 const ADVANCED_GUIDE = `${REPOSITORY_URL}/blob/main/docs/applications-oauth.md`
 
 type Connecting = 'google' | 'twitch' | null
+
+const SERVICE_NAMES: Record<GoogleService, string> = {
+  gmail: 'Gmail',
+  youtube: 'YouTube',
+  calendar: 'Agenda',
+  tasks: 'Tâches'
+}
 
 /**
  * Comptes connectés : « Se connecter avec Google / Twitch » (page officielle dans
@@ -58,13 +65,17 @@ export function AccountsSection(): React.JSX.Element {
 
   const accounts = settings.mail.accounts
   const youtubeAccounts = settings.media.youtubeAccounts
-  // Comptes Google : adresses Gmail et adresse du compte YouTube
+  const calendarAccounts = settings.calendar.accounts
+  const tasksAccounts = settings.tasks.accounts
+  // Comptes Google : adresses Gmail, du compte YouTube et des agendas
   const googleEmails = [
     ...new Set([
       ...accounts
         .filter((item) => item.provider === 'gmail')
         .map((item) => item.address.toLowerCase()),
-      ...youtubeAccounts.filter((item) => item.email).map((item) => item.email.toLowerCase())
+      ...youtubeAccounts.filter((item) => item.email).map((item) => item.email.toLowerCase()),
+      ...calendarAccounts.map((item) => item.email.toLowerCase()),
+      ...tasksAccounts.map((item) => item.email.toLowerCase())
     ])
   ]
   const gmailFor = (email: string): MailAccount | undefined =>
@@ -72,12 +83,27 @@ export function AccountsSection(): React.JSX.Element {
   const youtubeAccountFor = (email: string) =>
     youtubeAccounts.find((item) => item.email.toLowerCase() === email)
   const youtubeFor = (email: string): boolean => !!youtubeAccountFor(email)
+  const calendarFor = (email: string) =>
+    calendarAccounts.find((item) => item.email.toLowerCase() === email)
+  const tasksFor = (email: string) =>
+    tasksAccounts.find((item) => item.email.toLowerCase() === email)
+  /** Nom affiché d'un service (Agenda et Tâches sont traduits). */
+  const serviceName = (service: GoogleService): string =>
+    service === 'calendar'
+      ? t('settings.accounts.calendar')
+      : service === 'tasks'
+        ? t('settings.accounts.tasks')
+        : SERVICE_NAMES[service]
 
   const disconnectGoogle = (email: string): void => {
     const gmail = gmailFor(email)
     if (gmail) void window.tessera.mail.removeAccount(gmail.id)
     const youtube = youtubeAccountFor(email)
     if (youtube) void window.tessera.media.disconnect('youtube', youtube.id)
+    const calendar = calendarFor(email)
+    if (calendar) void window.tessera.calendar.disconnect(calendar.id)
+    const tasks = tasksFor(email)
+    if (tasks) void window.tessera.tasks.disconnect(tasks.id)
   }
 
   const progress = (provider: Exclude<Connecting, null>): React.JSX.Element | null =>
@@ -127,7 +153,19 @@ export function AccountsSection(): React.JSX.Element {
               const gmail = gmailFor(email)
               const hasYouTube = youtubeFor(email)
               const youtube = youtubeAccountFor(email)
+              const hasCalendar = !!calendarFor(email)
+              const hasTasks = !!tasksFor(email)
               const youtubeError = youtube ? media.youtube.errors[youtube.id] : undefined
+              const missing = GOOGLE_SERVICES.filter(
+                (service) =>
+                  !(service === 'gmail'
+                    ? gmail
+                    : service === 'youtube'
+                      ? hasYouTube
+                      : service === 'calendar'
+                        ? hasCalendar
+                        : hasTasks)
+              )
               return (
                 <li key={email} className={styles.appRow}>
                   <div className={styles.mailAccount}>
@@ -139,6 +177,12 @@ export function AccountsSection(): React.JSX.Element {
                       <span className={styles.chip} data-on={hasYouTube}>
                         YouTube{hasYouTube && youtube?.name ? ` · ${youtube.name}` : ''}
                       </span>
+                      <span className={styles.chip} data-on={hasCalendar}>
+                        {t('settings.accounts.calendar')}
+                      </span>
+                      <span className={styles.chip} data-on={hasTasks}>
+                        {t('settings.accounts.tasks')}
+                      </span>
                     </span>
                     {gmail && mailState(gmail)}
                     {youtubeError && (
@@ -149,19 +193,19 @@ export function AccountsSection(): React.JSX.Element {
                   </div>
                   <div className={styles.appActions}>
                     <Button
-                      icon={gmail && hasYouTube ? RefreshCw : Plus}
+                      icon={missing.length === 0 ? RefreshCw : Plus}
                       disabled={connecting !== null}
                       onClick={() =>
                         void run('google', () =>
-                          window.tessera.accounts.connectGoogle(['gmail', 'youtube'])
+                          window.tessera.accounts.connectGoogle([...GOOGLE_SERVICES])
                         )
                       }
                     >
-                      {gmail && hasYouTube
+                      {missing.length === 0
                         ? t('settings.accounts.reconnect')
-                        : gmail
-                          ? t('settings.accounts.addYouTube')
-                          : t('settings.accounts.addGmail')}
+                        : missing.length === 1
+                          ? t('settings.accounts.addService', { name: serviceName(missing[0]) })
+                          : t('settings.accounts.addServices')}
                     </Button>
                     <button
                       type="button"
@@ -184,7 +228,7 @@ export function AccountsSection(): React.JSX.Element {
         <div className={styles.connectBox}>
           <span className={styles.connectServices}>
             {t('settings.accounts.googleServices')}
-            {(['gmail', 'youtube'] as const).map((service) => (
+            {GOOGLE_SERVICES.map((service) => (
               <label key={service} className={styles.inline}>
                 <input
                   type="checkbox"
@@ -197,7 +241,7 @@ export function AccountsSection(): React.JSX.Element {
                     )
                   }
                 />
-                {service === 'gmail' ? 'Gmail' : 'YouTube'}
+                {serviceName(service)}
               </label>
             ))}
           </span>

@@ -30,7 +30,7 @@ import {
 
 const IMAGE = 'GitSpread.exe'
 
-const settingsPath = (): string => join(roamingAppData(), 'GitSpread', 'settings.json')
+export const settingsPath = (): string => join(roamingAppData(), 'GitSpread', 'settings.json')
 
 /** Valeurs par défaut de GitSpread (`ScanOptions`). */
 const DEFAULT_DEPTH = 4
@@ -67,7 +67,7 @@ export function resolveGitSpreadExecutable(chosen: string | null): string | null
 // Projets (mêmes règles que `ProjectScanner` de GitSpread)
 // ---------------------------------------------------------------------------
 
-interface ScannedProject extends GitSpreadProject {
+export interface ScannedProject extends GitSpreadProject {
   /** Dossier `.git` réel (dossier, ou cible d'un fichier `gitdir:`). */
   gitDir: string | null
 }
@@ -398,7 +398,7 @@ export function parseStatus(
   return status
 }
 
-async function readStatus(project: ScannedProject): Promise<GitProjectStatus> {
+export async function readStatus(project: ScannedProject): Promise<GitProjectStatus> {
   const empty: GitProjectStatus = {
     path: project.path,
     error: null,
@@ -426,6 +426,17 @@ async function readStatus(project: ScannedProject): Promise<GitProjectStatus> {
   } catch (error) {
     return { ...empty, lastFetchAt, error: error instanceof Error ? error.message : String(error) }
   }
+}
+
+/** Projets de GitSpread (même recherche que lui), pour le module Git de Tessera. */
+export function scanGitSpreadProjects(): {
+  projects: ScannedProject[]
+  missing: string[]
+  settings: unknown
+} {
+  const settings = readJson(settingsPath())
+  const { projects, missing } = scan(settings)
+  return { projects, missing, settings }
 }
 
 // ---------------------------------------------------------------------------

@@ -17,6 +17,7 @@ import { PluginContext } from '../../plugin-sdk/context'
 import { getWidget } from '../../plugins/registry'
 import { openContextMenu, type MenuItem } from '../../stores/contextMenu'
 import { useDashboardStore } from '../../stores/dashboard'
+import { useActiveBlockStore } from '../../stores/activeBlock'
 import { useModules } from '../../stores/modules'
 import { useNavigationStore } from '../../stores/navigation'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
@@ -45,6 +46,8 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
   const updateWidgetConfig = useDashboardStore((state) => state.updateWidgetConfig)
   const setEditing = useNavigationStore((state) => state.setEditing)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // Bloc qui a le focus (dernier cliqué) : bordure et barre du haut colorées
+  const focused = useActiveBlockStore((state) => !editing && state.focusedId === widget.id)
 
   const registered = getWidget(widget.type)
   const disabled = registered !== undefined && disabledPlugins.includes(registered.pluginId)
@@ -98,6 +101,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
     <article
       className={styles.frame}
       data-editing={editing}
+      data-focused={focused}
       aria-label={name}
       onContextMenu={openContextMenu(contextMenu)}
     >

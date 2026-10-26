@@ -1,0 +1,25 @@
+{
+  "id": "tessera.git",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "GitSpread", "en": "GitSpread" },
+  "description": {
+    "fr": "GitSpread dans Tessera : tes projets git par compte, commits, branches, historique, pull requests, issues et GitHub Actions.",
+    "en": "GitSpread inside Tessera: your git projects by account, commits, branches, history, pull requests, issues and GitHub Actions."
+  },
+  "author": "Tessera Dashboard",
+  "category": "development",
+  "widgets": [
+    {
+      "type": "projects",
+      "name": { "fr": "GitSpread", "en": "GitSpread" },
+      "description": {
+        "fr": "Tes projets git comme dans GitSpread (mêmes réglages) : modifications, commits, pull, push, branches, GitHub.",
+        "en": "Your git projects as in GitSpread (same settings): changes, commits, pull, push, branches, GitHub."
+      },
+      "icon": "folder-git-2",
+      "defaultSize": { "w": 14, "h": 9 },
+      "minSize": { "w": 6, "h": 5 }
+    }
+  ]
+}

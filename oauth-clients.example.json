@@ -3,5 +3,6 @@
     "clientId": "123456789-abc.apps.googleusercontent.com",
     "clientSecret": "GOCSPX-..."
   },
-  "twitch": { "clientId": "abcdefghijklmnopqrstuvwxyz0123" }
+  "twitch": { "clientId": "abcdefghijklmnopqrstuvwxyz0123" },
+  "spotify": { "clientId": "0123456789abcdef0123456789abcdef" }
 }

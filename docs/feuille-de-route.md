@@ -56,8 +56,62 @@ Avancement de Tessera Dashboard, étape par étape. Les fonctionnalités termin�
     - [x] Plus de notification pour d'anciens mails non lus qui réapparaissent dans la liste après une suppression : seuls les mails plus récents que le dernier déjà vu sont notifiés.
   - **Documentation**
     - [x] README réécrit en présentation de l'app (fonctionnalités, versions disponibles) ; contenu technique déplacé dans `docs/` (développement, feuille de route, limites connues).
-  - **À valider**
-    - [ ] Bloc **« Navigateur »** : onglets, favoris et historique gérés par Tessera (pages web intégrées), plus léger qu'un navigateur installé dans un bloc. Sans les extensions ni le gestionnaire de mots de passe du navigateur habituel, et sans contenus protégés (Netflix, Spotify).
+- [x] **Étape 17 : barre des pages et mises à jour.**
+  - **Mises à jour**
+    - [x] Recherche automatique au lancement (après 10 secondes), toutes les 3 heures et à la fermeture de la fenêtre (si la dernière recherche date de plus de 5 minutes).
+    - [x] Icône **« Mettre à jour »** qui clignote à la couleur d'accent dans le menu latéral (ou les onglets du haut) dès qu'une version est prête : un clic redémarre Tessera et l'installe.
+  - **Blocs**
+    - [x] La barre du haut du bloc qui a le focus (dernier cliqué) se colore à la couleur d'accent, jusqu'à un clic ailleurs.
+  - **Barre des pages**
+    - [x] Petits widgets entre le titre de la page et « Modifier », communs à toutes les pages : **Date et heure** (calendrier du mois avec numéros de semaine), **Calculatrice** (clavier, historique, copie du résultat), **Minuteur** (durées rapides, pause, notification à la fin), **Note rapide**. Ajout et retrait en mode édition (« + » et croix) ; Date et heure affichée par défaut.
+  - **Classement**
+    - [x] Paramètres → Widgets et modules : les widgets et les modules sont séparés, rangés par catégorie (Vidéo et musique, Communication, Productivité, Développement, Outils…), avec une recherche (nom, description, auteur, catégorie).
+    - [x] « Ajouter un bloc » : même classement par catégorie et une recherche, qui a le focus à l'ouverture (Échap vide la recherche, puis ferme la fenêtre).
+    - [x] Champ `category` du manifeste des modules (facultatif, `other` par défaut).
+  - **Notifications**
+    - [x] Un clic sur une notification (bannière ou centre de notifications) ouvre la page du bloc qui l'a envoyée et lui donne le focus (barre colorée), puis ce qu'elle désigne (mail, chaîne).
+    - [x] Sans bloc sur aucune page (ex. notification Twitch sans bloc Twitch) : Tessera propose d'en ajouter un sur la page affichée (ou d'ouvrir l'application dans son onglet).
+  - **Applications installées**
+    - [x] Vidéo en plein écran dans un navigateur installé (Brave) : le lecteur reste dans son bloc. Brave remettait son style de fenêtre normal, échappait alors au placement et prenait la taille de l'écran ; Tessera rétablit le style de fenêtre insérée.
+    - [x] Bloc resté gris (application absente) : la fenêtre est revérifiée (cadre, style, place) à chaque retour dans Tessera et à chaque clic dedans ; si elle manque quand même, le bloc affiche « … n'apparaît pas ? » et un bouton **Réafficher**. Un journal (`logs\applications.log`) garde la trace de ce qui arrive aux fenêtres, pour comprendre un cas qui persisterait.
+
+- [x] **Étape 18 : widgets de la barre des pages.**
+  - [x] **Météo** : ville choisie (recherche), température dans la barre, prévisions heure par heure et sur 7 jours (Open-Meteo, sans compte).
+  - [x] **Média en cours** : ce que joue Windows (Spotify, vidéo dans un navigateur…), pochette, précédent, lecture/pause, suivant.
+  - [x] **Son** : volume dans la barre (molette pour le régler), sortie audio et micro au choix, volumes et sourdine.
+  - [x] **Système** : processeur, mémoire, disque, réseau ; la mesure affichée dans la barre se choisit.
+  - [x] **Presse-papiers** : 50 derniers textes et images, en mémoire seulement (effacés à la fermeture), épinglage gardé, recherche ; les copies des gestionnaires de mots de passe sont ignorées.
+  - [x] **Chronomètre** avec tours, et **Concentration** (Pomodoro : séances, petites et grandes pauses, Ne pas déranger pendant le travail).
+  - [x] **Horloges du monde**, **Prochain événement** (Google Agenda, 7 jours, lien de visioconférence), **Convertisseur** (unités et devises au taux de la BCE), **Pipette** (HEX, RGB, HSL).
+  - [x] **Capture d'écran** : outil Capture de Windows ou celui de Tessera (zone, écran entier, fenêtre même cachée), au choix dans les réglages du widget ; dernières captures (ouvrir, copier, glisser).
+  - [x] Barre trop longue : les derniers widgets passent dans un menu « … » ; les panneaux restent dans la fenêtre.
+  - [x] Paramètres → Comptes : service **Agenda** pour les comptes Google.
+  - [x] **Retours** :
+    - [x] Pipette de Tessera (écran figé au-dessus de tout, loupe) : l'outil de Chromium passait sous les applications insérées.
+    - [x] Ordre des widgets par glisser-déposer (mode édition) ; position dans la barre (gauche, centre, droite, répartis) dans Paramètres → Apparence.
+    - [x] Widgets de la barre en blocs (extension « Outils de la barre ») : glissés depuis la barre sur la page, ou ajoutés par « Ajouter un bloc ».
+    - [x] Bouton **Plein écran** dans le menu latéral (et dans les onglets du menu rabattu).
+    - [x] Processeur : même mesure que le Gestionnaire des tâches (« % Processor Utility »).
+    - [x] Agenda modifiable : créer, modifier, supprimer un événement.
+    - [x] Applications installées : la barre d'adresse de Brave accepte de nouveau la frappe (la fenêtre insérée devient la fenêtre active de Windows au clic).
+- [x] **Étape 19 : modules.** Dans cet ordre :
+  - [x] **Changement de navigateur** : sur un bloc d'application installée qui affiche un navigateur, un bouton liste les navigateurs installés et bascule de l'un à l'autre. Le précédent reste ouvert, caché, avec ses onglets (retour instantané). Tout le fonctionnement natif est gardé (profil, onglets restaurés, extensions).
+  - [x] **Fichiers** : gestionnaire de fichiers complet (parcourir, rechercher, copier, déplacer, renommer, corbeille, nouveau dossier, glisser-déposer avec l'Explorateur et entre blocs) et dossiers favoris. Un fichier s'ouvre dans son application habituelle : dans son bloc si cette application est déjà affichée dans un bloc, sinon hors de Tessera.
+  - [x] **Jeux** : bibliothèques Steam et Epic Games (jaquettes, récents, temps de jeu). Les jeux se lancent hors de Tessera ; le bloc règle le volume du jeu lui-même.
+  - [x] **Git** : reprise complète de GitSpread en module Tessera (comptes `gh`, projets par compte, branches, commits guidés, historique, pull/push, clone, gestion des dépôts et collaborateurs), plus pull requests, issues et GitHub Actions. Réglages partagés avec GitSpread (`%AppData%\GitSpread`). Remplace le bloc GitSpread actuel.
+  - [x] **Terminal** (onglets ; PowerShell, cmd, Git Bash ou WSL ; dossier de départ par bloc), **Tâches** (Google Tasks et listes locales, vue liste ou kanban), **Actualités / flux RSS** (plusieurs sources, lu / non lu, recherche, notifications).
+  - [x] **Services locaux** (ports en écoute, programme et projet, arrêter un processus, conteneurs Docker), **Surveillance de sites** (en ligne ou en panne, temps de réponse, certificat HTTPS, notifications), **Spotify** (compte gratuit : playlists, recherche et bibliothèque ; la lecture se lance dans l'application Spotify).
+  - [x] Blocs **Météo**, **Système** et **Prochain événement** plus riches quand ils sont grands (graphiques, programmes gourmands, vue semaine), au lieu de modules séparés.
+  - [x] Blocs Actualités et Tâches synchronisés entre eux (un changement dans l'un apparaît dans les autres).
+  - [x] Retours des tests de l'étape 19 :
+    - [x] Applications installées : une fenêtre ne reste plus grise après un dialogue ou le mode édition (ajout d'un bloc Twitch…) : elle est masquée et réaffichée avec son cadre. Bouton **Rafraîchir** dans la barre du bloc.
+    - [x] Navigateurs : tous les navigateurs installés en boutons (logo et nom) dans la barre du bloc, au lieu d'un menu.
+    - [x] Fichiers : tuile « Ajouter » en tête des favoris, repère de dépôt quand on les réordonne, icône de dossier (au lieu de celle d'un disque), menus du clic droit revus (favoris et emplacements compris, plus de « Retirer le bloc »). Un fichier ouvert par un navigateur mis de côté fait basculer le bloc sur ce navigateur.
+    - [x] Jeux : jaquettes lues dans le cache de Steam, curseur de volume fluide, **fenêtre du jeu dans le bloc** (rendue au bureau, jamais fermée, quand on la sort).
+    - [x] Le bloc Git s'appelle **GitSpread**.
+    - [x] Tâches et Agenda : message précis quand l'API Google n'est pas activée dans le projet Google Cloud ou que l'autorisation manque.
+    - [x] Surveillance de sites et Services locaux : « Ouvrir » ouvre la page dans le bloc navigateur s'il y en a un, et le montre.
+    - [x] Processeur : une seule mesure par seconde, la même dans la barre des pages et les blocs Système.
 
 ## Plus tard
 

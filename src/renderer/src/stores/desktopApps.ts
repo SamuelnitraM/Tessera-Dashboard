@@ -93,8 +93,17 @@ function usedApps(): Set<string> {
   const used = new Set<string>()
   for (const page of useDashboardStore.getState().dashboard.pages) {
     for (const widget of page.widgets) {
-      const appId = widget.config.appId
-      if (widget.type === DESKTOP_APP_WIDGET && typeof appId === 'string') used.add(appId)
+      if (widget.type !== DESKTOP_APP_WIDGET) continue
+      const { appId, parked } = widget.config
+      if (typeof appId === 'string') used.add(appId)
+      // Navigateurs mis de côté par le bloc (changement de navigateur) : ouverts, cachés
+      if (Array.isArray(parked)) {
+        for (const id of parked) if (typeof id === 'string') used.add(id)
+      }
+    }
+    // Autres blocs qui affichent une application installée (fenêtre d'un jeu dans le bloc Jeux)
+    for (const widget of page.widgets) {
+      if (typeof widget.config.embeddedAppId === 'string') used.add(widget.config.embeddedAppId)
     }
   }
   for (const appId of useNavigationStore.getState().openedApps) used.add(appId)
@@ -103,7 +112,8 @@ function usedApps(): Set<string> {
 
 /**
  * Suit les états envoyés par le processus principal, et ferme une application qui n'est plus
- * affichée nulle part (bloc retiré, onglet fermé, application supprimée).
+ * affichée nulle part (bloc retiré, onglet fermé, application supprimée). Une application
+ * marquée `release: 'desktop'` (jeu) est rendue au bureau au lieu d'être fermée.
  */
 export async function initDesktopAppsStore(): Promise<void> {
   useDesktopAppsStore.setState({ states: await window.tessera.desktopApps.getStates() })
@@ -114,7 +124,16 @@ export async function initDesktopAppsStore(): Promise<void> {
   let used = usedApps()
   const check = (): void => {
     const next = usedApps()
-    for (const appId of used) if (!next.has(appId)) void window.tessera.desktopApps.close(appId)
+    const items = useSettingsStore.getState().settings.apps.items
+    for (const appId of used) {
+      if (next.has(appId)) continue
+      const app = items.find((item) => item.id === appId)
+      if (app && isDesktopApp(app) && app.release === 'desktop') {
+        void window.tessera.desktopApps.takeOut(appId)
+      } else {
+        void window.tessera.desktopApps.close(appId)
+      }
+    }
     used = next
   }
   useDashboardStore.subscribe(check)

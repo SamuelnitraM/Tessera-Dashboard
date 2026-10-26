@@ -8,6 +8,7 @@
     "en": "The videos and music on your PC: playback resumes where you left off, mini-player and “Open in VLC”."
   },
   "author": "Tessera Dashboard",
+  "category": "video",
   "permissions": ["videos"],
   "widgets": [
     {

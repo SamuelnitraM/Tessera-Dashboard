@@ -278,7 +278,7 @@ const app = await addInstalledApp() // application ajoutée, ou null
 
 Une fenêtre rognée a aussi ses barres de défilement dans l'emplacement, et le clic gauche + droit sur la fenêtre déplace son contenu : rien à faire dans le module, `onOffsetChange` reçoit la nouvelle partie affichée.
 
-`takeOutInstalledApp(appId)` sort la fenêtre de Tessera (sur le bureau). Quand plus aucun emplacement n'affiche l'application (bloc retiré, onglet fermé), Tessera la ferme.
+`takeOutInstalledApp(appId)` sort la fenêtre de Tessera (sur le bureau) ; `refreshInstalledApp(appId)` la remet dans son bloc et la force à se redessiner (bloc resté gris). `openWebPage(url)` ouvre une page dans le navigateur d'un bloc de Tessera et montre ce bloc (sinon dans le navigateur du PC). Quand plus aucun emplacement n'affiche l'application (bloc retiré, onglet fermé), Tessera la ferme.
 
 Une application ne s'affiche qu'à un endroit à la fois : un deuxième emplacement propose « L'afficher ici ». Une extension ne peut ni ajouter de programme sans passer par la fenêtre d'ajout (choix de l'utilisateur), ni changer le programme lancé. L'extension **Application installée** (`plugins/tessera.desktop`) est un exemple complet.
 
@@ -369,7 +369,7 @@ Avec la permission `integrations`, une extension utilise les connecteurs de Tess
 - **GitSpread** : git n'est lancé que sur les dossiers trouvés par le connecteur, avec les options de GitSpread (`--no-optional-locks`, `core.fsmonitor=false`), sans réseau ni fenêtre de mot de passe.
 - **Prospect Solution** : lecture seule, plus l'annulation d'une tâche. Son serveur se lance avec `useProcesses` (`start.bat --no-browser`) et son interface s'affiche avec `WebView`.
 
-Les erreurs portent un code lisible avec `getIntegrationErrorCode(error)` : `permission`, `unavailable`, `not-found`, `invalid` ou `failed` (texte de l'application : `getIntegrationErrorMessage(error)`). Les extensions **DevLauncher**, **GitSpread** et **Prospect Solution** (`plugins/tessera.devlauncher`, `plugins/tessera.gitspread`, `plugins/tessera.prospect`) sont des exemples complets.
+Les erreurs portent un code lisible avec `getIntegrationErrorCode(error)` : `permission`, `unavailable`, `not-found`, `invalid` ou `failed` (texte de l'application : `getIntegrationErrorMessage(error)`). Les extensions **DevLauncher** et **Prospect Solution** (`plugins/tessera.devlauncher`, `plugins/tessera.prospect`) sont des exemples complets. Le module **Git** (`plugins/tessera.git`), qui a remplacé l'ancien bloc GitSpread, passe par ses propres canaux (`window.tessera.git`, voir le guide de développement) et non par `useGitSpread`.
 
 ### Bonnes pratiques
 

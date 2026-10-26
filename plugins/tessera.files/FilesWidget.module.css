@@ -1,0 +1,485 @@
+/* Gestionnaire de fichiers et dossiers favoris */
+
+.files {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  outline: none;
+  font-size: 0.8125rem;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  background: var(--block-bar-background, transparent);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.iconButton {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+}
+
+.breadcrumb {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  height: 28px;
+  padding: 0 0.25rem;
+  overflow: hidden;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: text;
+}
+
+.crumb {
+  flex-shrink: 1;
+  min-width: 1.5rem;
+  max-width: 12rem;
+  padding: 0.125rem 0.25rem;
+  overflow: hidden;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crumb::after {
+  margin-left: 0.25rem;
+  color: var(--color-text-muted);
+  content: '›';
+}
+
+.crumb[data-current='true'] {
+  flex-shrink: 0;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.crumb[data-current='true']::after {
+  content: '';
+}
+
+.crumb:hover {
+  background: var(--color-surface-hover);
+}
+
+.pathForm {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.pathInput,
+.renameInput {
+  width: 100%;
+  min-width: 0;
+  padding: 0.25rem 0.375rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font: inherit;
+}
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 11rem;
+  height: 28px;
+  padding: 0 0.375rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.search:focus-within {
+  border-color: var(--color-accent);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font: inherit;
+}
+
+.clearSearch {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.places {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 11rem;
+  padding: 0.5rem 0.375rem;
+  overflow-y: auto;
+  border-right: 1px solid var(--color-border);
+}
+
+.places h4 {
+  margin: 0.5rem 0.375rem 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.places h4:first-child {
+  margin-top: 0;
+}
+
+.place {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.375rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.place span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place:hover {
+  background: var(--color-surface-hover);
+}
+
+.place[data-active='true'] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.content[data-drop='true'] {
+  outline: 2px dashed var(--color-accent);
+  outline-offset: -4px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  margin: 0;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.table th:nth-child(2) {
+  width: 9.5rem;
+}
+
+.table th:nth-child(3) {
+  width: 5.5rem;
+}
+
+.table th button {
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.table td {
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+}
+
+.table tr {
+  cursor: default;
+}
+
+.table tbody tr:hover,
+.tile:hover {
+  background: var(--color-surface-hover);
+}
+
+.table tr[data-selected='true'],
+.tile[data-selected='true'] {
+  background: var(--color-accent-soft);
+}
+
+.table tr[data-drop='true'],
+.tile[data-drop='true'] {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.table tr[data-hidden='true'],
+.tile[data-hidden='true'] {
+  opacity: 0.6;
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.nameCell > img,
+.nameCell > svg {
+  flex-shrink: 0;
+}
+
+.name {
+  overflow: hidden;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+}
+
+.muted {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+}
+
+.folderIcon {
+  color: #e8b14a;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0.5rem;
+  list-style: none;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  border-radius: var(--radius-sm);
+  text-align: center;
+  cursor: default;
+}
+
+.tile .name {
+  display: -webkit-box;
+  width: 100%;
+  font-size: 0.75rem;
+  word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.tileIcon {
+  display: grid;
+  place-items: center;
+  height: 4rem;
+}
+
+.thumbnail {
+  max-width: 100%;
+  max-height: 4rem;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 26px;
+  padding: 0.125rem 0.5rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.statusActions {
+  display: flex;
+  gap: 0.125rem;
+  margin-left: auto;
+}
+
+.statusActions button {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.statusActions button:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+/* ---------- Favoris ---------- */
+
+.favorites {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 0.75rem;
+  overflow: auto;
+}
+
+.favoriteGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.favoriteGrid li {
+  position: relative;
+}
+
+.favoriteGrid li[data-dragged='true'] {
+  opacity: 0.4;
+}
+
+/* Glisser : barre à l'endroit où le favori va se placer (avant ou après celui survolé) */
+.favoriteGrid li[data-mark]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--color-accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.favoriteGrid li[data-mark='before']::after {
+  left: -4px;
+}
+
+.favoriteGrid li[data-mark='after']::after {
+  right: -4px;
+}
+
+.favorite,
+.addTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  height: 100%;
+  padding: 0.75rem 0.25rem 0.5rem;
+  background: var(--color-surface-hover);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
+  font-size: 0.75rem;
+}
+
+/* Ajouter : première case, de la même taille que les favoris */
+.addTile {
+  background: none;
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.addTile:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.favorite span,
+.addTile span {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.favorite:hover {
+  border-color: var(--color-accent);
+}
+
+.favoritesHint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}

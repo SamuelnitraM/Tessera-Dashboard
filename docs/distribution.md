@@ -14,7 +14,7 @@ Ce guide s'adresse à qui publie Tessera Dashboard. Les utilisateurs, eux, tél�
 Une fois installé, Tessera :
 
 - **se lance avec Windows**, réduit dans la zone de notification (réglage activé par défaut, Paramètres → Général). La désinstallation retire l'inscription ;
-- **se met à jour tout seul** : il vérifie les versions publiées sur GitHub au démarrage puis toutes les 6 heures, télécharge la nouvelle version en arrière-plan et l'installe en quittant. Une notification prévient quand elle est prête ; Paramètres → À propos permet de vérifier ou d'installer tout de suite (« Redémarrer et installer »).
+- **se met à jour tout seul** : il vérifie les versions publiées sur GitHub 10 secondes après le démarrage, puis toutes les 3 heures et à la fermeture de la fenêtre (masquée dans la zone de notification, si la dernière vérification date de plus de 5 minutes). Il télécharge la nouvelle version en arrière-plan et l'installe en quittant. Quand elle est prête, une notification prévient et une icône « Mettre à jour » clignote dans le menu latéral : un clic redémarre Tessera et l'installe (comme « Redémarrer et installer » dans Paramètres → À propos).
 
 La configuration est dans `electron-builder.yml` (et `build/installer.nsh` pour la désinstallation) ; le code des mises à jour dans `src/main/updater.ts`, celui du démarrage et de l'association dans `src/main/startup.ts`.
 

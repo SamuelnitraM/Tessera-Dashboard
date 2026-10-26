@@ -10,7 +10,13 @@ export const GOOGLE_SCOPES = {
   /** Adresse et nom du compte (toujours demandés). */
   profile: ['openid', 'email', 'profile'],
   gmail: ['https://www.googleapis.com/auth/gmail.modify'],
-  youtube: ['https://www.googleapis.com/auth/youtube.readonly']
+  youtube: ['https://www.googleapis.com/auth/youtube.readonly'],
+  // Événements (lire, créer, modifier) et liste des agendas
+  calendar: [
+    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/calendar.calendarlist.readonly'
+  ],
+  tasks: ['https://www.googleapis.com/auth/tasks']
 }
 
 export function googleClient(scopes: string[] = []): OAuthClient {

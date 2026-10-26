@@ -4,7 +4,16 @@ import { IpcChannels, type AppInfo } from '@shared/ipc'
 import type { LaunchOptions } from '@shared/plugin-processes'
 import type { HostRect } from '@shared/desktop-apps'
 import type { SettingsPatch } from '@shared/settings'
-import { listBrowsers, openInBrowser } from './browsers'
+import {
+  browserAppFor,
+  listBrowserChoices,
+  listBrowsers,
+  openInBrowser,
+  openWebPage
+} from './browsers'
+import { registerHeaderBarHandlers } from './headerbar/ipc'
+import { registerModuleHandlers } from './modules'
+import { isFullScreen, toggleFullScreen } from './window'
 import { getDashboard, saveDashboard } from './dashboard-store'
 import {
   attachHost,
@@ -14,6 +23,7 @@ import {
   closeApp,
   launchApp,
   moveHost,
+  refreshApp,
   setSuspended,
   takeOutApp
 } from './desktop/docking'
@@ -28,6 +38,7 @@ import {
   importSound,
   markRead,
   notifyFromPlugin,
+  notifyFromTessera,
   openSystemNotificationSettings,
   removeNotification,
   sendTestNotification
@@ -248,6 +259,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsLaunch, (_event, appId: string) => launchApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsClose, (_event, appId: string) => closeApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsTakeOut, (_event, appId: string) => takeOutApp(appId))
+  ipcMain.handle(IpcChannels.desktopAppsRefresh, (_event, appId: string) => refreshApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
   ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean) =>
     setSuspended(value === true)
@@ -268,6 +280,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.notificationsTest, () => sendTestNotification())
   ipcMain.handle(IpcChannels.notificationsNotify, (_event, pluginId: string, input: NotifyInput) =>
     notifyFromPlugin(pluginId, input)
+  )
+  ipcMain.handle(IpcChannels.notificationsNotifyTessera, (_event, input: NotifyInput) =>
+    notifyFromTessera(input)
   )
   ipcMain.handle(IpcChannels.notificationsImportSound, (event) =>
     importSound(BrowserWindow.fromWebContents(event.sender))
@@ -441,14 +456,27 @@ export function registerIpcHandlers(): void {
 
   // Navigateurs installés (ouverture d'applications web hors de Tessera)
   ipcMain.handle(IpcChannels.browsersList, () => listBrowsers())
+  ipcMain.handle(IpcChannels.browsersChoices, () => listBrowserChoices())
+  ipcMain.handle(IpcChannels.browsersAppFor, (_event, browserId: string) =>
+    browserAppFor(String(browserId))
+  )
+  ipcMain.handle(IpcChannels.browsersOpenPage, (_event, url: string) => openWebPage(String(url)))
   ipcMain.handle(IpcChannels.browsersOpen, (_event, browserId: string, url: string) =>
     openInBrowser(browserId, url)
   )
 
   ipcMain.handle(IpcChannels.systemGetPreferences, () => getSystemPreferences())
+  ipcMain.handle(IpcChannels.windowIsFullScreen, () => isFullScreen())
+  ipcMain.handle(IpcChannels.windowToggleFullScreen, () => toggleFullScreen())
 
   // Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`)
   registerIntegrationHandlers()
+
+  // Widgets de la barre des pages (météo, son, presse-papiers, capture d'écran…)
+  registerHeaderBarHandlers()
+
+  // Modules intégrés : fichiers, jeux, Git…
+  registerModuleHandlers()
 
   // Mises à jour automatiques (version installée)
   ipcMain.handle(IpcChannels.updatesGetState, () => getUpdateState())

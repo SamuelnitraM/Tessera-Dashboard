@@ -11,6 +11,7 @@
     "en": "Shows one of your web apps (Discord…) or any website in a block."
   },
   "author": "Tessera Dashboard",
+  "category": "apps",
   "permissions": ["web"],
   "widgets": [
     {

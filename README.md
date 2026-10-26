@@ -38,6 +38,12 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 - **Déplacer sans tout chambouler** : pendant que tu tiens un bloc, rien ne bouge ; un aperçu montre où il sera posé et où iront les blocs qui s'écartent. Les autres blocs ne bougent qu'au relâchement : ils se décalent de quelques cases, ou prennent la place libérée.
 - **Ajuster** remonte et resserre les blocs d'un clic ; **Automatique** garde la page toujours rangée.
 - La **molette** fait défiler la page ; un clic dans un bloc lui rend la molette, le temps d'y faire défiler son contenu.
+- Une **barre au-dessus de chaque page**, entre le titre et « Modifier », accueille de petits outils toujours à portée : **date et heure**, **météo**, **média en cours**, **son** (volume, sortie audio, micro), **système**, **presse-papiers**, **calculatrice**, **minuteur**, **chronomètre**, **concentration** (Pomodoro), **horloges du monde**, **prochain événement** (Google Agenda), **convertisseur** (unités, devises), **pipette**, **capture d'écran**, **note rapide**. En mode édition, ajoute-les, retire-les, glisse-les pour changer leur ordre, ou glisse-les sur la page pour en faire un bloc (ils sont aussi dans « Ajouter un bloc »). En grand bloc, **Météo** montre la courbe des températures des 24 heures, **Système** l'historique et les programmes les plus gourmands, **Prochain événement** la semaine en colonnes. Leur position (à gauche, au centre, à droite, répartis) se règle dans Paramètres → Apparence ; ceux qui ne tiennent pas passent dans un menu « … ».
+- **Plein écran** (comme F11) : un bouton dans le menu latéral.
+- **Changer de navigateur** : la barre d'un bloc qui affiche un navigateur montre tous tes navigateurs installés (logo et nom) ; un clic passe de Brave à Chrome, Firefox… Le précédent reste ouvert, caché, avec ses onglets. Un fichier ou un site ouvert depuis Tessera arrive dans ce bloc, qui change de navigateur au besoin.
+- **Rafraîchir** : un bouton dans la barre d'un bloc d'application remet sa fenêtre en place et la force à se redessiner (fenêtre grise ou absente).
+- Le bloc où tu viens de cliquer a sa **barre colorée** : tu sais toujours où tu en es.
+- **Ajouter un bloc** : widgets, applications et modules rangés par catégorie, avec une recherche.
 - **Clic droit** sur un bloc ou une page : réglages, retrait, renommage…
 - Une disposition **compacte** prend le relais automatiquement quand la fenêtre est étroite.
 - **Menu latéral** avec tes pages et tes applications, rabattable en onglets (Ctrl+B).
@@ -50,17 +56,26 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 
 ### Les blocs fournis avec Tessera
 
-| Bloc                                                  | Ce qu'il fait                                                                                                              |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Mails**                                             | Gmail et toute messagerie IMAP : dossiers et libellés, recherche, lecture sécurisée, écriture, réponse, notifications      |
-| **YouTube**                                           | Tes abonnements, la recherche, tes playlists, une file « À suivre », plusieurs comptes ; la vidéo continue en mini-lecteur |
-| **Twitch**                                            | Tes chaînes suivies en direct, la recherche de chaînes, le chat, une notification à chaque début de direct                 |
-| **Vidéo locale**                                      | Les vidéos et musiques de ton PC, avec reprise où tu t'étais arrêté et « Ouvrir dans VLC »                                 |
-| **Bloc-notes**                                        | Notes en texte, Markdown ou texte riche, rangées dans tes Documents                                                        |
-| **Lanceur**                                           | Lance tes programmes et scripts (`.exe`, `.bat`, raccourcis), avec leur état et leurs journaux                             |
-| **Page web**                                          | N'importe quel site dans un bloc                                                                                           |
-| **Horloge**, **Titre**                                | L'heure et la date ; des titres pour organiser tes pages                                                                   |
-| **DevLauncher**, **GitSpread**, **Prospect Solution** | Des blocs dédiés à ces applications : projets, services, état de tes dépôts git, prospection                               |
+| Bloc                                   | Ce qu'il fait                                                                                                               |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Mails**                              | Gmail et toute messagerie IMAP : dossiers et libellés, recherche, lecture sécurisée, écriture, réponse, notifications       |
+| **YouTube**                            | Tes abonnements, la recherche, tes playlists, une file « À suivre », plusieurs comptes ; la vidéo continue en mini-lecteur  |
+| **Twitch**                             | Tes chaînes suivies en direct, la recherche de chaînes, le chat, une notification à chaque début de direct                  |
+| **Vidéo locale**                       | Les vidéos et musiques de ton PC, avec reprise où tu t'étais arrêté et « Ouvrir dans VLC »                                  |
+| **Bloc-notes**                         | Notes en texte, Markdown ou texte riche, rangées dans tes Documents                                                         |
+| **Lanceur**                            | Lance tes programmes et scripts (`.exe`, `.bat`, raccourcis), avec leur état et leurs journaux                              |
+| **Page web**                           | N'importe quel site dans un bloc                                                                                            |
+| **Horloge**, **Titre**                 | L'heure et la date ; des titres pour organiser tes pages                                                                    |
+| **Fichiers**, **Dossiers favoris**     | Un gestionnaire de fichiers complet ; un fichier s'ouvre dans son bloc si son application y est déjà, sinon hors de Tessera |
+| **Jeux**                               | Tes jeux Steam et Epic Games ; le bloc règle le volume du jeu en cours et peut afficher sa fenêtre                          |
+| **GitSpread**                          | GitSpread dans Tessera : projets, commits, branches, historique, pull/push, dépôts, pull requests, issues, GitHub Actions   |
+| **Terminal**                           | PowerShell, Invite de commandes, Git Bash ou WSL, en onglets                                                                |
+| **Tâches**                             | Tes listes Google Tasks et des listes locales, en liste ou en kanban                                                        |
+| **Actualités**                         | Tes flux RSS (une adresse de site suffit), lu / non lu, recherche, notifications                                            |
+| **Services locaux**                    | Les programmes qui écoutent sur un port, leur projet, les arrêter ; tes conteneurs Docker                                   |
+| **Surveillance de sites**              | Tes sites en ligne ou en panne, temps de réponse, certificat HTTPS, notification en cas de panne                            |
+| **Spotify**                            | Tes playlists, titres likés, écoutes récentes et la recherche (compte gratuit accepté) ; la lecture se fait dans Spotify    |
+| **DevLauncher**, **Prospect Solution** | Des blocs dédiés à ces applications : projets, services, prospection                                                        |
 
 ### Des modules pour aller plus loin
 
@@ -71,10 +86,10 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 
 ### Et aussi
 
-- **Comptes** : « Se connecter avec Google » (Gmail et YouTube en une fois) et « Se connecter avec Twitch », sur la page officielle, dans ton navigateur. Tessera ne voit jamais ton mot de passe, et tes jetons sont chiffrés par Windows.
-- **Notifications** : centre de notifications, bannières Windows, sons au choix (même les tiens), réglages par application, **Ne pas déranger** (aussi à heures fixes).
+- **Comptes** : « Se connecter avec Google » (Gmail, YouTube, Agenda et Tasks en une fois) et « Se connecter avec Twitch », sur la page officielle, dans ton navigateur. Tessera ne voit jamais ton mot de passe, et tes jetons sont chiffrés par Windows.
+- **Notifications** : centre de notifications, bannières Windows, sons au choix (même les tiens), réglages par application, **Ne pas déranger** (aussi à heures fixes). Un clic sur une notification t'amène au bloc qui l'a envoyée ; s'il n'en a pas encore, Tessera te propose de l'ajouter.
 - **Thèmes** clair et sombre, **couleur d'accent** au choix, interface en **français** et en **anglais**.
-- Tessera tourne en **arrière-plan** dans la zone de notification, démarre avec Windows et se met à jour tout seul.
+- Tessera tourne en **arrière-plan** dans la zone de notification, démarre avec Windows et **se met à jour tout seul** : il cherche les nouvelles versions au lancement, toutes les 3 heures et à la fermeture, puis une icône clignote dans le menu ; un clic, et c'est installé.
 
 ---
 

@@ -1,0 +1,26 @@
+{
+  "id": "tessera.monitor",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "name": { "fr": "Surveillance de sites", "en": "Site monitoring" },
+  "description": {
+    "fr": "Tes sites et API vérifiés régulièrement : en ligne ou en panne, temps de réponse, certificat HTTPS, notification en cas de panne.",
+    "en": "Your sites and APIs checked regularly: up or down, response time, HTTPS certificate, notification on outage."
+  },
+  "author": "Tessera Dashboard",
+  "category": "development",
+  "permissions": ["notifications"],
+  "widgets": [
+    {
+      "type": "monitor",
+      "name": { "fr": "Surveillance de sites", "en": "Site monitoring" },
+      "description": {
+        "fr": "Disponibilité, temps de réponse et certificat de tes sites.",
+        "en": "Availability, response time and certificate of your sites."
+      },
+      "icon": "activity",
+      "defaultSize": { "w": 8, "h": 5 },
+      "minSize": { "w": 4, "h": 3 }
+    }
+  ]
+}

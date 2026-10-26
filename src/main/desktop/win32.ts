@@ -87,6 +87,11 @@ const api = {
     'bool __stdcall SetWindowPos(intptr_t hwnd, intptr_t after, int x, int y, int cx, int cy, uint32_t flags)'
   ),
   ShowWindow: fn(user32, 'bool __stdcall ShowWindow(intptr_t hwnd, int cmd)'),
+  ShowWindowAsync: fn(user32, 'bool __stdcall ShowWindowAsync(intptr_t hwnd, int cmd)'),
+  RedrawWindow: fn(
+    user32,
+    'bool __stdcall RedrawWindow(intptr_t hwnd, void *rect, intptr_t region, uint32_t flags)'
+  ),
   GetWindowRect: fn(user32, 'bool __stdcall GetWindowRect(intptr_t hwnd, _Out_ RECT *rect)'),
   GetClientRect: fn(user32, 'bool __stdcall GetClientRect(intptr_t hwnd, _Out_ RECT *rect)'),
   ClientToScreen: fn(user32, 'bool __stdcall ClientToScreen(intptr_t hwnd, _Inout_ POINT *pt)'),
@@ -242,6 +247,13 @@ export function setWindowPos(
 }
 
 export const showWindow = (hwnd: Hwnd, cmd: number): void => void api.ShowWindow(hwnd, cmd)
+/** Comme `showWindow`, sans attendre l'application (fenêtre d'un autre programme). */
+export const showWindowAsync = (hwnd: Hwnd, cmd: number): void =>
+  void api.ShowWindowAsync(hwnd, cmd)
+/** Redessine toute la fenêtre et ses enfants (bordure comprise), tout de suite. */
+export const redrawWindow = (hwnd: Hwnd): void =>
+  // RDW_INVALIDATE | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN | RDW_UPDATENOW
+  void api.RedrawWindow(hwnd, null, 0, 0x0001 | 0x0004 | 0x0400 | 0x0080 | 0x0100)
 
 export function getWindowRect(hwnd: Hwnd): Rect {
   const rect = {} as Rect

@@ -22,6 +22,9 @@ import {
   localMediaScheme
 } from './media/local'
 import { flushSecrets, loadSecrets } from './auth/secrets'
+import { flushClipboardPins, initClipboardHistory } from './headerbar/clipboard'
+import { stopHelper } from './headerbar/helper'
+import { flushModulesData, loadModulesData } from './modules'
 import {
   flushNotifications,
   loadNotifications,
@@ -72,6 +75,9 @@ if (!app.requestSingleInstanceLock()) {
     flushLocalMedia()
     flushModules()
     flushMailState()
+    flushClipboardPins()
+    flushModulesData()
+    stopHelper()
     stopMail()
     stopMedia()
     stopCapturedProcesses()
@@ -101,6 +107,8 @@ if (!app.requestSingleInstanceLock()) {
     protectModuleSession()
     watchWebContents()
     watchWebNotifications()
+    initClipboardHistory()
+    loadModulesData()
 
     registerIpcHandlers()
     // Lancée avec Windows : Tessera reste dans la zone de notification

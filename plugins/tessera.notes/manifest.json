@@ -11,6 +11,7 @@
     "en": "Notes in plain text, Markdown or rich text, saved as files on your PC."
   },
   "author": "Tessera Dashboard",
+  "category": "productivity",
   "permissions": ["files"],
   "files": {
     "folder": "Notes"

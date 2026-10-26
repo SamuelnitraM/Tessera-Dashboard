@@ -65,6 +65,24 @@ export interface WidgetManifest {
   settings: WidgetSettingField[]
 }
 
+/**
+ * Catégories des widgets et modules (classement dans Paramètres et « Ajouter un bloc »).
+ * Une catégorie inconnue (version plus récente de Tessera) est rangée dans `other`.
+ */
+export const PLUGIN_CATEGORIES = [
+  'video',
+  'images',
+  'communication',
+  'productivity',
+  'development',
+  'apps',
+  'info',
+  'games',
+  'tools',
+  'other'
+] as const
+export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number]
+
 export interface PluginManifest {
   /** Identifiant unique, en notation pointée (ex. `tessera.clock`). */
   id: string
@@ -73,6 +91,8 @@ export interface PluginManifest {
   name: LocalizedText
   description: LocalizedText
   author: string
+  /** Catégorie de ses widgets (`other` si absente). */
+  category: PluginCategory
   /** Accès supplémentaires demandés par l'extension (affichés dans Paramètres → Extensions). */
   permissions: PluginPermission[]
   /** Dossier de fichiers de l'extension (si elle demande la permission `files`). */
@@ -381,6 +401,12 @@ export function parseManifest(input: unknown): ManifestResult {
         name: localized(raw.name, 'name'),
         description: localized(raw.description, 'description'),
         author: string(raw.author, 'author'),
+        category:
+          raw.category === undefined
+            ? 'other'
+            : (PLUGIN_CATEGORIES as readonly string[]).includes(string(raw.category, 'category'))
+              ? (raw.category as PluginCategory)
+              : 'other',
         ...permissionsAndFiles(raw),
         entry: raw.entry === undefined ? 'index.js' : string(raw.entry, 'entry', ENTRY_PATH),
         homepage:
