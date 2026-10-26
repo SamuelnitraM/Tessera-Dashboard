@@ -51,6 +51,7 @@ export const IpcChannels = {
   desktopAppsRefresh: 'desktop-apps:refresh',
   desktopAppsCapture: 'desktop-apps:capture',
   desktopAppsSetSuspended: 'desktop-apps:set-suspended',
+  desktopAppsLog: 'desktop-apps:log',
   /** Événement main -> renderer : état d'une application installée (identifiant, état). */
   desktopAppsChanged: 'desktop-apps:changed',
   /** Événement main -> renderer : une application demande à s'afficher (identifiant). */

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Copy, Eraser, FolderSearch, Play, Square, Target } from 'lucide-react'
 import {
+  EDIT_ACTIVE,
   Button,
   getIntegrationErrorCode,
   getProcessErrorCode,
@@ -288,7 +289,9 @@ export function ProspectWidget({
         </div>
         <div className={`${styles.actions} no-drag`}>
           {(editing || !config.target) && (
-            <IconButton icon={FolderSearch} label={t('pick')} onClick={() => void pick()} />
+            <span {...EDIT_ACTIVE}>
+              <IconButton icon={FolderSearch} label={t('pick')} onClick={() => void pick()} />
+            </span>
           )}
           {ownRunning ? (
             <Button icon={Square} onClick={stop}>

@@ -42,7 +42,10 @@ import * as w from './win32'
  * bouton agrandir. Si l'application essaie quand même de se déplacer ou de se redimensionner
  * (glisser sa barre de titre dessinée…), l'opération est annulée et la fenêtre remise en place.
  *
- * Aucun minuteur : tout est déclenché par les événements de Tessera et de Windows.
+ * Le placement est déclenché par les événements de Tessera et de Windows. En plus, tant qu'une
+ * fenêtre est insérée, une vérification toutes les 2 secondes compare l'état réel (cadre et
+ * fenêtre visibles, parent, position, application qui répond) à l'état attendu : un écart est
+ * noté dans le journal et réparé (bloc resté gris ou vide).
  */
 
 interface DockedWindow {
@@ -70,6 +73,11 @@ interface DockedWindow {
   corrections: { count: number; since: number }
   /** Étirée au-delà de son bloc : son cadre est passé au-dessus des autres. */
   raised: boolean
+  /** Fenêtre d'un jeu : elle garde sa taille (jamais réduite ni agrandie à celle du bloc). */
+  fixedSize: boolean
+  /** Dernier état noté dans le journal (affichée, ou raison du masquage), et dernière anomalie. */
+  logged: string
+  problem: string
   /** Sa molette fait défiler la page (l'hébergeur le sait). */
   pageWheel: boolean
   unwatch: () => void
@@ -175,6 +183,19 @@ interface Layout {
   pageWheel: boolean
 }
 
+/** Pourquoi la fenêtre n'est pas affichée en ce moment (journal), ou `null` si elle doit l'être. */
+function hiddenReason(docked: DockedWindow): string | null {
+  const hostId = activeHosts.get(docked.appId)
+  if (!hostId) return 'aucun bloc ne l’affiche (autre page, navigateur mis de côté…)'
+  const rect = hosts.get(hostId)?.rect
+  if (!rect) return `bloc ${hostId} hors de la vue`
+  if (suspended) return `interface par-dessus (${suspendReasons || 'raison inconnue'})`
+  if (docked.hiddenByApp) return 'masquée par l’application'
+  if (!hostIsVisible()) return 'Tessera réduit ou caché'
+  if (rect.clip && (rect.clip.width <= 0 || rect.clip.height <= 0)) return 'bloc hors de la vue'
+  return null
+}
+
 /** Où poser le cadre et la fenêtre, ou `null` si le bloc n'est pas visible. */
 function layoutFor(docked: DockedWindow): Layout | null {
   const hostId = activeHosts.get(docked.appId)
@@ -201,11 +222,12 @@ function layoutFor(docked: DockedWindow): Layout | null {
     : { x: 0, y: 0, width: block.width, height: block.height }
   if (clip.width <= 0 || clip.height <= 0) return null
 
-  // Fenêtre : au moins sa taille minimale ; le décalage choisit la partie affichée
-  const width = Math.max(block.width, docked.min.width)
-  const height = Math.max(block.height, docked.min.height)
-  const offsetX = Math.min(Math.max(0, px(rect.offset?.x ?? 0)), width - block.width)
-  const offsetY = Math.min(Math.max(0, px(rect.offset?.y ?? 0)), height - block.height)
+  // Fenêtre : au moins sa taille minimale (un jeu garde la sienne) ; le décalage choisit la
+  // partie affichée
+  const width = docked.fixedSize ? docked.min.width : Math.max(block.width, docked.min.width)
+  const height = docked.fixedSize ? docked.min.height : Math.max(block.height, docked.min.height)
+  const offsetX = Math.min(Math.max(0, px(rect.offset?.x ?? 0)), Math.max(0, width - block.width))
+  const offsetY = Math.min(Math.max(0, px(rect.offset?.y ?? 0)), Math.max(0, height - block.height))
   return {
     frame: { x: block.x + clip.x, y: block.y + clip.y, width: clip.width, height: clip.height },
     window: { x: -clip.x - offsetX, y: -clip.y - offsetY, width, height },
@@ -242,7 +264,11 @@ function place(docked: DockedWindow): void {
     return setState(docked.appId, { status: 'closed' })
   }
   const layout = layoutFor(docked)
-  if (!layout) return hideFrame(docked)
+  if (!layout) {
+    note(docked, `masquée : ${hiddenReason(docked) ?? 'raison inconnue'}`)
+    return hideFrame(docked)
+  }
+  note(docked, `affichée dans ${activeHosts.get(docked.appId)}`)
 
   // La fenêtre a quitté son cadre (l'application l'a replacée sur le bureau) : remise dedans
   if (w.getParent(docked.hwnd) !== docked.frame) {
@@ -350,16 +376,23 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
   docking.add(appId)
   try {
     const saved = saveWindow(hwnd)
+    // Jeu : sa taille actuelle est gardée (un jeu supporte mal d'être redimensionné, surtout
+    // en tout petit) ; le bloc s'agrandit pour la contenir
+    const fixedSize = findApp(appId)?.release === 'desktop'
     w.showWindow(hwnd, w.SW.HIDE)
     // Réduite ou agrandie : remise à l'état normal (encore masquée), puis taille minimale
     // imposée par l'application : on lui demande 1×1 et on regarde ce qu'elle garde
     normalize(hwnd)
     w.showWindow(hwnd, w.SW.HIDE)
-    w.setWindowPos(hwnd, 0, 0, 1, 1, w.SWP.NOMOVE | w.SWP.NOZORDER | w.SWP.NOACTIVATE)
+    if (!fixedSize) {
+      w.setWindowPos(hwnd, 0, 0, 1, 1, w.SWP.NOMOVE | w.SWP.NOZORDER | w.SWP.NOACTIVATE)
+    }
+    // Jeu : sa zone intérieure (l'image du jeu), qui garde sa taille une fois la bordure retirée
     const measured = w.getFrameRect(hwnd)
+    const client = fixedSize ? w.getClientSize(hwnd) : null
     const min = {
-      width: Math.max(1, measured.right - measured.left),
-      height: Math.max(1, measured.bottom - measured.top)
+      width: Math.max(1, client?.width ?? measured.right - measured.left),
+      height: Math.max(1, client?.height ?? measured.bottom - measured.top)
     }
     const scale = hostScale()
     saveMinSize(appId, Math.round(min.width / scale), Math.round(min.height / scale))
@@ -400,13 +433,17 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       corrections: { count: 0, since: 0 },
       raised: false,
       pageWheel: false,
+      fixedSize,
+      logged: '',
+      problem: '',
       unwatch: () => {}
     }
     docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
       if (target === hwnd) onWindowEvent(docked, event)
     })
     windows.set(appId, docked)
-    logDocking(`${appId} : insérée (${describe(docked)})`)
+    startWatch()
+    logDocking(`${appId} : insérée (${describe(docked)}${fixedSize ? ', taille gardée' : ''})`)
     setState(appId, { status: 'running', error: null })
     w.showWindow(hwnd, w.SW.SHOWNA)
     place(docked)
@@ -427,9 +464,11 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       return
 
     case w.WinEvent.OBJECT_HIDE:
+      // Déjà réaffichée, ou masquée par Tessera avec son cadre : rien à faire
+      if (visible || docked.hiddenByUs) return
       // Masquée par l'application : fermée dans sa zone de notification (Discord…). Pas
       // quand c'est Tessera qui l'a masquée avec son cadre.
-      if (!visible && !docked.hiddenByApp && !docked.hiddenByUs) {
+      if (!docked.hiddenByApp) {
         logDocking(`${docked.appId} : fenêtre masquée par l'application`)
         docked.hiddenByApp = true
         hideFrame(docked)
@@ -547,6 +586,12 @@ export async function launchApp(appId: string): Promise<void> {
 export function attachHost(hostId: string, appId: string, rect: HostRect | null): void {
   const desktopApp = findApp(appId)
   if (!desktopApp) return
+  const previous = activeHosts.get(appId)
+  if (previous !== hostId) {
+    logDocking(
+      `${appId} : bloc ${hostId} l’affiche${previous ? ` (à la place de ${previous})` : ''}`
+    )
+  }
   hosts.set(hostId, { appId, rect })
   activeHosts.set(appId, hostId)
   setState(appId, {})
@@ -577,6 +622,7 @@ export function moveHost(hostId: string, rect: HostRect | null): void {
 export function detachHost(hostId: string): void {
   const host = hosts.get(hostId)
   if (!host) return
+  logDocking(`${host.appId} : bloc ${hostId} ne l’affiche plus`)
   hosts.delete(hostId)
   if (activeHosts.get(host.appId) === hostId) {
     // Un autre bloc affiche la même application : il prend le relais
@@ -660,12 +706,104 @@ function describe(docked: DockedWindow): string {
     .join(', ')
 }
 
-/** Masque les fenêtres pendant que l'interface de Tessera passe au-dessus (dialogue, édition…). */
-export function setSuspended(value: boolean): void {
+/**
+ * Masque les fenêtres pendant que l'interface de Tessera passe au-dessus (dialogue, édition…).
+ * `reasons` : ce qui passe par-dessus (journal).
+ */
+export function setSuspended(value: boolean, reasons = ''): void {
   if (suspended === value) return
   suspended = value
-  logDocking(value ? 'fenêtres masquées (interface par-dessus)' : 'fenêtres réaffichées')
+  suspendReasons = value ? reasons : ''
+  suspendedSince = Date.now()
+  logDocking(
+    value ? `fenêtres masquées (interface par-dessus : ${reasons || '?'})` : 'fenêtres réaffichées'
+  )
   placeAll()
+}
+
+/* ---------- Vérification régulière et journal ---------- */
+
+const WATCH_MS = 2000
+/** Interface par-dessus depuis plus longtemps : noté (dialogue oublié ouvert ?). */
+const LONG_SUSPENSION_MS = 60_000
+let watchTimer: NodeJS.Timeout | null = null
+let suspendReasons = ''
+let suspendedSince = 0
+let longSuspensionLogged = false
+
+/** Note un changement d'état de la fenêtre (une seule fois par changement). */
+function note(docked: DockedWindow, state: string): void {
+  if (docked.logged === state) return
+  docked.logged = state
+  logDocking(`${docked.appId} : ${state}`)
+}
+
+function startWatch(): void {
+  watchTimer ??= setInterval(watchAll, WATCH_MS)
+}
+
+function watchAll(): void {
+  if (windows.size === 0) {
+    if (watchTimer) clearInterval(watchTimer)
+    watchTimer = null
+    return
+  }
+  if (suspended && Date.now() - suspendedSince > LONG_SUSPENSION_MS && !longSuspensionLogged) {
+    longSuspensionLogged = true
+    logDocking(`fenêtres masquées depuis plus d'une minute (${suspendReasons || '?'})`)
+  }
+  if (!suspended) longSuspensionLogged = false
+  for (const docked of [...windows.values()]) watch(docked)
+}
+
+/** Compare l'état réel de la fenêtre à l'état attendu ; un écart est noté et réparé. */
+function watch(docked: DockedWindow): void {
+  if (!w.isWindow(docked.hwnd) || !w.isWindow(docked.frame)) return place(docked)
+  const layout = layoutFor(docked)
+  const problems: string[] = []
+  let repair = false
+  if (layout) {
+    if (!docked.shown || !w.isVisible(docked.frame)) problems.push('cadre non affiché')
+    if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) problems.push('fenêtre masquée dans son cadre')
+    if (w.getParent(docked.hwnd) !== docked.frame) problems.push('fenêtre sortie de son cadre')
+    const frame = w.getWindowRect(docked.frame)
+    const expected = layout.frame
+    if (
+      frame.left !== expected.x ||
+      frame.top !== expected.y ||
+      frame.right - frame.left !== expected.width ||
+      frame.bottom - frame.top !== expected.height
+    ) {
+      problems.push(
+        `cadre mal placé (${frame.left},${frame.top} au lieu de ${expected.x},${expected.y})`
+      )
+    }
+    if (!sameRect(docked.placed, w.getWindowRect(docked.hwnd))) problems.push('fenêtre déplacée')
+    repair = problems.length > 0
+    // Une application figée ne se redessine plus (fenêtre grise ou blanche) : Tessera n'y peut
+    // rien, mais le journal le dit
+    if (w.isHung(docked.hwnd)) problems.push('l’application ne répond plus')
+  } else if (docked.shown || w.isVisible(docked.frame)) {
+    problems.push(`cadre affiché alors qu'il devrait être masqué (${hiddenReason(docked)})`)
+    repair = true
+  }
+  const key = problems.join(', ')
+  if (key !== docked.problem) {
+    docked.problem = key
+    logDocking(
+      key
+        ? `${docked.appId} : anomalie : ${key} (${describe(docked)})${repair ? ', réparée' : ''}`
+        : `${docked.appId} : de nouveau normale`
+    )
+  }
+  if (!repair) return
+  if (!layout) {
+    docked.shown = true
+    return hideFrame(docked)
+  }
+  docked.shown = false
+  docked.target = null
+  place(docked)
 }
 
 /** Images des fenêtres affichées (taille réelle), montrées à leur place pendant qu'elles sont masquées. */

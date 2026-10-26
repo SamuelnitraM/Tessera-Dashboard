@@ -112,6 +112,10 @@ Avancement de Tessera Dashboard, étape par étape. Les fonctionnalités termin�
     - [x] Tâches et Agenda : message précis quand l'API Google n'est pas activée dans le projet Google Cloud ou que l'autorisation manque.
     - [x] Surveillance de sites et Services locaux : « Ouvrir » ouvre la page dans le bloc navigateur s'il y en a un, et le montre.
     - [x] Processeur : une seule mesure par seconde, la même dans la barre des pages et les blocs Système.
+  - [x] Seconds retours :
+    - [x] Applications installées : vérification toutes les 2 secondes de chaque fenêtre insérée (cadre et fenêtre visibles, parent, position, application qui répond) ; un écart est noté et réparé. Journal détaillé des blocs (ce que montre chaque bloc, ce qui masque les fenêtres et pourquoi) dans `logs/applications.log`.
+    - [x] Mode édition : le contenu des blocs ne réagit plus (clic, molette, survol), seuls les réglages prévus pour ce mode restent utilisables ; déplacer les blocs et faire défiler la page est plus simple.
+    - [x] Jeux dans le bloc : le jeu garde sa taille (plus de redimensionnement en tout petit pour la mesurer) et le bloc s'agrandit pour la contenir.
 
 ## Plus tard
 

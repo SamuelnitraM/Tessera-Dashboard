@@ -47,7 +47,7 @@ export function HeaderPopover({
   })
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
-  useCoverDesktopApps(open)
+  useCoverDesktopApps(open, `widget « ${label} »`)
 
   // Panneau aligné à droite du bouton, décalé s'il sort de la zone de la page (fenêtre étroite)
   useLayoutEffect(() => {

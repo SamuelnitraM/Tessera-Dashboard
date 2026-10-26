@@ -27,6 +27,7 @@ import {
   setSuspended,
   takeOutApp
 } from './desktop/docking'
+import { logDocking } from './desktop/log'
 import { addProgram, listPrograms, pickProgram, protectDesktopApps } from './desktop/programs'
 import {
   activateNotification,
@@ -261,9 +262,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsTakeOut, (_event, appId: string) => takeOutApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsRefresh, (_event, appId: string) => refreshApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
-  ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean) =>
-    setSuspended(value === true)
+  ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean, reasons: unknown) =>
+    setSuspended(value === true, typeof reasons === 'string' ? reasons.slice(0, 300) : '')
   )
+  ipcMain.handle(IpcChannels.desktopAppsLog, (_event, message: unknown) => {
+    if (typeof message === 'string') logDocking(`[interface] ${message.slice(0, 500)}`)
+  })
 
   // Notifications : centre, test, sons importés, notifications des widgets et modules
   ipcMain.handle(IpcChannels.notificationsList, () => getNotifications())

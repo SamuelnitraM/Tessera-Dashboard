@@ -9,6 +9,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
+  EDIT_ACTIVE,
   Button,
   normalizeWebUrl,
   usePluginTranslation,
@@ -94,7 +95,9 @@ export function WebWidget({
             {app?.name ?? hostOf(startUrl)}
           </span>
           {editing && (
-            <IconButton icon={Pencil} label={t('change')} onClick={() => setChanging(true)} />
+            <span {...EDIT_ACTIVE} className="no-drag">
+              <IconButton icon={Pencil} label={t('change')} onClick={() => setChanging(true)} />
+            </span>
           )}
           <IconButton
             icon={ExternalLink}

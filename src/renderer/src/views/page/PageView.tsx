@@ -29,7 +29,7 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
   const editing = useNavigationStore((state) => state.editing)
   const setEditing = useNavigationStore((state) => state.setEditing)
   // Mode édition : les fenêtres des applications installées laissent place à leur image
-  useCoverDesktopApps(editing)
+  useCoverDesktopApps(editing, 'mode édition')
 
   const [gridRef, size] = useElementSize<HTMLDivElement>()
   const scroller = useRef<HTMLDivElement | null>(null)

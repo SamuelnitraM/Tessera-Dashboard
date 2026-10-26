@@ -20,7 +20,7 @@ export function Dialog({ title, open, onClose, children }: DialogProps): React.J
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   // Les fenêtres des applications installées passeraient devant : remplacées par leur image
-  useCoverDesktopApps(open)
+  useCoverDesktopApps(open, `fenêtre « ${title} »`)
 
   useEffect(() => {
     const dialog = dialogRef.current

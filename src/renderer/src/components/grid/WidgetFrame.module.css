@@ -20,6 +20,18 @@
   user-select: none;
 }
 
+/* Mode édition : le contenu des blocs ne réagit plus (clic, molette, survol) ; la souris
+   déplace et redimensionne les blocs, la molette fait défiler la page. Seuls les réglages
+   prévus pour ce mode (`data-edit-active` : titre d'un bloc Titre, choix du programme…)
+   restent utilisables. */
+.frame[data-editing='true'] .content {
+  pointer-events: none;
+}
+
+.frame[data-editing='true'] .content [data-edit-active] {
+  pointer-events: auto;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

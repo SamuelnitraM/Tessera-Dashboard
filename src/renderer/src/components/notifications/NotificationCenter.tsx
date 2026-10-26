@@ -45,7 +45,7 @@ export function NotificationCenter(): React.JSX.Element | null {
   const dndLabel = useId()
 
   // Les fenêtres des applications installées passeraient devant le panneau
-  useCoverDesktopApps(open)
+  useCoverDesktopApps(open, 'centre de notifications')
 
   // Fermeture : Échap, clic ailleurs. Les notifications vues sont alors marquées comme lues.
   useEffect(() => {

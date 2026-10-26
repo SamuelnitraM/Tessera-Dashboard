@@ -12,9 +12,11 @@ import {
   VolumeX
 } from 'lucide-react'
 import {
+  growBlockToFit,
   InstalledAppView,
   openContextMenu,
   takeOutInstalledApp,
+  useInstalledApps,
   useLanguage,
   usePluginTranslation,
   type PanOffset,
@@ -53,6 +55,8 @@ export function GamesWidget({
   const [capturing, setCapturing] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const header = useRef<HTMLDivElement>(null)
+  const windowArea = useRef<HTMLDivElement>(null)
+  const installed = useInstalledApps()
   const tab = config.tab ?? 'recent'
   const launcher = config.launcher ?? 'any'
 
@@ -153,6 +157,15 @@ export function GamesWidget({
   }, [embedded, statuses, embeddedStatus, setConfig])
   const embeddedGame = games?.find((game) => game.id === embedded)
 
+  // Fenêtre du jeu affichée : le bloc s'agrandit à sa taille (le jeu garde la sienne)
+  const embeddedApp = installed.find((item) => item.id === config.embeddedAppId)
+  const minWidth = embeddedApp?.minWidth ?? 0
+  const minHeight = embeddedApp?.minHeight ?? 0
+  useEffect(() => {
+    if (!embedded || minWidth <= 0 || minHeight <= 0) return
+    growBlockToFit(windowArea.current, { width: minWidth, height: minHeight })
+  }, [embedded, minWidth, minHeight])
+
   if (config.embeddedAppId && embedded) {
     return (
       <div className={styles.games}>
@@ -179,7 +192,7 @@ export function GamesWidget({
             <LayoutGrid size={14} aria-hidden />
           </button>
         </div>
-        <div className={styles.embeddedWindow}>
+        <div ref={windowArea} className={styles.embeddedWindow}>
           <InstalledAppView
             appId={config.embeddedAppId}
             hostId={instanceId}

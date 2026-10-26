@@ -72,6 +72,7 @@ const api = {
   IsWindowVisible: fn(user32, 'bool __stdcall IsWindowVisible(intptr_t hwnd)'),
   IsIconic: fn(user32, 'bool __stdcall IsIconic(intptr_t hwnd)'),
   IsZoomed: fn(user32, 'bool __stdcall IsZoomed(intptr_t hwnd)'),
+  IsHungAppWindow: fn(user32, 'bool __stdcall IsHungAppWindow(intptr_t hwnd)'),
   GetWindowTextW: fn(
     user32,
     'int __stdcall GetWindowTextW(intptr_t hwnd, _Out_ uint8_t *buf, int max)'
@@ -212,6 +213,8 @@ export const isWindow = (hwnd: Hwnd): boolean => api.IsWindow(hwnd)
 export const isVisible = (hwnd: Hwnd): boolean => api.IsWindowVisible(hwnd)
 export const isMinimized = (hwnd: Hwnd): boolean => api.IsIconic(hwnd)
 export const isMaximized = (hwnd: Hwnd): boolean => api.IsZoomed(hwnd)
+/** L'application ne traite plus ses messages depuis 5 s (Windows affiche sa fenêtre « fantôme »). */
+export const isHung = (hwnd: Hwnd): boolean => api.IsHungAppWindow(hwnd)
 
 /** Valeurs 32 bits (styles) lues et écrites comme des entiers signés, comme le fait Windows. */
 export const getStyle = (hwnd: Hwnd): number => Number(api.GetWindowLongPtrW(hwnd, GWL_STYLE)) | 0
@@ -262,6 +265,13 @@ export function getWindowRect(hwnd: Hwnd): Rect {
 }
 
 /** Rectangle visible (sans les bordures invisibles que Windows ajoute pour le redimensionnement). */
+/** Zone intérieure de la fenêtre (sans bordure ni barre de titre), en px depuis son coin. */
+export function getClientSize(hwnd: Hwnd): { width: number; height: number } {
+  const rect = {} as Rect
+  api.GetClientRect(hwnd, rect)
+  return { width: rect.right - rect.left, height: rect.bottom - rect.top }
+}
+
 export function getFrameRect(hwnd: Hwnd): Rect {
   const rect = {} as Rect
   return api.DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, rect, 16) === 0

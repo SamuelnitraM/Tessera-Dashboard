@@ -21,17 +21,32 @@ interface DesktopAppsState {
   states: Record<string, DesktopAppState>
   /** Images des fenêtres (taille réelle), affichées pendant qu'elles sont masquées. */
   snapshots: Record<string, DesktopAppSnapshot>
-  /** Éléments de l'interface ouverts par-dessus les fenêtres. */
-  overlays: number
+  /** Éléments de l'interface ouverts par-dessus les fenêtres (nom pour le journal -> nombre). */
+  overlays: Record<string, number>
   suspended: boolean
 }
 
 export const useDesktopAppsStore = create<DesktopAppsState>()(() => ({
   states: {},
   snapshots: {},
-  overlays: 0,
+  overlays: {},
   suspended: false
 }))
+
+/** Ce qui passe par-dessus les fenêtres en ce moment (journal). */
+const overlayNames = (overlays: Record<string, number>): string =>
+  Object.entries(overlays)
+    .filter(([, count]) => count > 0)
+    .map(([name, count]) => (count > 1 ? `${name} ×${count}` : name))
+    .join(', ')
+
+/**
+ * Note une ligne dans le journal des applications installées (`logs/applications.log`), pour
+ * comprendre un bloc resté gris ou vide.
+ */
+export function logDesktopApps(message: string): void {
+  void window.tessera.desktopApps.log(message)
+}
 
 const IDLE: DesktopAppState = { status: 'idle', hostId: null, error: null }
 
@@ -51,7 +66,9 @@ let suspendRequest = 0
 
 async function updateSuspension(): Promise<void> {
   const request = ++suspendRequest
-  const { overlays, suspended } = useDesktopAppsStore.getState()
+  const { overlays: open, suspended } = useDesktopAppsStore.getState()
+  const reasons = overlayNames(open)
+  const overlays = reasons ? 1 : 0
   if (overlays > 0 && !suspended) {
     // Image d'abord, puis masquage une fois l'image affichée : pas de clignotement
     const snapshots = await window.tessera.desktopApps.capture()
@@ -60,7 +77,7 @@ async function updateSuspension(): Promise<void> {
     await nextFrame()
     await nextFrame()
     if (request !== suspendRequest) return
-    await window.tessera.desktopApps.setSuspended(true)
+    await window.tessera.desktopApps.setSuspended(true, reasons)
   } else if (overlays === 0 && suspended) {
     useDesktopAppsStore.setState({ suspended: false })
     await window.tessera.desktopApps.setSuspended(false)
@@ -68,18 +85,23 @@ async function updateSuspension(): Promise<void> {
   }
 }
 
-function changeOverlays(delta: 1 | -1): void {
-  useDesktopAppsStore.setState((state) => ({ overlays: Math.max(0, state.overlays + delta) }))
+function changeOverlays(name: string, delta: 1 | -1): void {
+  useDesktopAppsStore.setState((state) => ({
+    overlays: { ...state.overlays, [name]: Math.max(0, (state.overlays[name] ?? 0) + delta) }
+  }))
   void updateSuspension()
 }
 
-/** Masque les fenêtres d'applications tant que `active` est vrai (dialogue ouvert…). */
-export function useCoverDesktopApps(active: boolean): void {
+/**
+ * Masque les fenêtres d'applications tant que `active` est vrai (dialogue ouvert…). `name` dit
+ * ce qui passe par-dessus, dans le journal.
+ */
+export function useCoverDesktopApps(active: boolean, name: string): void {
   useEffect(() => {
     if (!active) return
-    changeOverlays(1)
-    return () => changeOverlays(-1)
-  }, [active])
+    changeOverlays(name, 1)
+    return () => changeOverlays(name, -1)
+  }, [active, name])
 }
 
 /** Applications installées affichées quelque part : dans un bloc (toutes pages) ou un onglet. */

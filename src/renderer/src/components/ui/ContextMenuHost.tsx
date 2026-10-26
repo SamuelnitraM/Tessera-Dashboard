@@ -12,7 +12,7 @@ export function ContextMenuHost(): React.JSX.Element | null {
   const close = useContextMenuStore((state) => state.close)
   const listRef = useRef<HTMLUListElement>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
-  useCoverDesktopApps(menu !== null)
+  useCoverDesktopApps(menu !== null, 'menu du clic droit')
 
   // Le menu reste entièrement visible, même ouvert près d'un bord de la fenêtre
   useLayoutEffect(() => {

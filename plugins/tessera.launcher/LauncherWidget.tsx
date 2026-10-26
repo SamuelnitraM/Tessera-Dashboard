@@ -11,6 +11,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
+  EDIT_ACTIVE,
   Button,
   defaultConsoleMode,
   getProcessErrorCode,
@@ -236,7 +237,9 @@ export function LauncherWidget({
 
         <div className={styles.actions}>
           {editing && (
-            <IconButton icon={FolderSearch} label={t('change')} onClick={() => void pick()} />
+            <span {...EDIT_ACTIVE} className="no-drag">
+              <IconButton icon={FolderSearch} label={t('change')} onClick={() => void pick()} />
+            </span>
           )}
           <IconButton
             icon={FolderOpen}

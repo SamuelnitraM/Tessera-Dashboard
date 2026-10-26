@@ -226,6 +226,11 @@ export function useNotifications(): PluginNotifications {
 
 export type { WebFrameHandle as WebViewHandle } from '../components/web/WebFrame'
 export { useWebApps, type UserWebApp } from './apps'
+/**
+ * Attribut à poser sur un élément qui doit rester utilisable en mode édition (le reste du
+ * contenu d'un bloc ne réagit plus) : `<span {...EDIT_ACTIVE}>…</span>`.
+ */
+export const EDIT_ACTIVE = { 'data-edit-active': '' } as const
 export { WebView, type WebViewProps } from './web'
 export { normalizeWebUrl } from '@shared/web-apps'
 
@@ -245,6 +250,7 @@ export {
   type UserInstalledApp
 } from './apps'
 export { InstalledAppView, type InstalledAppViewProps, type PanOffset } from './installed'
+export { growBlockToFit } from './blocks'
 /** Fenêtre d'ajout d'une application installée : renvoie l'application ajoutée, ou `null`. */
 export { pickInstalledApp as addInstalledApp } from '../stores/programPicker'
 

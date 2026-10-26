@@ -436,15 +436,15 @@ These components' styles are injected when the block starts; their classes start
 
 The widgets that come with Tessera use an internal SDK with the same names ([docs/plugins.md](../../plugins.md)). A module runs isolated, hence these differences:
 
-| Item                                                                              | Third-party module                                                                                          |
-| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Import                                                                            | `@tessera/module-sdk` (instead of `@tessera/plugin-sdk`)                                                    |
-| `WebView`, `MediaView`, `InstalledAppView`                                        | Not available yet: a block can embed neither a web page, nor a YouTube / Twitch player, nor an app's window |
-| `useWebApps`, `addInstalledApp`, `takeOutInstalledApp`, `refreshInstalledApp`     | Not available                                                                                               |
-| `useLocalMedia().addDropped`                                                      | Not available (use `open()`)                                                                                |
-| `useMailOpenRequest`, `openMailSettings`, `openMediaSettings`, `mailErrorMessage` | Not available                                                                                               |
-| `openContextMenu`                                                                 | Items without icons                                                                                         |
-| `useMailAccounts().accounts`                                                      | Reduced to `{ id, provider, name, address }`                                                                |
-| Extra                                                                             | `openExternal`, `getErrorCode`, `usePermissions`, `useWidget`, `useSize`                                    |
-| Internet                                                                          | Closed unless the `network` permission is granted                                                           |
-| Browser storage                                                                   | Specific to the module (`localStorage`, `IndexedDB`)                                                        |
+| Item                                                                                            | Third-party module                                                                                          |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Import                                                                                          | `@tessera/module-sdk` (instead of `@tessera/plugin-sdk`)                                                    |
+| `WebView`, `MediaView`, `InstalledAppView`                                                      | Not available yet: a block can embed neither a web page, nor a YouTube / Twitch player, nor an app's window |
+| `useWebApps`, `addInstalledApp`, `takeOutInstalledApp`, `refreshInstalledApp`, `growBlockToFit` | Not available                                                                                               |
+| `useLocalMedia().addDropped`                                                                    | Not available (use `open()`)                                                                                |
+| `useMailOpenRequest`, `openMailSettings`, `openMediaSettings`, `mailErrorMessage`               | Not available                                                                                               |
+| `openContextMenu`                                                                               | Items without icons                                                                                         |
+| `useMailAccounts().accounts`                                                                    | Reduced to `{ id, provider, name, address }`                                                                |
+| Extra                                                                                           | `openExternal`, `getErrorCode`, `usePermissions`, `useWidget`, `useSize`                                    |
+| Internet                                                                                        | Closed unless the `network` permission is granted                                                           |
+| Browser storage                                                                                 | Specific to the module (`localStorage`, `IndexedDB`)                                                        |

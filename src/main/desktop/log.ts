@@ -5,11 +5,11 @@ import { app } from 'electron'
 /**
  * Journal des applications installées : insertion, fenêtre masquée ou réaffichée, style ou
  * parent rétablis, réaffichage demandé… Il sert à comprendre un bloc resté vide. Fichier
- * `%APPDATA%\Tessera Dashboard\logs\applications.log`, 1 Mo au plus (l'ancien est gardé en
+ * `%APPDATA%\Tessera Dashboard\logs\applications.log`, 2 Mo au plus (l'ancien est gardé en
  * `.old`). Aucune donnée personnelle : identifiants des applications et état des fenêtres.
  */
 
-const MAX_SIZE = 1_000_000
+const MAX_SIZE = 2_000_000
 
 let file: string | null = null
 

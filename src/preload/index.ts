@@ -183,8 +183,11 @@ const api = {
       ipcRenderer.invoke(IpcChannels.desktopAppsRefresh, appId),
     capture: (): Promise<Record<string, DesktopAppSnapshot>> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsCapture),
-    setSuspended: (value: boolean): Promise<void> =>
-      ipcRenderer.invoke(IpcChannels.desktopAppsSetSuspended, value),
+    setSuspended: (value: boolean, reasons = ''): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsSetSuspended, value, reasons),
+    /** Ligne du journal des applications installées (ce que montre un bloc…). */
+    log: (message: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsLog, message),
     onChange: (callback: (appId: string, state: DesktopAppState) => void) => {
       const listener = (_event: IpcRendererEvent, appId: string, state: DesktopAppState): void =>
         callback(appId, state)

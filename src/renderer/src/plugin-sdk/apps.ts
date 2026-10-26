@@ -20,6 +20,9 @@ export interface UserInstalledApp {
   id: string
   name: string
   icon: string | null
+  /** Taille minimale de sa fenêtre (px CSS), mesurée au premier affichage (0 = inconnue). */
+  minWidth: number
+  minHeight: number
 }
 
 /** Applications web de l'utilisateur, pour proposer d'en afficher une dans un widget. */

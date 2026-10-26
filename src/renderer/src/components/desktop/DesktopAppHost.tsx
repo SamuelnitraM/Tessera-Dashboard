@@ -18,7 +18,7 @@ import {
   setActiveBlock,
   useActiveBlockStore
 } from '../../stores/activeBlock'
-import { useDesktopAppState, useDesktopAppsStore } from '../../stores/desktopApps'
+import { logDesktopApps, useDesktopAppState, useDesktopAppsStore } from '../../stores/desktopApps'
 import { measure } from '../../lib/visibleRect'
 import { Button } from '../ui/Button'
 import styles from './DesktopAppHost.module.css'
@@ -436,6 +436,24 @@ export function DesktopAppHost({
     return () => handle.removeEventListener('pointerdown', listener)
   }, [panHandle, cropped, t])
 
+  // Journal : ce que montre le bloc, à chaque changement (bloc gris ou vide : on sait pourquoi)
+  const shown = !active
+    ? 'inactif (page ou onglet masqué)'
+    : showingSnapshot
+      ? 'image de la fenêtre (interface par-dessus)'
+      : state.hostId !== null && !attachedHere
+        ? `affichée ailleurs (${state.hostId})`
+        : state.status === 'running'
+          ? 'fenêtre de l’application attendue par-dessus'
+          : `état ${state.status}${state.error ? ` (${state.error})` : ''}`
+  useEffect(() => {
+    logDesktopApps(`bloc ${hostId} (${app.id}) : ${shown}`)
+  }, [hostId, app.id, shown])
+  useEffect(
+    () => () => logDesktopApps(`bloc ${hostId} (${app.id}) : retiré de la page`),
+    [hostId, app.id]
+  )
+
   const launch = (): void => void window.tessera.desktopApps.launch(app.id)
   const showHere = (): void => {
     if (ref.current) void window.tessera.desktopApps.attach(hostId, app.id, measure(ref.current))
@@ -524,6 +542,8 @@ export function DesktopAppHost({
       className={`${styles.host} ${panOnImage ? 'no-drag' : ''}`}
       data-status={state.status}
       data-pan={panOnImage}
+      // Mode édition : l'image d'une fenêtre rognée reste glissable (partie affichée)
+      data-edit-active={panOnImage ? '' : undefined}
       onPointerDown={panOnImage ? startPan : undefined}
     >
       {content}

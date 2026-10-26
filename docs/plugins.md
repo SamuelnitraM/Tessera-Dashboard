@@ -278,7 +278,9 @@ const app = await addInstalledApp() // application ajoutée, ou null
 
 Une fenêtre rognée a aussi ses barres de défilement dans l'emplacement, et le clic gauche + droit sur la fenêtre déplace son contenu : rien à faire dans le module, `onOffsetChange` reçoit la nouvelle partie affichée.
 
-`takeOutInstalledApp(appId)` sort la fenêtre de Tessera (sur le bureau) ; `refreshInstalledApp(appId)` la remet dans son bloc et la force à se redessiner (bloc resté gris). `openWebPage(url)` ouvre une page dans le navigateur d'un bloc de Tessera et montre ce bloc (sinon dans le navigateur du PC). Quand plus aucun emplacement n'affiche l'application (bloc retiré, onglet fermé), Tessera la ferme.
+`takeOutInstalledApp(appId)` sort la fenêtre de Tessera (sur le bureau) ; `refreshInstalledApp(appId)` la remet dans son bloc et la force à se redessiner (bloc resté gris). `openWebPage(url)` ouvre une page dans le navigateur d'un bloc de Tessera et montre ce bloc (sinon dans le navigateur du PC). `growBlockToFit(élément, { width, height })` agrandit le bloc pour que cet élément ait au moins cette taille (px CSS ; jamais réduit, voisins écartés).
+
+En **mode édition**, le contenu d'un bloc ne reçoit plus la souris : pose `{...EDIT_ACTIVE}` sur un élément qui doit rester utilisable dans ce mode (un réglage propre au mode édition, par exemple). Quand plus aucun emplacement n'affiche l'application (bloc retiré, onglet fermé), Tessera la ferme.
 
 Une application ne s'affiche qu'à un endroit à la fois : un deuxième emplacement propose « L'afficher ici ». Une extension ne peut ni ajouter de programme sans passer par la fenêtre d'ajout (choix de l'utilisateur), ni changer le programme lancé. L'extension **Application installée** (`plugins/tessera.desktop`) est un exemple complet.
 

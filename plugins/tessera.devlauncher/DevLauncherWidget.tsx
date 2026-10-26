@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { FolderSearch, Rocket, Square, SquareArrowOutUpRight } from 'lucide-react'
 import {
+  EDIT_ACTIVE,
   Button,
   getIntegrationErrorCode,
   getIntegrationErrorMessage,
@@ -218,7 +219,13 @@ export function DevLauncherWidget({
         </div>
         <div className={styles.actions}>
           {(editing || (state?.installed && !state.running)) && (
-            <IconButton icon={FolderSearch} label={t('pickExecutable')} onClick={pickExecutable} />
+            <span {...EDIT_ACTIVE} className="no-drag">
+              <IconButton
+                icon={FolderSearch}
+                label={t('pickExecutable')}
+                onClick={pickExecutable}
+              />
+            </span>
           )}
           {state && !state.running && state.executable && (
             <Button icon={SquareArrowOutUpRight} className="no-drag" onClick={open}>
