@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { dirname } from 'node:path'
 import { connect as tlsConnect } from 'node:tls'
+import { stat } from 'node:fs/promises'
 import { ipcMain, shell } from 'electron'
 import { BuiltinChannels as C } from '@shared/builtin-ipc'
 import {
@@ -16,6 +17,7 @@ import {
 import { helperRequest } from '../headerbar/helper'
 import { JsonStore } from '../json-store'
 import { notifyFromPlugin } from '../notifications'
+import { findProgram, systemProgram } from '../executables'
 
 /**
  * Modules Services locaux (ports en écoute, programme et projet, conteneurs Docker) et
@@ -24,8 +26,14 @@ import { notifyFromPlugin } from '../notifications'
 
 function exec(command: string, args: string[], timeout = 15_000): Promise<string> {
   return new Promise((resolve, reject) => {
+    // Chemin complet (System32 ou PATH), jamais un programme du dossier courant
+    const executable = command === 'netstat' ? systemProgram('netstat.exe') : findProgram(command)
+    if (!executable) {
+      reject(new Error('ENOENT'))
+      return
+    }
     execFile(
-      command,
+      executable,
       args,
       { windowsHide: true, timeout, maxBuffer: 16 * 1024 * 1024 },
       (error, stdout, stderr) => {
@@ -68,7 +76,9 @@ async function listening(): Promise<{ port: number; address: string; pid: number
   const output6 = await exec('netstat', ['-ano', '-p', 'TCPv6']).catch(() => '')
   const found = new Map<string, { port: number; address: string; pid: number }>()
   for (const line of `${output}\n${output6}`.split(/\r?\n/)) {
-    const match = /^\s*TCP\s+(\S+):(\d+)\s+\S+\s+LISTENING\s+(\d+)/i.exec(line)
+    // Port en écoute : adresse distante « 0.0.0.0:0 » ou « [::]:0 » (le mot LISTENING est
+    // traduit dans certaines versions de Windows : ABHÖREN…)
+    const match = /^\s*TCP\s+(\S+):(\d+)\s+(?:0\.0\.0\.0|\[::\]|\*):0\s+\S+\s+(\d+)/i.exec(line)
     if (!match) continue
     const port = Number(match[2])
     const pid = Number(match[3])
@@ -221,7 +231,15 @@ function certificateDays(url: string): Promise<number | null> {
   if (protocol !== 'https:') return Promise.resolve(null)
   return new Promise((resolve) => {
     const socket = tlsConnect(
-      { host: hostname, port: Number(port) || 443, servername: hostname, timeout: 10_000 },
+      // Sans vérification : un certificat expiré doit donner un nombre de jours négatif, pas une
+      // erreur (la page elle-même est vérifiée normalement par `fetch`)
+      {
+        host: hostname,
+        port: Number(port) || 443,
+        servername: hostname,
+        timeout: 10_000,
+        rejectUnauthorized: false
+      },
       () => {
         const validTo = socket.getPeerCertificate()?.valid_to
         socket.end()
@@ -246,6 +264,8 @@ async function check(site: MonitoredSite): Promise<SiteCheck> {
       headers: { 'User-Agent': 'Tessera Dashboard (surveillance)' }
     })
     const body = site.keyword ? await response.text() : ''
+    // Corps non lu : la connexion est libérée tout de suite
+    if (!site.keyword) await response.body?.cancel().catch(() => undefined)
     const ms = Date.now() - started
     const keywordOk = !site.keyword || body.includes(site.keyword)
     result = {
@@ -391,7 +411,10 @@ export function registerDevtoolsHandlers(): void {
     dockerAction(id, action)
   )
   ipcMain.handle(C.servicesShowFolder, async (_event, path: unknown) => {
-    if (typeof path === 'string' && /^[a-z]:\\/i.test(path)) await shell.openPath(path)
+    // Un dossier seulement (un .exe serait lancé par openPath)
+    if (typeof path !== 'string' || !/^[a-z]:\\/i.test(path)) return
+    const info = await stat(path).catch(() => null)
+    if (info?.isDirectory()) await shell.openPath(path)
   })
   ipcMain.handle(C.monitorState, () => monitorState())
   ipcMain.handle(C.monitorSave, (_event, input: Partial<MonitoredSite>) => saveSite(input ?? {}))

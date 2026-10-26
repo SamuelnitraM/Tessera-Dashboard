@@ -9,7 +9,7 @@ import { useLatest } from '@tessera/plugin-sdk'
 import styles from './NotesWidget.module.css'
 
 interface CodeEditorProps {
-  /** Contenu initial (le composant est recréé à chaque changement de note). */
+  /** Contenu initial (recréé à chaque changement de note ou relecture du disque). */
   value: string
   onChange: (value: string) => void
   /** Coloration Markdown (titres, gras, listes…). */

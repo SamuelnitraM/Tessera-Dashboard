@@ -15,6 +15,7 @@ import {
   closeMediaView,
   MediaView,
   mailErrorMessage,
+  EDIT_ACTIVE,
   openMediaSettings,
   parseMediaLink,
   playerUrl,
@@ -263,7 +264,13 @@ function Home({ onWatch }: { onWatch: (channel: string) => void }): React.JSX.El
       <div className={styles.state}>
         <Tv size={26} aria-hidden />
         <p>{status.connected ? t('expired') : t('connect')}</p>
-        <Button variant="primary" icon={LogIn} onClick={openMediaSettings}>
+        <Button
+          {...EDIT_ACTIVE}
+          className="no-drag"
+          variant="primary"
+          icon={LogIn}
+          onClick={openMediaSettings}
+        >
           {status.connected ? t('reconnect') : t('signIn')}
         </Button>
         <p className={styles.hint}>{t('orSearch')}</p>
@@ -274,7 +281,7 @@ function Home({ onWatch }: { onWatch: (channel: string) => void }): React.JSX.El
   const viewers = new Intl.NumberFormat(language, { notation: 'compact' })
   const uptime = (startedAt: number): string => {
     const minutes = Math.max(0, Math.round((now - startedAt) / 60_000))
-    return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}`
+    return t('uptime', { h: Math.floor(minutes / 60), mm: String(minutes % 60).padStart(2, '0') })
   }
 
   return (

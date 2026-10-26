@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, Film, FolderOpen, Music, X } from 'lucide-
 import {
   Button,
   closeMediaView,
+  EDIT_ACTIVE,
   getMediaPosition,
   localMediaUrl,
   MediaView,
@@ -46,6 +47,8 @@ export function VideoWidget({
   const [dragging, setDragging] = useState(false)
   const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null)
   const [vlc, setVlc] = useState<boolean | null>(null)
+  /** Fichier inconnu de Tessera (oublié, ou illisible) : on propose d'en choisir un autre. */
+  const [lost, setLost] = useState<string | null>(null)
 
   useEffect(() => {
     void media.hasVlc().then(setVlc, () => setVlc(false))
@@ -55,7 +58,15 @@ export function VideoWidget({
   useEffect(() => {
     if (!config.file) return
     let active = true
-    void media.get(config.file).then((file) => active && setInfo(file))
+    const id = config.file
+    media
+      .get(id)
+      .then((file) => {
+        if (!active) return
+        if (file) setInfo(file)
+        else setLost(id)
+      })
+      .catch(() => active && setLost(id))
     return () => {
       active = false
     }
@@ -181,7 +192,7 @@ export function VideoWidget({
       <div className={styles.content}>
         {!config.file ? (
           <Home onPick={() => void pick()} onPlay={play} />
-        ) : current?.missing ? (
+        ) : current?.missing || (!current && lost === config.file) ? (
           <div className={styles.state}>
             <AlertTriangle size={26} aria-hidden />
             <p>{t('missing')}</p>
@@ -247,7 +258,13 @@ function Home({
       <div className={styles.drop}>
         <Film size={28} aria-hidden />
         <p>{t('intro')}</p>
-        <Button variant="primary" icon={FolderOpen} onClick={onPick}>
+        <Button
+          {...EDIT_ACTIVE}
+          className="no-drag"
+          variant="primary"
+          icon={FolderOpen}
+          onClick={onPick}
+        >
           {t('pick')}
         </Button>
         <p className={styles.hint}>{t('orDrop')}</p>

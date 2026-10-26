@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { SystemMetric, SystemStats } from '@shared/header-bar'
 import { useSettingsStore } from '../../stores/settings'
 import { HeaderPopover } from './HeaderPopover'
-import { formatBytes, useBlockSize, usePolling } from './helpers'
+import { formatBytes, formatPercent, useBlockSize, usePolling } from './helpers'
 import { Meter, PanelTitle } from './parts'
 import styles from './Widgets.module.css'
 
@@ -119,9 +119,7 @@ function TopProcesses(): React.JSX.Element {
                 {item.name}
                 {item.count > 1 && <span className={styles.muted}> ×{item.count}</span>}
               </span>
-              <span data-active={sort === 'cpu'}>
-                {item.cpu.toLocaleString(i18n.language, { maximumFractionDigits: 1 })} %
-              </span>
+              <span data-active={sort === 'cpu'}>{formatPercent(item.cpu, i18n.language, 1)}</span>
               <span data-active={sort === 'memory'}>{formatBytes(item.memory, i18n.language)}</span>
             </li>
           ))}
@@ -135,11 +133,11 @@ function TopProcesses(): React.JSX.Element {
 function barValue(stats: SystemStats, metric: SystemMetric, language: string): string | null {
   switch (metric) {
     case 'cpu':
-      return `${stats.cpu} %`
+      return formatPercent(stats.cpu, language)
     case 'memory':
-      return `${percent(stats.memory.used, stats.memory.total)} %`
+      return formatPercent(percent(stats.memory.used, stats.memory.total), language)
     case 'disk':
-      return stats.disk ? `${percent(stats.disk.used, stats.disk.total)} %` : null
+      return stats.disk ? formatPercent(percent(stats.disk.used, stats.disk.total), language) : null
     case 'network':
       return stats.network ? `↓ ${rate(stats.network.down, language)}` : null
   }
@@ -245,7 +243,7 @@ function SystemPanel({
         {row(
           'cpu',
           t('headerBar.system.cpu'),
-          `${stats.cpu} %`,
+          formatPercent(stats.cpu, language),
           stats.cpu,
           history && <Sparkline series={[history.cpu]} max={100} />
         )}

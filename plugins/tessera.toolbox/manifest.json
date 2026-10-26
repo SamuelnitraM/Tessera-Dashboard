@@ -106,7 +106,7 @@
       "icon": "cpu",
       "defaultSize": {
         "w": 5,
-        "h": 4
+        "h": 5
       },
       "minSize": {
         "w": 4,

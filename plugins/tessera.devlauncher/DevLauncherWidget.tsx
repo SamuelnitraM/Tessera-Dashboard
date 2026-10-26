@@ -49,7 +49,12 @@ export function DevLauncherWidget({
 
   const [state, setState] = useState<DevLauncherState | null>(null)
   const [services, setServices] = useState<DevLauncherService[]>([])
-  const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
+  /** Message de la barre d'état ; `fromState` : échec de la lecture de l'état (effacé ensuite). */
+  const [message, setMessage] = useState<{
+    text: string
+    error: boolean
+    fromState?: boolean
+  } | null>(null)
   const [launching, setLaunching] = useState<string | null>(null)
   const view = config.view ?? 'projects'
   const connected = state?.mcp.status === 'connected'
@@ -61,25 +66,35 @@ export function DevLauncherWidget({
   const configRef = useLatest(config)
 
   const fail = useCallback(
-    (cause: unknown): void => {
+    (cause: unknown, fromState = false): void => {
       const code = getIntegrationErrorCode(cause)
       setMessage({
         text: code === 'failed' ? getIntegrationErrorMessage(cause) : t(`errors.${code}`),
-        error: true
+        error: true,
+        fromState
       })
     },
     [t]
   )
 
-  // État de DevLauncher (fichiers, processus, serveur MCP)
+  // État de DevLauncher (fichiers, processus, serveur MCP) ; une lecture réussie efface
+  // l'erreur laissée par une lecture précédente
   const refreshState = useCallback(
-    (): Promise<void> => devlauncher.state().then(setState, fail),
+    (): Promise<void> =>
+      devlauncher.state().then(
+        (next) => {
+          setState(next)
+          setMessage((current) => (current?.fromState ? null : current))
+        },
+        (cause: unknown) => fail(cause, true)
+      ),
     [devlauncher, fail]
   )
 
   useEffect(() => {
     void refreshState()
-    const timer = window.setInterval(() => void refreshState(), STATE_POLL_MS)
+    // Fenêtre de Tessera masquée : pas de lecture (reprise dès qu'elle revient)
+    const timer = window.setInterval(() => !document.hidden && void refreshState(), STATE_POLL_MS)
     return () => window.clearInterval(timer)
   }, [refreshState])
 
@@ -135,12 +150,16 @@ export function DevLauncherWidget({
         .catch(() => {})
     }
     poll()
-    const timer = window.setInterval(poll, SERVICES_POLL_MS)
+    // Fenêtre masquée : relevés seulement pour les notifications (prêt, service arrêté)
+    const timer = window.setInterval(
+      () => (!document.hidden || configRef.current.notify) && poll(),
+      SERVICES_POLL_MS
+    )
     return () => {
       active = false
       window.clearInterval(timer)
     }
-  }, [connected, devlauncher, detect])
+  }, [connected, devlauncher, detect, configRef])
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -182,7 +201,7 @@ export function DevLauncherWidget({
 
   const open = (): void => {
     setMessage(null)
-    devlauncher.open().catch(fail)
+    devlauncher.open().catch((cause: unknown) => fail(cause))
   }
 
   const pickExecutable = (): void => {

@@ -3,12 +3,14 @@ import { AppWindow, ExternalLink, Globe, Pencil, Plus, RotateCw } from 'lucide-r
 import {
   addInstalledApp,
   Button,
+  EDIT_ACTIVE,
   installedAppForBrowser,
   InstalledAppView,
   refreshInstalledApp,
   takeOutInstalledApp,
   useBrowserChoices,
   useInstalledApps,
+  useLatest,
   usePluginTranslation,
   type PanOffset,
   type UserInstalledApp,
@@ -41,22 +43,32 @@ export function DesktopWidget({
   // caché, avec ses onglets : y revenir l'affiche aussitôt.
   const browsers = useBrowserChoices()
   const browser = app ? browsers.find((choice) => choice.appId === app.id) : undefined
+  // Réglages les plus récents : deux clics rapprochés ne doivent pas perdre un navigateur mis
+  // de côté (la réponse arrive après le clic, `config` du rendu peut être dépassé)
+  const latestConfigRef = useLatest(config)
+  const update = (patch: Partial<DesktopConfig>): void => {
+    latestConfigRef.current = { ...latestConfigRef.current, ...patch }
+    setConfig(patch)
+  }
   const switchBrowser = (browserId: string): void =>
-    void installedAppForBrowser(browserId).then(
-      (appId) =>
-        appId &&
-        setConfig({
-          appId,
-          offset: { x: 0, y: 0 },
-          parked: [
-            ...(config.parked ?? []).filter((id) => id !== appId && id !== config.appId),
-            ...(config.appId ? [config.appId] : [])
-          ]
-        })
-    )
+    void installedAppForBrowser(browserId).then((appId) => {
+      if (!appId) return
+      const { appId: currentId, parked = [] } = latestConfigRef.current
+      if (appId === currentId) return
+      update({
+        appId,
+        offset: { x: 0, y: 0 },
+        parked: [
+          ...parked.filter((id) => id !== appId && id !== currentId),
+          ...(currentId ? [currentId] : [])
+        ]
+      })
+    })
 
+  // Autre application : les navigateurs mis de côté restent ouverts (avec leurs onglets)
   const choose = (appId: string): void => {
-    setConfig({ appId, offset: { x: 0, y: 0 }, parked: [] })
+    const parked = latestConfigRef.current.parked ?? []
+    update({ appId, offset: { x: 0, y: 0 }, parked: parked.filter((id) => id !== appId) })
     setChanging(false)
   }
 
@@ -79,9 +91,10 @@ export function DesktopWidget({
             <div className={styles.browsers} role="group" aria-label={t('switchBrowser')}>
               {browsers.map((choice) => (
                 <button
+                  {...EDIT_ACTIVE}
                   key={choice.id}
                   type="button"
-                  className={styles.browserButton}
+                  className={`${styles.browserButton} no-drag`}
                   data-current={choice.id === browser.id}
                   aria-pressed={choice.id === browser.id}
                   title={
@@ -106,8 +119,9 @@ export function DesktopWidget({
           )}
           {app && (
             <button
+              {...EDIT_ACTIVE}
               type="button"
-              className={styles.iconButton}
+              className={`${styles.iconButton} no-drag`}
               title={t('refresh')}
               aria-label={t('refresh')}
               onClick={() => void refreshInstalledApp(app.id)}
@@ -117,8 +131,9 @@ export function DesktopWidget({
           )}
           {app && (
             <button
+              {...EDIT_ACTIVE}
               type="button"
-              className={styles.iconButton}
+              className={`${styles.iconButton} no-drag`}
               title={t('takeOut')}
               aria-label={t('takeOut')}
               onClick={() => void takeOutInstalledApp(app.id)}
@@ -127,8 +142,9 @@ export function DesktopWidget({
             </button>
           )}
           <button
+            {...EDIT_ACTIVE}
             type="button"
-            className={styles.iconButton}
+            className={`${styles.iconButton} no-drag`}
             title={t('change')}
             aria-label={t('change')}
             onClick={() => setChanging(true)}
@@ -179,7 +195,8 @@ function AppPicker({
   }
 
   return (
-    <div className={styles.picker}>
+    // Utilisable en mode édition : c'est le réglage d'un bloc qui vient d'être ajouté
+    <div {...EDIT_ACTIVE} className={`${styles.picker} no-drag`}>
       <h3 className={styles.pickerTitle}>{t('title')}</h3>
       <p className={styles.pickerIntro}>{t('intro')}</p>
       {apps.length > 0 && (

@@ -16,7 +16,7 @@
       "type": "prospect",
       "name": { "fr": "Prospect Solution", "en": "Prospect Solution" },
       "description": {
-        "fr": "Démarre le serveur, suit la prospection et affiche l'interface.",
+        "fr": "Démarre le serveur, suit la prospection et affiche l’interface.",
         "en": "Starts the server, follows the prospecting and shows the interface."
       },
       "icon": "target",
@@ -36,7 +36,7 @@
           "key": "notifyJobs",
           "type": "boolean",
           "label": {
-            "fr": "Notifier à la fin d'une recherche ou d'une analyse",
+            "fr": "Notifier à la fin d’une recherche ou d’une analyse",
             "en": "Notify when a search or an analysis ends"
           },
           "default": true

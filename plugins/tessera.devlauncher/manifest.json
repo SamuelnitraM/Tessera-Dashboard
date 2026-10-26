@@ -27,7 +27,7 @@
           "key": "notify",
           "type": "boolean",
           "label": {
-            "fr": "Notifier quand l'environnement est prêt ou qu'un service s'arrête",
+            "fr": "Notifier quand l’environnement est prêt ou qu’un service s’arrête",
             "en": "Notify when the environment is ready or a service stops"
           },
           "default": true

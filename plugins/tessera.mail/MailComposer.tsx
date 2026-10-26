@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react'
 import { Placeholder } from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
@@ -52,6 +52,8 @@ interface MailComposerProps {
   account: MailAccount
   request: ComposeRequest
   onClose: (sent: boolean) => void
+  /** Reçoit une fonction qui dit si le mail a du contenu (avant de quitter l'écriture). */
+  hasContentRef?: React.RefObject<(() => boolean) | null>
 }
 
 const same = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase()
@@ -120,7 +122,12 @@ function htmlToText(html: string, quoted: boolean): string {
 }
 
 /** Nouveau mail, réponse ou transfert. */
-export function MailComposer({ account, request, onClose }: MailComposerProps): React.JSX.Element {
+export function MailComposer({
+  account,
+  request,
+  onClose,
+  hasContentRef
+}: MailComposerProps): React.JSX.Element {
   const t = usePluginTranslation()
   const language = useLanguage()
   const mail = useMail()
@@ -145,6 +152,21 @@ export function MailComposer({ account, request, onClose }: MailComposerProps): 
       Placeholder.configure({ placeholder: t('composer.placeholder') })
     ],
     autofocus: request.mode === 'new' ? false : 'start'
+  })
+
+  // Contenu saisi (destinataires, objet, texte, pièces jointes) : quitter demande confirmation
+  useLayoutEffect(() => {
+    if (!hasContentRef) return
+    hasContentRef.current = () =>
+      to !== initial.to ||
+      cc !== initial.cc ||
+      bcc !== '' ||
+      subject !== initial.subject ||
+      uploads.length > 0 ||
+      !editor.isEmpty
+    return () => {
+      hasContentRef.current = null
+    }
   })
 
   const attach = async (): Promise<void> => {

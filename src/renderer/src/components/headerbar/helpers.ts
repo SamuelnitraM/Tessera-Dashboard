@@ -23,6 +23,13 @@ export function usePolling<T>(
   const [data, setData] = useState<T | null>(null)
   const [failed, setFailed] = useState(false)
   const [tick, setTick] = useState(0)
+  // Autre clé (autre ville…) : l'ancien résultat ne vaut plus, ni son échec
+  const [dataKey, setDataKey] = useState(key)
+  if (dataKey !== key) {
+    setDataKey(key)
+    setData(null)
+    setFailed(false)
+  }
   const loadRef = useRef(load)
   useEffect(() => {
     loadRef.current = load
@@ -80,6 +87,13 @@ export function formatBytes(bytes: number, language: string): string {
   }
   const digits = value >= 100 || unit === 0 ? 0 : 1
   return `${value.toLocaleString(language, { maximumFractionDigits: digits })} ${units[unit]}`
+}
+
+/** 45 % en français, 45% en anglais (`value` de 0 à 100). */
+export function formatPercent(value: number, language: string, maximumFractionDigits = 0): string {
+  return new Intl.NumberFormat(language, { style: 'percent', maximumFractionDigits }).format(
+    value / 100
+  )
 }
 
 /** Bouton « Copier » qui affiche « Copié » un instant. */

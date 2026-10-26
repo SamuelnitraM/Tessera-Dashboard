@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { existsSync, statSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -27,7 +28,6 @@ interface Session {
 }
 
 const sessions = new Map<string, Session>()
-let nextId = 1
 
 function findShells(): (TerminalShell & { file: string; args: string[] })[] {
   const system = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32')
@@ -86,7 +86,9 @@ export function createSession(
   if (sessions.size >= MAX_SESSIONS) throw new Error('Trop de terminaux ouverts.')
   const shell = shells.find((item) => item.id === shellId) ?? shells[0]
   if (!shell) throw new Error('Aucun shell trouvé.')
-  const id = `term-${nextId++}`
+  // Identifiant unique : un onglet qui garde l'ancien après un redémarrage ne se branche jamais
+  // sur le shell d'un autre onglet
+  const id = `term-${randomUUID()}`
   const pty = spawnPty(shell.file, shell.args, {
     name: 'xterm-256color',
     cols: Math.max(20, Math.min(500, Number(cols) || 80)),
@@ -132,7 +134,12 @@ export function resizeSession(id: unknown, cols: unknown, rows: unknown): void {
   if (!session || session.exited) return
   const width = Math.floor(Number(cols))
   const height = Math.floor(Number(rows))
-  if (width >= 2 && height >= 1 && width <= 1000 && height <= 500) session.pty.resize(width, height)
+  if (width < 2 || height < 1 || width > 1000 || height > 500) return
+  try {
+    session.pty.resize(width, height)
+  } catch {
+    // Shell déjà terminé (sa fin n'est pas encore signalée)
+  }
 }
 
 export function closeSession(id: unknown): void {

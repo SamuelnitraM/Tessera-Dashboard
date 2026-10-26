@@ -4,7 +4,14 @@ import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { WebLinksAddon } from '@xterm/addon-web-links'
 import '@xterm/xterm/css/xterm.css'
-import { openMenuBelow, usePluginTranslation, type WidgetProps } from '@tessera/plugin-sdk'
+import {
+  Button,
+  EDIT_ACTIVE,
+  errorMessage,
+  openMenuBelow,
+  usePluginTranslation,
+  type WidgetProps
+} from '@tessera/plugin-sdk'
 import type { TerminalShell } from '@shared/terminal'
 import styles from './TerminalWidget.module.css'
 
@@ -30,25 +37,39 @@ export function TerminalWidget({
   setConfig
 }: WidgetProps<TerminalConfig>): React.JSX.Element {
   const t = usePluginTranslation()
-  const [shells, setShells] = useState<TerminalShell[]>([])
+  /** Shells du PC, `null` pendant leur recherche. */
+  const [shells, setShells] = useState<TerminalShell[] | null>(null)
+  const [shellsError, setShellsError] = useState<string | null>(null)
   const tabs = config.tabs ?? []
   const active = Math.min(config.active ?? 0, Math.max(0, tabs.length - 1))
 
   useEffect(() => {
-    void window.tessera.terminal.shells().then(setShells)
+    window.tessera.terminal
+      .shells()
+      .then(setShells)
+      .catch((failure: unknown) => setShellsError(errorMessage(failure)))
   }, [])
 
-  // Premier affichage : un onglet avec le premier shell trouvé
+  // Premier affichage du bloc : un onglet avec le premier shell trouvé. Après la fermeture du
+  // dernier onglet (`tabs` vide mais défini), le bloc reste sans onglet
+  const firstShell = shells?.[0]
+  const neverOpened = config.tabs === undefined
   useEffect(() => {
-    if (tabs.length === 0 && shells.length > 0) {
+    if (neverOpened && firstShell) {
       setConfig({
         tabs: [
-          { key: crypto.randomUUID(), session: null, shell: shells[0].id, title: shells[0].name }
+          { key: crypto.randomUUID(), session: null, shell: firstShell.id, title: firstShell.name }
         ],
         active: 0
       })
     }
-  }, [tabs.length, shells, setConfig])
+  }, [neverOpened, firstShell, setConfig])
+
+  /** Nom lisible du shell d'un onglet (le titre envoyé par la console est souvent son chemin). */
+  const tabLabel = (tab: TerminalTab): string => {
+    const shellName = shells?.find((shell) => shell.id === tab.shell)?.name
+    return shellName && /^[a-z]:\\|\.exe\b/i.test(tab.title) ? shellName : tab.title
+  }
 
   const addTab = (shell: TerminalShell): void =>
     setConfig({
@@ -84,7 +105,7 @@ export function TerminalWidget({
                 onAuxClick={(event) => event.button === 1 && closeTab(index)}
               >
                 <SquareTerminal size={13} aria-hidden />
-                <span>{tab.title}</span>
+                <span>{tabLabel(tab)}</span>
               </button>
               <button
                 type="button"
@@ -104,7 +125,7 @@ export function TerminalWidget({
           title={t('newTab')}
           aria-label={t('newTab')}
           onClick={openMenuBelow(() =>
-            shells.map((shell) => ({
+            (shells ?? []).map((shell) => ({
               label: shell.name,
               icon: SquareTerminal,
               onSelect: () => addTab(shell)
@@ -129,7 +150,19 @@ export function TerminalWidget({
       </div>
       <div className={styles.screens}>
         {tabs.length === 0 && (
-          <p className={styles.empty}>{shells.length === 0 ? t('loading') : t('noTab')}</p>
+          <div className={styles.empty}>
+            <p>
+              {shellsError ??
+                (shells === null ? t('loading') : shells.length === 0 ? t('noShell') : t('noTab'))}
+            </p>
+            {firstShell && (
+              <span {...EDIT_ACTIVE} className="no-drag">
+                <Button icon={Plus} onClick={() => addTab(firstShell)}>
+                  {t('openTab', { shell: firstShell.name })}
+                </Button>
+              </span>
+            )}
+          </div>
         )}
         {tabs.map((tab, index) => (
           <Screen
@@ -228,7 +261,8 @@ function Screen({
 
     const start = async (): Promise<void> => {
       if (tab.session) {
-        const attached = await api.attach(tab.session)
+        // Session introuvable (Tessera redémarré…) ou refusée : une nouvelle la remplace
+        const attached = await api.attach(tab.session).catch(() => null)
         if (cancelled) return
         if (attached) {
           session = tab.session
@@ -246,7 +280,7 @@ function Screen({
       session = created
       callbacks.current.onSession(created)
     }
-    void start().catch((failure: Error) => term.write(`\r\n${failure.message}\r\n`))
+    void start().catch((failure: unknown) => term.write(`\r\n${errorMessage(failure)}\r\n`))
 
     const observer = new ResizeObserver(() => {
       if (element.offsetWidth > 0) fit.fit()

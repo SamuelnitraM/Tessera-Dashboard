@@ -14,6 +14,7 @@ import {
   roamingAppData,
   stringList
 } from './common'
+import { findProgram, notFound } from '../../executables'
 
 /**
  * Connecteur GitSpread (https://github.com/SamuelnitraM/GitSpread-Manager-Project).
@@ -324,8 +325,14 @@ const CONCURRENCY = 4
 
 function runGitStatus(directory: string): Promise<string> {
   return new Promise((resolvePromise, reject) => {
+    // Chemin complet : jamais un git.exe posé dans le dossier du projet
+    const git = findProgram('git')
+    if (!git) {
+      reject(notFound('git'))
+      return
+    }
     execFile(
-      'git',
+      git,
       [...SAFE_OPTIONS, 'status', '--porcelain=v2', '--branch'],
       {
         cwd: directory,

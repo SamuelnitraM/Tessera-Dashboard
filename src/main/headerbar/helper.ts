@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { app } from 'electron'
 import script from './system-helper.ps1?raw'
+import { POWERSHELL } from '../executables'
 
 /**
  * Aide système des widgets Média, Son et Système : un PowerShell lancé à la demande, qui parle
@@ -49,10 +50,12 @@ function scriptPath(): string {
 
 function start(): ChildProcessWithoutNullStreams {
   const helper = spawn(
-    'powershell.exe',
+    POWERSHELL,
     ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath()],
     { windowsHide: true }
   )
+  // Aide arrêtée avant que Tessera ne le sache : une écriture échoue (EPIPE) sans planter
+  helper.stdin.on('error', () => {})
   helper.stdout.setEncoding('utf8')
   createInterface({ input: helper.stdout }).on('line', (line) => {
     let message: { id?: number; ok?: boolean; data?: unknown; error?: string }

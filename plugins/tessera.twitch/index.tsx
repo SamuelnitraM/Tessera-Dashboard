@@ -7,6 +7,7 @@ export default definePlugin({
   },
   translations: {
     fr: {
+      uptime: '{{h}} h {{mm}}',
       home: 'Accueil',
       resume: 'Revenir au direct',
       closeStream: 'Fermer le direct',
@@ -34,6 +35,7 @@ export default definePlugin({
       retry: 'Réessayer'
     },
     en: {
+      uptime: '{{h}}h {{mm}}m',
       home: 'Home',
       resume: 'Back to the stream',
       closeStream: 'Close the stream',

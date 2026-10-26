@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import {
   Button,
+  errorMessage,
   openContextMenu,
   openMenuBelow,
   useLanguage,
@@ -69,7 +70,7 @@ export function ProjectView({
       setMessage(null)
       action()
         .then(() => done && setMessage({ text: done, error: false }))
-        .catch((failure: Error) => setMessage({ text: failure.message, error: true }))
+        .catch((failure: unknown) => setMessage({ text: errorMessage(failure), error: true }))
         .finally(() => {
           setBusy(null)
           setRevision((value) => value + 1)
@@ -302,7 +303,7 @@ function ChangesTab({
         setChanges(list)
         setError(null)
       })
-      .catch((failure: Error) => !cancelled && setError(failure.message))
+      .catch((failure: unknown) => !cancelled && setError(errorMessage(failure)))
     return () => {
       cancelled = true
     }
@@ -495,19 +496,36 @@ function BranchesTab({
   const api = window.tessera.git
   const [branches, setBranches] = useState<Branch[] | null>(null)
   const [stashes, setStashes] = useState<GitStash[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState('')
   const [renaming, setRenaming] = useState<{ from: string; to: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    void api.branches(project.path).then((list) => !cancelled && setBranches(list))
-    void api.stash(project.path, 'list').then((list) => !cancelled && setStashes(list))
+    api
+      .branches(project.path)
+      .then((list) => {
+        if (cancelled) return
+        setBranches(list)
+        setError(null)
+      })
+      .catch((failure: unknown) => !cancelled && setError(errorMessage(failure)))
+    api
+      .stash(project.path, 'list')
+      .then((list) => !cancelled && setStashes(list))
+      .catch(() => !cancelled && setStashes([]))
     return () => {
       cancelled = true
     }
   }, [api, project.path, revision])
 
-  if (branches === null) return <p className={styles.muted}>{t('loading')}</p>
+  if (branches === null) {
+    return error ? (
+      <p className={styles.error}>{error}</p>
+    ) : (
+      <p className={styles.muted}>{t('loading')}</p>
+    )
+  }
   const current = branches.find((branch) => branch.current)
 
   const branchMenu = (branch: Branch) => [

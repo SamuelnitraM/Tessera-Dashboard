@@ -55,7 +55,7 @@ export function LogPanel({
         .catch(() => active && setFailed(true))
     }
     load()
-    const timer = window.setInterval(load, LOG_POLL_MS)
+    const timer = window.setInterval(() => !document.hidden && load(), LOG_POLL_MS)
     return () => {
       active = false
       window.clearInterval(timer)

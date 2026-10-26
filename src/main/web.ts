@@ -35,6 +35,10 @@ import { JsonStore } from './json-store'
 const WEBVIEW_PRELOAD = join(import.meta.dirname, '../preload/webview.cjs')
 
 /** Verrouille les <webview> créées par l'interface de Tessera. */
+
+/** Dernier lien d'une page web ouvert dans le navigateur (contre les ouvertures en rafale). */
+let lastExternalOpen = 0
+
 export function secureWebviews(host: WebContents): void {
   host.on('will-attach-webview', (event, webPreferences, params) => {
     // Seul le script de Tessera est injecté (jamais un script demandé par l'interface),
@@ -84,8 +88,13 @@ function applyWebRules(contents: WebContents): void {
         }
       }
     }
-    // Lien ordinaire vers un nouvel onglet : ouvert dans le navigateur par défaut
-    void shell.openExternal(details.url)
+    // Lien ordinaire vers un nouvel onglet : ouvert dans le navigateur par défaut. Une page ne
+    // peut pas en ouvrir en rafale (une par seconde au plus, sans clic) : fenêtres en boucle
+    const now = Date.now()
+    if (details.disposition === 'background-tab' || now - lastExternalOpen >= 1000) {
+      lastExternalOpen = now
+      void shell.openExternal(details.url)
+    }
     return { action: 'deny' }
   })
 

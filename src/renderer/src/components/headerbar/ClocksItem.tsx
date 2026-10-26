@@ -3,6 +3,7 @@ import { Globe, Plus, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { Place } from '@shared/header-bar'
 import { useSettingsStore } from '../../stores/settings'
+import { useBlockSize } from './helpers'
 import { HeaderPopover } from './HeaderPopover'
 import { PanelTitle, PlaceSearch } from './parts'
 import styles from './Widgets.module.css'
@@ -110,6 +111,9 @@ function ClocksPanel({
   const { t, i18n } = useTranslation()
   const update = useSettingsStore((state) => state.update)
   const [adding, setAdding] = useState(clocks.length === 0)
+  // En bloc, la recherche ne prend le focus qu'après « Ajouter » (sinon la page sauterait jusqu'à lui)
+  const inBlock = useBlockSize() !== null
+  const [addClicked, setAddClicked] = useState(false)
   const save = (next: Place[]): void => void update({ headerBar: { clocks: next } })
   const localOffset = -now.getTimezoneOffset()
 
@@ -130,7 +134,10 @@ function ClocksPanel({
             className={styles.iconButton}
             title={t('headerBar.clocks.add')}
             aria-label={t('headerBar.clocks.add')}
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              setAdding(true)
+              setAddClicked(true)
+            }}
           >
             <Plus size={15} aria-hidden />
           </button>
@@ -173,7 +180,7 @@ function ClocksPanel({
       )}
       {adding && clocks.length < MAX_CLOCKS && (
         <PlaceSearch
-          autoFocus
+          autoFocus={!inBlock || addClicked}
           onPick={(place) => {
             if (
               !clocks.some((item) => item.timeZone === place.timeZone && item.name === place.name)

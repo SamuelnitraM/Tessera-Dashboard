@@ -168,6 +168,11 @@
   font-size: 0.8125rem;
 }
 
+/* Focus donné au panneau à l'ouverture (repère pour le clavier) : pas de contour */
+.panel:focus {
+  outline: none;
+}
+
 .iconButton {
   display: grid;
   place-items: center;

@@ -349,6 +349,7 @@ export function GamesWidget({
  */
 function GameVolume({ status, name }: { status: GameStatus; name: string }): React.JSX.Element {
   const t = usePluginTranslation()
+  const language = useLanguage()
   const api = window.tessera.games
   /** Valeur choisie, gardée jusqu'à ce que le jeu l'ait reçue. */
   const [local, setLocal] = useState<number | null>(null)
@@ -410,10 +411,13 @@ function GameVolume({ status, name }: { status: GameStatus; name: string }): Rea
           const value = Number(event.target.value)
           setLocal(value)
           setMuted(false)
-          send({ volume: value })
+          // Bouger le curseur d'un jeu coupé lui rend le son
+          send({ volume: value, muted: false })
         }}
       />
-      <span className={styles.volumeValue}>{isMuted ? 0 : volume} %</span>
+      <span className={styles.volumeValue}>
+        {new Intl.NumberFormat(language, { style: 'percent' }).format((isMuted ? 0 : volume) / 100)}
+      </span>
     </>
   )
 }

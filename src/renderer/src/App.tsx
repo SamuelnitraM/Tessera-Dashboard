@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
 import { AppDialogs } from './components/AppDialogs'
 import { ProgramPickerHost } from './components/desktop/ProgramPicker'
+import { releaseLeftoverDoNotDisturb } from './components/headerbar/focusDoNotDisturb'
 import { MediaLayer } from './components/media/MediaLayer'
 import { BlockProposalDialog } from './components/notifications/BlockProposalDialog'
 import { NotificationCenter } from './components/notifications/NotificationCenter'
@@ -11,9 +12,12 @@ import { TopBar } from './components/TopBar'
 import { ContextMenuHost } from './components/ui/ContextMenuHost'
 import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
+import { revealInstalledApp } from './plugin-sdk/apps'
+import { focusBlock } from './stores/activeBlock'
 import { useDashboardStore } from './stores/dashboard'
 import { useNavigationStore } from './stores/navigation'
 import { useResolvedAccentColor, useResolvedLanguage, useSettingsStore } from './stores/settings'
+import { watchTerminalSessions } from './stores/terminalSessions'
 import { AppTabs } from './views/apps/AppTabs'
 import { PageView } from './views/page/PageView'
 import { SettingsView } from './views/settings/SettingsView'
@@ -29,6 +33,11 @@ export function App(): React.JSX.Element {
   // Répercute en direct les changements de couleur et de langue
   useEffect(() => applyAccentColor(accentColor), [accentColor])
   useEffect(() => void changeLanguage(language), [language])
+
+  // Ne pas déranger laissé par une séance de concentration interrompue (Tessera quitté)
+  useEffect(() => releaseLeftoverDoNotDisturb(), [])
+  // Bloc Terminal retiré : ses sessions sont fermées
+  useEffect(() => watchTerminalSessions(), [])
 
   // Ctrl+B : rabattre / déplier le menu latéral (sauf dans un champ : Ctrl+B y met en gras)
   useEffect(() => {
@@ -46,7 +55,8 @@ export function App(): React.JSX.Element {
   }, [sidebar, updateSettings])
 
   // Une application installée demande à s'afficher (clic sur sa notification, son icône…) :
-  // on va vers son bloc, ou à défaut vers son onglet
+  // on va vers son onglet s'il est ouvert, sinon vers son bloc (navigateur mis de côté
+  // compris), ou le bloc Jeux qui affiche sa fenêtre ; à défaut, vers un nouvel onglet
   useEffect(
     () =>
       window.tessera.desktopApps.onReveal((appId) => {
@@ -56,12 +66,19 @@ export function App(): React.JSX.Element {
           !!pages
             .find((page) => page.id === pageId)
             ?.widgets.some(
-              (widget) => widget.type === DESKTOP_APP_WIDGET && widget.config.appId === appId
+              (widget) =>
+                (widget.type === DESKTOP_APP_WIDGET && widget.config.appId === appId) ||
+                widget.config.embeddedAppId === appId
             )
         if (view.type === 'app' && view.appId === appId) return
         if (view.type === 'page' && showsApp(view.pageId)) return
-        const page = openedApps.includes(appId) ? undefined : pages.find((p) => showsApp(p.id))
-        navigate(page ? { type: 'page', pageId: page.id } : { type: 'app', appId })
+        if (openedApps.includes(appId)) return navigate({ type: 'app', appId })
+        if (revealInstalledApp(appId)) return
+        const page = pages.find((p) => showsApp(p.id))
+        const block = page?.widgets.find((widget) => widget.config.embeddedAppId === appId)
+        if (!page || !block) return navigate({ type: 'app', appId })
+        navigate({ type: 'page', pageId: page.id })
+        focusBlock(block.id)
       }),
     []
   )

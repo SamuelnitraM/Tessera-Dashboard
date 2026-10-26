@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import i18n from 'i18next'
 import { create } from 'zustand'
 import { useSettingsStore } from '../../stores/settings'
+import { saveOwnsDoNotDisturb } from './focusDoNotDisturb'
 import { HeaderPopover } from './HeaderPopover'
 import { PanelTitle } from './parts'
 import styles from './Widgets.module.css'
@@ -46,9 +47,11 @@ function setDoNotDisturb(on: boolean): void {
   const { ownsDoNotDisturb } = useFocusStore.getState()
   if (on && headerBar.focus.doNotDisturb && !notifications.doNotDisturb) {
     useFocusStore.setState({ ownsDoNotDisturb: true })
+    saveOwnsDoNotDisturb(true)
     void useSettingsStore.getState().update({ notifications: { doNotDisturb: true } })
   } else if (!on && ownsDoNotDisturb) {
     useFocusStore.setState({ ownsDoNotDisturb: false })
+    saveOwnsDoNotDisturb(false)
     if (notifications.doNotDisturb) {
       void useSettingsStore.getState().update({ notifications: { doNotDisturb: false } })
     }

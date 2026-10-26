@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import {
   Button,
+  errorMessage,
   openMenuBelow,
   useLanguage,
   usePluginTranslation,
@@ -58,7 +59,7 @@ function useList<T>(
         setList(result)
         setError(null)
       })
-      .catch((failure: Error) => !cancelled && setError(failure.message))
+      .catch((failure: unknown) => !cancelled && setError(errorMessage(failure)))
     return () => {
       cancelled = true
     }
@@ -542,7 +543,7 @@ export function Repositories({
     setMessage(null)
     action()
       .then(() => done && setMessage({ text: done, error: false }))
-      .catch((failure: Error) => setMessage({ text: failure.message, error: true }))
+      .catch((failure: unknown) => setMessage({ text: errorMessage(failure), error: true }))
       .finally(() => {
         setBusy(null)
         setRevision((value) => value + 1)
@@ -557,7 +558,7 @@ export function Repositories({
       api
         .clone(accountKey, repo.nameWithOwner, folder)
         .then(onCloned)
-        .catch((failure: Error) => setMessage({ text: failure.message, error: true }))
+        .catch((failure: unknown) => setMessage({ text: errorMessage(failure), error: true }))
         .finally(() => setBusy(null))
     }
     if (target) start(target)
@@ -572,9 +573,9 @@ export function Repositories({
     void api
       .collaborators(accountKey, repo, 'list')
       .then((list) => setTeam({ repo, list }))
-      .catch((failure: Error) => {
+      .catch((failure: unknown) => {
         setTeam(null)
-        setMessage({ text: failure.message, error: true })
+        setMessage({ text: errorMessage(failure), error: true })
       })
   }
 
@@ -761,7 +762,9 @@ export function Repositories({
                   setTeam({ repo: team.repo, list: next })
                   setMessage({ text: t('invited', { login }), error: false })
                 })
-                .catch((failure: Error) => setMessage({ text: failure.message, error: true }))
+                .catch((failure: unknown) =>
+                  setMessage({ text: errorMessage(failure), error: true })
+                )
             }}
           >
             <input

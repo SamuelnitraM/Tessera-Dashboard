@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { ipcMain, shell } from 'electron'
@@ -29,6 +29,7 @@ import {
   settingsPath,
   type ScannedProject
 } from '../plugins/integrations/gitspread'
+import { findProgram } from '../executables'
 
 /**
  * Module Git : reprise de GitSpread dans Tessera (mêmes réglages, `%AppData%\GitSpread`).
@@ -46,7 +47,8 @@ const NETWORK_TIMEOUT_MS = 5 * 60_000
 const MAX_OUTPUT = 32 * 1024 * 1024
 const MAX_DIFF = 400_000
 const TOKEN_CACHE_MS = 10 * 60_000
-const REPO = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/
+/** `propriétaire/dépôt` (jamais `.` ni `..`, qui sortiraient de l'adresse de l'API). */
+const REPO = /^(?!\.{1,2}\/)[A-Za-z0-9_.-]+\/(?!\.{1,2}$)[A-Za-z0-9_.-]+$/
 const LOGIN = /^[A-Za-z0-9-]{1,39}$/
 
 interface RunOptions {
@@ -59,7 +61,13 @@ interface RunOptions {
 /** Lance un programme sans shell ; erreur = premières lignes de sa sortie d'erreur. */
 function run(command: string, args: string[], options: RunOptions = {}): Promise<string> {
   return new Promise((resolvePromise, reject) => {
-    const child = spawn(command, args, {
+    // Chemin complet : jamais un git.exe ou gh.exe posé dans le dossier du projet
+    const executable = findProgram(command)
+    if (!executable) {
+      reject(new Error(`${command} est introuvable (PATH).`))
+      return
+    }
+    const child = spawn(executable, args, {
       cwd: options.cwd,
       windowsHide: true,
       env: {
@@ -201,13 +209,22 @@ function credentialEnv(account: GitAccount | null, token: string | null): Record
 
 type Settings = Record<string, unknown>
 
-function readSettings(): Settings {
+/**
+ * Réglages de GitSpread, `{}` s'il n'en a pas encore, ou `null` s'ils sont illisibles (fichier
+ * verrouillé par GitSpread, JSON invalide) : ils ne sont alors jamais réécrits.
+ */
+function readSettings(): Settings | null {
+  let text: string
   try {
-    const text = readFileSync(settingsPath(), 'utf8')
+    text = readFileSync(settingsPath(), 'utf8')
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ENOENT' ? {} : null
+  }
+  try {
     const value = JSON.parse(text.charCodeAt(0) === 0xfeff ? text.slice(1) : text) as unknown
-    return typeof value === 'object' && value !== null ? (value as Settings) : {}
+    return typeof value === 'object' && value !== null ? (value as Settings) : null
   } catch {
-    return {}
+    return null
   }
 }
 
@@ -220,9 +237,14 @@ function setField(settings: Settings, key: string, value: unknown): void {
 
 function updateSettings(change: (settings: Settings) => void): void {
   const settings = readSettings()
+  // Illisibles : les réécrire effacerait toute la configuration de GitSpread
+  if (!settings) throw new Error('Réglages de GitSpread illisibles : réessaie dans un instant.')
   change(settings)
   mkdirSync(dirname(settingsPath()), { recursive: true })
-  writeFileSync(settingsPath(), JSON.stringify(settings, null, 2), 'utf8')
+  // Écriture atomique : GitSpread ne lit jamais un fichier à moitié écrit
+  const temporary = `${settingsPath()}.tmp`
+  writeFileSync(temporary, JSON.stringify(settings, null, 2), 'utf8')
+  renameSync(temporary, settingsPath())
 }
 
 const samePath = (a: string, b: string): boolean =>
@@ -276,7 +298,7 @@ async function accountFor(
 ): Promise<{ account: GitAccount | null; token: string | null }> {
   const scannedProject = project(path)
   const accounts = await listAccounts()
-  const key = accountKeyOf(scannedProject, accounts, readSettings())
+  const key = accountKeyOf(scannedProject, accounts, readSettings() ?? {})
   const account = accounts.find((candidate) => candidate.key === key) ?? null
   return { account, token: account ? await tokenFor(account) : null }
 }
@@ -388,6 +410,8 @@ export async function gitDiff(path: unknown, file: unknown, staged: unknown): Pr
     'diff',
     '--no-color',
     '--no-ext-diff',
+    // Pas de filtre « textconv » défini par le dépôt (programme qu'il choisirait)
+    '--no-textconv',
     ...(staged === true ? ['--cached'] : []),
     '--',
     name
@@ -403,19 +427,39 @@ export async function gitStage(path: unknown, list: unknown, on: unknown): Promi
   else await git(cwd, ['restore', '--staged', '--', ...names])
 }
 
-/** Annule les modifications : fichiers suivis remis comme au dernier commit, nouveaux à la corbeille. */
+/**
+ * Annule les modifications : fichiers suivis remis comme au dernier commit ; fichiers qui
+ * n'existent pas dans le dernier commit (nouveaux, ajoutés, nouveau nom d'un renommage) à la
+ * corbeille, jamais supprimés définitivement. Un renommage retrouve aussi son ancien nom.
+ */
 export async function gitDiscard(path: unknown, list: unknown): Promise<void> {
   const cwd = repository(path).path
   const changes = await gitChanges(path)
   const names = files(list)
-  const untracked = names.filter((name) => changes.find((item) => item.path === name)?.untracked)
-  const tracked = names.filter((name) => !untracked.includes(name))
+  const change = (name: string): GitChange | undefined => changes.find((item) => item.path === name)
+  const isNew = (name: string): boolean => {
+    const item = change(name)
+    return (
+      !!item && (item.untracked || item.index === 'A' || item.index === 'R' || item.index === 'C')
+    )
+  }
+  const created = names.filter(isNew)
+  const previousNames = names
+    .map((name) => change(name))
+    .filter((item): item is GitChange => !!item && item.index === 'R' && !!item.from)
+    .map((item) => item.from as string)
+  const tracked = [...names.filter((name) => !isNew(name)), ...previousNames]
+  // Nouveaux fichiers de l'index : retirés de l'index (le fichier reste), puis à la corbeille
+  const staged = created.filter((name) => !change(name)?.untracked)
+  if (staged.length > 0) await git(cwd, ['restore', '--staged', '--', ...staged])
   if (tracked.length > 0) {
     await git(cwd, ['restore', '--staged', '--worktree', '--source=HEAD', '--', ...tracked])
   }
-  for (const name of untracked) {
+  for (const name of created) {
     const full = resolve(cwd, name)
-    if (full.toLowerCase().startsWith(cwd.toLowerCase())) await shell.trashItem(full)
+    if (full.toLowerCase().startsWith(`${cwd.toLowerCase()}\\`) && existsSync(full)) {
+      await shell.trashItem(full)
+    }
   }
 }
 
@@ -865,8 +909,13 @@ export async function gitRepositories(accountKey: unknown): Promise<GitHubReposi
   let shared: GitHubRepository[] = []
   try {
     const list = JSON.parse(
-      await ghAccount(accountKey, ['api', 'user/repos?affiliation=collaborator&per_page=100'])
-    ) as {
+      await ghAccount(accountKey, [
+        'api',
+        '--paginate',
+        '--slurp',
+        'user/repos?affiliation=collaborator&per_page=100'
+      ])
+    ).flat() as {
       name: string
       full_name: string
       description: string | null
@@ -930,7 +979,7 @@ export async function gitClone(
     env: credentialEnv(account, token),
     timeout: NETWORK_TIMEOUT_MS
   })
-  const roots = stringList(field(readSettings(), 'rootFolders'))
+  const roots = stringList(field(readSettings() ?? {}, 'rootFolders'))
   if (!roots.some((root) => target.toLowerCase().startsWith(resolve(root).toLowerCase() + '\\'))) {
     updateSettings((settings) =>
       setField(settings, 'extraProjects', [...stringList(field(settings, 'extraProjects')), target])
@@ -994,8 +1043,13 @@ export async function gitCollaborators(
     ])
   }
   const list = JSON.parse(
-    await ghAccount(accountKey, ['api', `repos/${repo}/collaborators?per_page=100`])
-  ) as { login: string; role_name?: string }[]
+    await ghAccount(accountKey, [
+      'api',
+      '--paginate',
+      '--slurp',
+      `repos/${repo}/collaborators?per_page=100`
+    ])
+  ).flat() as { login: string; role_name?: string }[]
   return list.map((item) => ({ login: item.login, permission: item.role_name ?? '' }))
 }
 

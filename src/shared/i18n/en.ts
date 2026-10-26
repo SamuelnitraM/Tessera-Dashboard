@@ -29,6 +29,13 @@ export const en: Translation = {
     importSound: 'Import a sound',
     soundFilter: 'Sounds (.mp3, .wav, .ogg, .m4a)',
     soundInvalid: 'Unsupported sound format.',
+    openLinkTitle: 'Open a link',
+    openLinkMessage: '“{{module}}” wants to open {{host}} in your browser.',
+    openLinkDetail:
+      'Full address: {{url}}\n\nA module can pass information in an address: only open sites you expect.',
+    openLinkAllow: 'Open',
+    openLinkCancel: 'Cancel',
+    openLinkRemember: 'Don’t ask again for this site (until Tessera closes)',
     soundTooBig: 'This sound is too large (3 MB maximum).'
   },
   web: {
@@ -134,6 +141,7 @@ export const en: Translation = {
     closed: '{{name}} is closed.',
     missing: 'Is {{name}} not showing?',
     refresh: 'Show again',
+    afterEdit: '{{name}} will show when you leave edit mode.',
     reopen: 'Reopen',
     elsewhere: 'This app is shown somewhere else (another block or tab).',
     showHere: 'Show it here',
@@ -381,6 +389,7 @@ export const en: Translation = {
     },
     agenda: {
       now: 'Now',
+      accountError: '{{email}}: {{error}}',
       connect: 'Connect Google Calendar',
       reconnect: 'Reconnect Google Calendar',
       intro:
@@ -563,7 +572,9 @@ export const en: Translation = {
       other: 'Other'
     },
     settings: 'Block settings',
+    settingsOf: 'Block settings: {{name}}',
     remove: 'Remove block',
+    removeOf: 'Remove block: {{name}}',
     unknown: 'Block unavailable ({{type}})',
     disabledPlugin: 'Disabled: {{name}}',
     error: 'This block ran into an error.',

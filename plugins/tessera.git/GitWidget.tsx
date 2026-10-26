@@ -12,7 +12,13 @@ import {
   Trash2,
   X
 } from 'lucide-react'
-import { Button, usePluginTranslation, type WidgetProps } from '@tessera/plugin-sdk'
+import {
+  Button,
+  EDIT_ACTIVE,
+  errorMessage,
+  usePluginTranslation,
+  type WidgetProps
+} from '@tessera/plugin-sdk'
 import type { GitProject, GitProjectStatus, GitState } from '@shared/git'
 import { Repositories } from './GitHubViews'
 import { ProjectView } from './ProjectView'
@@ -49,7 +55,7 @@ export function GitWidget({ config, setConfig }: WidgetProps<GitConfig>): React.
           setState(next)
           setError(null)
         })
-        .catch((failure: Error) => setError(failure.message))
+        .catch((failure: unknown) => setError(errorMessage(failure)))
     },
     [api]
   )
@@ -153,7 +159,12 @@ export function GitWidget({ config, setConfig }: WidgetProps<GitConfig>): React.
           ) : state.projects.length === 0 ? (
             <div className={styles.emptyList}>
               <p>{t('noProjects')}</p>
-              <Button icon={FolderPlus} onClick={() => setConfig({ view: 'settings' })}>
+              <Button
+                {...EDIT_ACTIVE}
+                className="no-drag"
+                icon={FolderPlus}
+                onClick={() => setConfig({ view: 'settings' })}
+              >
                 {t('addFolder')}
               </Button>
             </div>
@@ -204,7 +215,13 @@ export function GitWidget({ config, setConfig }: WidgetProps<GitConfig>): React.
                                     </span>
                                   )}
                                   {changes > 0 && (
-                                    <span className={styles.changes}>● {changes}</span>
+                                    <span
+                                      className={styles.changes}
+                                      title={t('changesCount', { count: changes })}
+                                      aria-label={t('changesCount', { count: changes })}
+                                    >
+                                      ● {changes}
+                                    </span>
                                   )}
                                   {(status?.ahead ?? 0) > 0 && (
                                     <span className={styles.ahead}>
@@ -251,6 +268,8 @@ export function GitWidget({ config, setConfig }: WidgetProps<GitConfig>): React.
             <GitSettings state={state} onChange={() => load(true)} />
           ) : view.startsWith('repos:') && state ? (
             <Repositories
+              // Recréé à chaque compte : la liste (et ses menus) d'un autre compte ne reste pas
+              key={view}
               accountKey={view.slice('repos:'.length)}
               state={state}
               onCloned={(path) => {
@@ -291,7 +310,12 @@ function GitSettings({
   const api = window.tessera.git
   const [error, setError] = useState<string | null>(null)
   const act = (promise: Promise<unknown>): void =>
-    void promise.then(onChange).catch((failure: Error) => setError(failure.message))
+    void promise
+      .then(() => {
+        setError(null)
+        onChange()
+      })
+      .catch((failure: unknown) => setError(errorMessage(failure)))
   const pick = (action: 'addRoot' | 'addProject' | 'cloneFolder'): void =>
     void window.tessera.files.pickFolder().then((path) => {
       if (path) act(api.settings(action, path))
@@ -322,7 +346,7 @@ function GitSettings({
           </li>
         ))}
       </ul>
-      <div className={styles.row}>
+      <div {...EDIT_ACTIVE} className={`${styles.row} no-drag`}>
         <Button icon={FolderPlus} onClick={() => pick('addRoot')}>
           {t('addFolder')}
         </Button>

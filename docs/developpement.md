@@ -235,6 +235,18 @@ Pour ajouter un widget intégré à Tessera, suis le **[guide des widgets intég
 
 **Agrandir un bloc depuis son contenu** : `growBlockToFit(élément, taille)` (`plugin-sdk/blocks.ts`) calcule la taille d'une case d'après le bloc, puis applique le même plan qu'un redimensionnement à la souris (`planMove`). Le bloc Jeux l'utilise pour la fenêtre d'un jeu : une application `release: 'desktop'` garde sa taille (`fixedSize` dans `docking.ts` : sa zone intérieure est mesurée telle quelle, sans la réduire à 1×1).
 
+**Sécurité du processus principal** :
+
+- `src/main/ipc-guard.ts`, importé en tout premier par `index.ts`, enveloppe `ipcMain.handle`, `handleOnce` et `on` : un message n'est traité que s'il vient du cadre principal d'une fenêtre de Tessera (`file://`, ou le serveur de développement). Les pages web (`<webview>`) n'ont droit qu'à leurs canaux de notification (`WebviewChannels.notify`, `notifyClose`). Un nouveau canal est donc protégé sans rien faire.
+- `src/main/executables.ts` : tout programme est lancé par son chemin complet. Programmes de Windows par `systemProgram('cmd.exe')` (System32) ou `POWERSHELL` ; `git`, `gh`, `docker` par `findProgram` (dossiers absolus du PATH, puis emplacements habituels). Sous Windows, un nom seul est d'abord cherché dans le dossier de travail.
+- Liens des modules tiers : `openExternal` du SDK passe par `modules:open-link` (`plugins/module-links.ts`), qui demande l'accord de l'utilisateur pour chaque site (case « ne plus demander » jusqu'à la fermeture).
+- Secrets : seuls ceux des comptes mail retirés sont effacés (`removeAccountSecrets`) ; chaque autre service efface les siens à sa déconnexion.
+- Fichiers JSON (`json-file.ts`, `json-store.ts`) : un fichier illisible est copié en `.illisible-<date>` avant d'être remplacé ; une écriture refusée (fichier verrouillé) est réessayée ; chaque étape de la sortie de Tessera est isolée.
+
+**Rechargement de l'interface** : `docking.ts` oublie les blocs seulement à la navigation du cadre principal (`did-start-navigation`, `isMainFrame`). `did-start-loading` arrivait aussi quand un cadre interne chargeait, et toutes les fenêtres devenaient grises. Au démarrage de l'interface, `initDesktopAppsStore` libère les applications insérées qu'aucun bloc n'affiche plus.
+
+**Clavier des fenêtres insérées** : le cadre (`frame-host/worker.ts`) donne le focus à la fenêtre à chaque clic. Si la fenêtre est désactivée par une boîte de dialogue, celle-ci passe au premier plan ; un refus de Windows ou une fenêtre désactivée remonte au processus principal (`FrameFocus`) et est noté dans le journal.
+
 **Ajouter une fonctionnalité qui touche au système** suit toujours le même chemin :
 
 1. déclarer le canal et ses types dans `src/shared/ipc.ts` ;

@@ -97,6 +97,31 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
   mainWindow.on('enter-full-screen', sendFullScreen)
   mainWindow.on('leave-full-screen', sendFullScreen)
 
+  // Plein écran d'une vidéo (YouTube…) pendant le plein écran de Tessera : à sa sortie,
+  // Electron rend à la fenêtre sa taille d'avant la vidéo et la barre des tâches de Windows
+  // repasse devant. Le plein écran de Tessera est alors rétabli.
+  let htmlFullScreen = false
+  let wantedFullScreen = false
+  const remember = (): void => {
+    if (!htmlFullScreen && mainWindow) wantedFullScreen = mainWindow.isFullScreen()
+  }
+  mainWindow.on('enter-full-screen', remember)
+  mainWindow.on('leave-full-screen', remember)
+  mainWindow.on('enter-html-full-screen', () => {
+    htmlFullScreen = true
+  })
+  mainWindow.on('leave-html-full-screen', () => {
+    htmlFullScreen = false
+    if (!wantedFullScreen) return
+    setTimeout(() => {
+      const window = mainWindow
+      if (!window || window.isDestroyed()) return
+      // Toujours marquée plein écran mais à la taille d'avant : sortie puis retour
+      if (window.isFullScreen()) window.setFullScreen(false)
+      window.setFullScreen(true)
+    }, 100)
+  })
+
   protectNavigation(mainWindow)
 
   // En dev, electron-vite fournit l'URL du serveur Vite (rechargement à chaud)

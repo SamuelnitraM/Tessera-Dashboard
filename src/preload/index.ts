@@ -362,6 +362,9 @@ const api = {
   /** Modules tiers : installation, permissions accordées, mode développeur. */
   modules: {
     list: (): Promise<InstalledModule[]> => ipcRenderer.invoke(IpcChannels.modulesList),
+    /** Lien demandé par un module : ouvert seulement si l'utilisateur accepte. */
+    openLink: (pluginId: string, url: string): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.modulesOpenLink, pluginId, url),
     /** Fenêtre de Windows pour choisir un `.tessera` ; `null` si annulé. */
     pickPackage: (): Promise<ModulePreview | null> =>
       ipcRenderer.invoke(IpcChannels.modulesPickPackage),

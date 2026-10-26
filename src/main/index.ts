@@ -1,3 +1,5 @@
+// Vérification des expéditeurs IPC : avant tout autre module (ils enregistrent leurs canaux)
+import './ipc-guard'
 import { app, protocol } from 'electron'
 import { APP_ID } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
@@ -64,23 +66,33 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('before-quit', () => {
     markAppAsQuitting()
-    // Les applications installées sont fermées, ou rendues au bureau (réglage)
-    releaseAllApps(getSettings().apps.onQuit)
-    flushSettings()
-    flushDashboard()
-    flushProcessApprovals()
-    flushWebPermissions()
-    flushNotifications()
-    flushSecrets()
-    flushLocalMedia()
-    flushModules()
-    flushMailState()
-    flushClipboardPins()
-    flushModulesData()
-    stopHelper()
-    stopMail()
-    stopMedia()
-    stopCapturedProcesses()
+    // Chaque étape à part : une erreur n'empêche pas les suivantes (enregistrements, arrêts)
+    const steps: (() => void)[] = [
+      // Les applications installées sont fermées, ou rendues au bureau (réglage)
+      () => releaseAllApps(getSettings().apps.onQuit),
+      flushSettings,
+      flushDashboard,
+      flushProcessApprovals,
+      flushWebPermissions,
+      flushNotifications,
+      flushSecrets,
+      flushLocalMedia,
+      flushModules,
+      flushMailState,
+      flushClipboardPins,
+      flushModulesData,
+      stopHelper,
+      stopMail,
+      stopMedia,
+      stopCapturedProcesses
+    ]
+    for (const step of steps) {
+      try {
+        step()
+      } catch (error) {
+        console.error('[quitter]', error)
+      }
+    }
   })
 
   // Avec l'arrière-plan activé, la fenêtre est seulement masquée (window.ts) : cet événement
@@ -90,7 +102,10 @@ if (!app.requestSingleInstanceLock()) {
   })
 
   void app.whenReady().then(() => {
-    app.setAppUserModelId(APP_ID)
+    // Version de développement : un autre identifiant, pour que Windows ne confonde jamais
+    // `electron.exe` avec Tessera installé (nom et logo « Electron » dans la barre des tâches
+    // et les notifications de la version installée)
+    app.setAppUserModelId(app.isPackaged ? APP_ID : `${APP_ID}.dev`)
 
     // Les réglages sont chargés avant la fenêtre : thème et taille sont connus dès l'ouverture
     const settings = loadSettings()

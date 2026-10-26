@@ -111,7 +111,17 @@ function stripHtml(html: string): string {
 const firstImage = (html: string): string | null =>
   /<img[^>]+src=["'](https:[^"']+)["']/i.exec(html)?.[1] ?? null
 
-const httpsUrl = (value: string): string | null => (/^https?:\/\/\S+$/.test(value) ? value : null)
+/** Adresse http(s) complète, ou relative à `base` ; `null` sinon. */
+function httpsUrl(value: string, base?: string): string | null {
+  const text = value.trim()
+  if (!text) return null
+  try {
+    const url = new URL(text, base)
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null
+  } catch {
+    return null
+  }
+}
 
 interface ParsedFeed {
   title: string
@@ -121,7 +131,9 @@ interface ParsedFeed {
 
 type XmlNode = Record<string, unknown>
 
-function parseFeed(xml: string, feedId: string): ParsedFeed | null {
+function parseFeed(xml: string, feedId: string, base: string): ParsedFeed | null {
+  // Liens relatifs (et `xml:base`) : complétés par l'adresse du flux
+  const absolute = (value: string): string | null => httpsUrl(value, base)
   const doc = parser.parse(xml) as XmlNode
   const rss = (doc.rss as XmlNode | undefined)?.channel as XmlNode | undefined
   const atom = doc.feed as XmlNode | undefined
@@ -134,7 +146,7 @@ function parseFeed(xml: string, feedId: string): ParsedFeed | null {
     const items = asArray((rss ? channel.item : rdf?.item) as XmlNode | XmlNode[] | undefined)
     return {
       title: text(channel.title) || 'Flux',
-      siteUrl: httpsUrl(text(channel.link)),
+      siteUrl: absolute(text(channel.link)),
       items: items.slice(0, MAX_ITEMS_PER_FEED).map((item) => {
         const description = text(item.description) || text(item['content:encoded'])
         const enclosure = item.enclosure as XmlNode | undefined
@@ -149,10 +161,10 @@ function parseFeed(xml: string, feedId: string): ParsedFeed | null {
         return {
           id: id(text(item.guid) || link || text(item.title)),
           title: stripHtml(text(item.title)) || '(sans titre)',
-          link: httpsUrl(link) ?? '',
+          link: absolute(link) ?? '',
           date: Date.parse(text(item.pubDate) || text(item['dc:date'])) || 0,
           summary: stripHtml(description).slice(0, 400),
-          image: httpsUrl(enclosureUrl) ?? httpsUrl(mediaUrl) ?? firstImage(description)
+          image: absolute(enclosureUrl) ?? absolute(mediaUrl) ?? firstImage(description)
         }
       })
     }
@@ -163,7 +175,7 @@ function parseFeed(xml: string, feedId: string): ParsedFeed | null {
     const site = links.find((link) => !link['@rel'] || link['@rel'] === 'alternate')
     return {
       title: text(atom.title) || 'Flux',
-      siteUrl: httpsUrl(text(site?.['@href'])),
+      siteUrl: absolute(text(site?.['@href'])),
       items: asArray(atom.entry as XmlNode | XmlNode[] | undefined)
         .slice(0, MAX_ITEMS_PER_FEED)
         .map((entry) => {
@@ -183,10 +195,10 @@ function parseFeed(xml: string, feedId: string): ParsedFeed | null {
           return {
             id: id(text(entry.id) || link || text(entry.title)),
             title: stripHtml(text(entry.title)) || '(sans titre)',
-            link: httpsUrl(link) ?? '',
+            link: absolute(link) ?? '',
             date: Date.parse(text(entry.published) || text(entry.updated)) || 0,
             summary: stripHtml(content || description).slice(0, 400),
-            image: httpsUrl(thumbnail) ?? firstImage(content)
+            image: absolute(thumbnail) ?? firstImage(content)
           }
         })
     }
@@ -207,8 +219,26 @@ async function download(url: string): Promise<{ text: string; type: string }> {
   if (!response.ok) throw new Error(`HTTP ${response.status}`)
   const length = Number(response.headers.get('content-length') ?? 0)
   if (length > MAX_BYTES) throw new Error('Flux trop volumineux.')
-  const body = await response.text()
-  return { text: body.slice(0, MAX_BYTES), type: response.headers.get('content-type') ?? '' }
+  const type = response.headers.get('content-type') ?? ''
+  const bytes = new Uint8Array(await response.arrayBuffer()).subarray(0, MAX_BYTES)
+  return { text: decode(bytes, type), type }
+}
+
+/**
+ * Texte du flux dans son encodage : celui de l'en-tête HTTP, sinon celui de la déclaration XML
+ * (`<?xml … encoding="ISO-8859-1"?>`), sinon UTF-8.
+ */
+function decode(bytes: Uint8Array, type: string): string {
+  const head = new TextDecoder('latin1').decode(bytes.subarray(0, 300))
+  const charset =
+    /charset=["']?([\w-]+)/i.exec(type)?.[1] ??
+    /encoding=["']([\w-]+)["']/i.exec(head)?.[1] ??
+    'utf-8'
+  try {
+    return new TextDecoder(charset).decode(bytes)
+  } catch {
+    return new TextDecoder('utf-8').decode(bytes)
+  }
 }
 
 /** Adresse du flux annoncé par une page HTML (`<link rel="alternate" type="application/rss+xml">`). */
@@ -233,13 +263,13 @@ async function read(url: string, feedId: string): Promise<{ url: string; feed: P
   const first = await download(url)
   let parsed =
     /xml|rss|atom/i.test(first.type) || first.text.trimStart().startsWith('<?xml')
-      ? parseFeed(first.text, feedId)
+      ? parseFeed(first.text, feedId, url)
       : null
   if (parsed) return { url, feed: parsed }
   const found = discover(first.text, url)
   if (!found) throw new Error('Aucun flux RSS trouvé à cette adresse.')
   const second = await download(found)
-  parsed = parseFeed(second.text, feedId)
+  parsed = parseFeed(second.text, feedId, found)
   if (!parsed) throw new Error('Ce flux est illisible.')
   return { url: found, feed: parsed }
 }

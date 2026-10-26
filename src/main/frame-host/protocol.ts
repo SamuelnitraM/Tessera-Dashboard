@@ -58,6 +58,17 @@ export interface FramePan {
   dy: number
 }
 
+/**
+ * Clavier donné à la fenêtre insérée après un clic (journal) : `ok` faux si Windows l'a refusé.
+ * `disabled` : la fenêtre était désactivée (boîte de dialogue ouverte), `popup` : celle-ci.
+ */
+export interface FrameFocus {
+  focus: number
+  ok: boolean
+  disabled: boolean
+  popup: number
+}
+
 export type FrameReply =
   | { id: number; frame: number }
   | { wake: number }
@@ -65,3 +76,4 @@ export type FrameReply =
   | FramePan
   | FrameWheel
   | FrameActive
+  | FrameFocus

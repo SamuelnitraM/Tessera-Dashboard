@@ -43,6 +43,7 @@ import { JsonStore } from './json-store'
 import { hasPermission } from './plugins/manifests'
 import { getSettings, updateSettings } from './settings-store'
 import { getMainWindow } from './window'
+import { systemProgram } from './executables'
 
 /**
  * Notifications : historique (centre de notifications), bannières Windows, sons et
@@ -194,7 +195,12 @@ export async function notify(
   }
   if (tagKey) tags.set(tagKey, notification.id)
   if (page) pages.set(notification.id, page)
-  setHistory([notification, ...list].slice(0, MAX_NOTIFICATIONS))
+  const kept = [notification, ...list].slice(0, MAX_NOTIFICATIONS)
+  setHistory(kept)
+  // Notifications sorties de l'historique : leur page et leur étiquette sont oubliées
+  const ids = new Set(kept.map((item) => item.id))
+  for (const id of pages.keys()) if (!ids.has(id)) pages.delete(id)
+  for (const [key, id] of tags) if (!ids.has(id)) tags.delete(key)
 
   if (isDoNotDisturbActive(settings) && own.priority !== 'high') return notification
 
@@ -418,7 +424,7 @@ const SYSTEM_NOTIFICATIONS_KEY =
 export function areBannersBlocked(): Promise<boolean> {
   return new Promise((resolve) => {
     execFile(
-      'reg',
+      systemProgram('reg.exe'),
       ['query', SYSTEM_NOTIFICATIONS_KEY, '/v', 'ToastEnabled'],
       { windowsHide: true },
       (error, stdout) => resolve(!error && /ToastEnabled\s+REG_DWORD\s+0x0\b/i.test(stdout))

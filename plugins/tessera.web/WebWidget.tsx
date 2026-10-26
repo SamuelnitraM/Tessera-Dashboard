@@ -46,11 +46,11 @@ export function WebWidget({
   const app = config.appId ? apps.find((candidate) => candidate.id === config.appId) : undefined
   const startUrl = config.url ?? app?.url
 
-  // Actualisation automatique
+  // Actualisation automatique (pas quand la fenêtre de Tessera est masquée)
   useEffect(() => {
     if (!startUrl || config.refreshMinutes <= 0) return
     const timer = window.setInterval(
-      () => frameRef.current?.reload(),
+      () => !document.hidden && frameRef.current?.reload(),
       config.refreshMinutes * 60_000
     )
     return () => window.clearInterval(timer)
@@ -144,7 +144,8 @@ function SitePicker({ initialUrl, onPick, onCancel }: SitePickerProps): React.JS
   }
 
   return (
-    <div className={`${styles.picker} no-drag`}>
+    // Utilisable en mode édition : le crayon de la barre ouvre ce choix
+    <div {...EDIT_ACTIVE} className={`${styles.picker} no-drag`}>
       <Globe size={22} aria-hidden />
       <strong>{t('title')}</strong>
       <form className={styles.form} onSubmit={submit}>
@@ -164,7 +165,7 @@ function SitePicker({ initialUrl, onPick, onCancel }: SitePickerProps): React.JS
           {t('show')}
         </Button>
         {onCancel && (
-          <Button variant="ghost" onClick={onCancel}>
+          <Button variant="ghost" title={t('cancel')} aria-label={t('cancel')} onClick={onCancel}>
             ✕
           </Button>
         )}

@@ -36,7 +36,7 @@ import { cancelAuthorization } from '../auth/oauth'
 import {
   GOOGLE_SECRET,
   hasSecret,
-  pruneAccountSecrets,
+  removeAccountSecrets,
   setAccountSecret,
   setSecret
 } from '../auth/secrets'
@@ -503,7 +503,10 @@ export function initMail(next: MailListeners): void {
     // Comptes retirés : connexion fermée et secrets effacés
     const ids = settings.mail.accounts.map((account) => account.id)
     for (const id of connections.keys()) if (!ids.includes(id)) disconnect(id)
-    pruneAccountSecrets(ids)
+    const removed = previous.mail.accounts
+      .map((account) => account.id)
+      .filter((id) => !ids.includes(id))
+    if (removed.length > 0) removeAccountSecrets(removed)
   })
 }
 

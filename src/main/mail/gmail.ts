@@ -17,12 +17,6 @@ import { googleClient } from '../auth/providers'
 
 const API = 'https://gmail.googleapis.com/gmail/v1/users/me'
 
-/** Adresse du compte qui vient de se connecter. */
-export async function fetchGmailAddress(accessToken: string): Promise<string> {
-  const profile = await apiJson<{ emailAddress: string }>(async () => accessToken, `${API}/profile`)
-  return profile.emailAddress
-}
-
 interface GmailHeader {
   name: string
   value: string

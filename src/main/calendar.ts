@@ -105,7 +105,8 @@ async function calendarsOf(entry: AccountCache): Promise<GoogleCalendar[]> {
     'https://www.googleapis.com/calendar/v3/users/me/calendarList?minAccessRole=reader'
   )
   const list = (data.items ?? [])
-    .filter((calendar) => calendar.selected !== false && !calendar.hidden)
+    // `selected` est absent (et non `false`) pour un agenda décoché dans Google Agenda
+    .filter((calendar) => calendar.selected === true && !calendar.hidden)
     .slice(0, MAX_CALENDARS)
   entry.calendars = { list, fetchedAt: Date.now() }
   return list

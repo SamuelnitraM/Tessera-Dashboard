@@ -20,7 +20,7 @@ import { richExtensions } from './richExtensions'
 import styles from './NotesWidget.module.css'
 
 interface RichEditorProps {
-  /** Contenu HTML initial (le composant est recréé à chaque changement de note). */
+  /** Contenu HTML initial (recréé à chaque changement de note ou relecture du disque). */
   value: string
   onChange: (html: string) => void
   placeholder: string

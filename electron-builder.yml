@@ -30,6 +30,8 @@ electronFuses:
   enableNodeOptionsEnvironmentVariable: false
   enableNodeCliInspectArguments: false
   onlyLoadAppFromAsar: true
+  # Cookies des pages web (Gmail, Discord…) chiffrés par Windows, comme dans Chrome
+  enableCookieEncryption: true
 
 win:
   target:

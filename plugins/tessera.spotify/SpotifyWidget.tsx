@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { ArrowLeft, LogOut, Music2, Play, RefreshCw, Search } from 'lucide-react'
 import {
   Button,
+  EDIT_ACTIVE,
+  errorMessage,
   mailErrorMessage,
   usePluginTranslation,
   type WidgetProps
@@ -29,11 +31,18 @@ export function SpotifyWidget({
   const [error, setError] = useState<string | null>(null)
   const tab = config.tab ?? 'playlists'
 
+  const [loadError, setLoadError] = useState<string | null>(null)
+
   useEffect(() => {
-    void api.state().then(setState)
+    api
+      .state()
+      .then(setState)
+      .catch((failure: unknown) => setLoadError(errorMessage(failure)))
   }, [api])
 
-  if (!state) return <p className={styles.empty}>{t('loading')}</p>
+  if (!state) {
+    return <p className={loadError ? styles.error : styles.empty}>{loadError ?? t('loading')}</p>
+  }
   if (!state.configured || !state.user) {
     return <Setup state={state} onState={setState} error={error} onError={setError} />
   }
@@ -98,7 +107,8 @@ function Setup({
   }
 
   return (
-    <div className={styles.setup}>
+    // Réglage d'un bloc qui vient d'être ajouté : utilisable en mode édition
+    <div {...EDIT_ACTIVE} className={`${styles.setup} no-drag`}>
       <Music2 size={28} aria-hidden />
       <p>{t('intro')}</p>
       {!state.configured && (
@@ -115,7 +125,7 @@ function Setup({
               void api
                 .setClientId(clientId)
                 .then(onState)
-                .catch((failure: Error) => onError(failure.message))
+                .catch((failure: unknown) => onError(errorMessage(failure)))
             }}
           >
             <input
@@ -225,7 +235,7 @@ function Browser({ tab }: { tab: Tab }): React.JSX.Element {
       ) : (
         <ul className={styles.items}>
           {items.map((item, index) => (
-            <li key={`${item.uri}-${index}`}>
+            <li key={`${item.uri}-${index}`} className={styles.itemRow}>
               <button
                 type="button"
                 className={styles.item}
@@ -251,21 +261,18 @@ function Browser({ tab }: { tab: Tab }): React.JSX.Element {
                   </span>
                 </span>
                 <span className={styles.duration}>{minutes(item.durationMs)}</span>
-                {item.kind === 'playlist' && (
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className={styles.playButton}
-                    title={t('playAll')}
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      void api.open(item.uri)
-                    }}
-                  >
-                    <Play size={13} aria-hidden />
-                  </span>
-                )}
               </button>
+              {item.kind === 'playlist' && (
+                <button
+                  type="button"
+                  className={styles.playButton}
+                  title={t('playAll')}
+                  aria-label={t('playItem', { name: item.name })}
+                  onClick={() => void api.open(item.uri)}
+                >
+                  <Play size={13} aria-hidden />
+                </button>
+              )}
             </li>
           ))}
         </ul>

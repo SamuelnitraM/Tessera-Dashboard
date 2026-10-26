@@ -482,6 +482,15 @@ export function DesktopAppHost({
         <Button onClick={showHere}>{t('desktopApps.showHere')}</Button>
       </Message>
     )
+  } else if (
+    suspended &&
+    !snapshot &&
+    (state.status === 'running' || state.status === 'starting' || state.status === 'idle')
+  ) {
+    // Bloc ajouté pendant que les fenêtres sont masquées (mode édition…) : pas encore d'image
+    content = (
+      <Message icon={<AppIcon app={app} />} text={t('desktopApps.afterEdit', { name: app.name })} />
+    )
   } else if (state.status === 'outside') {
     content = (
       <Message icon={<AppIcon app={app} />} text={t('desktopApps.outside', { name: app.name })}>

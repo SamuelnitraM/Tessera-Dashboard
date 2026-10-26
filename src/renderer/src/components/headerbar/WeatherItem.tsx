@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next'
 import type { Place, WeatherReport } from '@shared/header-bar'
 import { useSettingsStore } from '../../stores/settings'
 import { HeaderPopover } from './HeaderPopover'
-import { placeLabel, useBlockSize, usePolling } from './helpers'
+import { formatPercent, placeLabel, useBlockSize, usePolling } from './helpers'
 import { PanelTitle, PlaceSearch } from './parts'
 import styles from './Widgets.module.css'
 
@@ -233,7 +233,8 @@ function WeatherPanel({
   const update = useSettingsStore((state) => state.update)
   const [settings, setSettings] = useState(place === null)
   // Grand bloc : courbe des températures et jours côte à côte
-  const blockWidth = useBlockSize()?.width ?? 0
+  const blockSize = useBlockSize()
+  const blockWidth = blockSize?.width ?? 0
   const wide = blockWidth >= 520
   const setPlace = (next: Place | null): void => {
     void update({ headerBar: { weather: { place: next } } })
@@ -264,7 +265,9 @@ function WeatherPanel({
         ) : (
           <p className={styles.muted}>{t('headerBar.weather.choosePlace')}</p>
         )}
-        <PlaceSearch autoFocus onPick={setPlace} />
+        {/* En bloc, pas de focus à l'affichage (la page sauterait jusqu'à lui) : seulement
+            après un clic sur les réglages */}
+        <PlaceSearch autoFocus={blockSize === null || place !== null} onPick={setPlace} />
         <p className={styles.footnote}>{t('headerBar.weather.source')}</p>
       </div>
     )
@@ -343,7 +346,8 @@ function WeatherPanel({
                     {day.precipitationProbability !== null &&
                       day.precipitationProbability >= 10 && (
                         <>
-                          <Droplets size={12} aria-hidden /> {day.precipitationProbability} %
+                          <Droplets size={12} aria-hidden />{' '}
+                          {formatPercent(day.precipitationProbability, i18n.language)}
                         </>
                       )}
                   </span>

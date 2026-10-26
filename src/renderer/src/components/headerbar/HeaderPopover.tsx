@@ -23,7 +23,8 @@ interface HeaderPopoverProps {
 /**
  * Widget de la barre des pages : un bouton qui déplie un panneau en dessous. Le panneau se
  * ferme au clic ailleurs ou avec Échap ; les fenêtres d'applications installées sont masquées
- * pendant qu'il est ouvert (sinon elles passeraient devant).
+ * pendant qu'il est ouvert (sinon elles passeraient devant). Le focus entre dans le panneau à
+ * l'ouverture et revient au bouton à la fermeture.
  */
 export function HeaderPopover({
   button,
@@ -47,7 +48,23 @@ export function HeaderPopover({
   })
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   useCoverDesktopApps(open, `widget « ${label} »`)
+
+  // Focus dans le panneau (s'il n'y est pas déjà : champ de la calculatrice…), puis rendu au
+  // bouton, sauf si l'utilisateur l'a mis ailleurs (clic sur un autre champ)
+  useEffect(() => {
+    const panel = panelRef.current
+    const button = buttonRef.current
+    if (!open || !panel) return
+    if (!panel.contains(document.activeElement)) panel.focus()
+    return () => {
+      const active = document.activeElement
+      if (!active || active === document.body || panel.contains(active)) {
+        button?.focus()
+      }
+    }
+  }, [open])
 
   // Panneau aligné à droite du bouton, décalé s'il sort de la zone de la page (fenêtre étroite)
   useLayoutEffect(() => {
@@ -95,6 +112,7 @@ export function HeaderPopover({
       {...(marker ? { [`data-${marker}`]: true } : {})}
     >
       <button
+        ref={buttonRef}
         type="button"
         className={styles.chip}
         data-open={open}
@@ -108,7 +126,7 @@ export function HeaderPopover({
         {button}
       </button>
       {open && (
-        <div ref={panelRef} className={styles.panel} role="dialog" aria-label={label}>
+        <div ref={panelRef} className={styles.panel} role="dialog" aria-label={label} tabIndex={-1}>
           {children(() => setOpen(false))}
         </div>
       )}

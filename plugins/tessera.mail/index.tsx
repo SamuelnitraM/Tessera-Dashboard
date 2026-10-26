@@ -62,7 +62,8 @@ export default definePlugin({
         remoteBlocked: 'Images masquées pour protéger ta vie privée.',
         showImages: 'Afficher les images',
         save: 'Enregistrer « {{name}} »',
-        saved: 'Pièce jointe enregistrée.'
+        saved: 'Pièce jointe enregistrée.',
+        frameTitle: 'Contenu du mail'
       },
       composer: {
         title: 'Nouveau mail',
@@ -86,7 +87,11 @@ export default definePlugin({
         quoteHeader: 'Le {{date}}, {{from}} a écrit :',
         forwardHeader: '---------- Message transféré ----------',
         from: 'De',
-        date: 'Date'
+        date: 'Date',
+        leaveTitle: 'Abandonner ce mail ?',
+        leaveMessage: 'Le mail en cours d’écriture n’a pas été envoyé : il sera perdu.',
+        keepWriting: 'Continuer l’écriture',
+        discard: 'Abandonner'
       },
       toolbar: {
         bold: 'Gras',
@@ -154,7 +159,8 @@ export default definePlugin({
         remoteBlocked: 'Images hidden to protect your privacy.',
         showImages: 'Show images',
         save: 'Save “{{name}}”',
-        saved: 'Attachment saved.'
+        saved: 'Attachment saved.',
+        frameTitle: 'Email content'
       },
       composer: {
         title: 'New email',
@@ -178,7 +184,11 @@ export default definePlugin({
         quoteHeader: 'On {{date}}, {{from}} wrote:',
         forwardHeader: '---------- Forwarded message ----------',
         from: 'From',
-        date: 'Date'
+        date: 'Date',
+        leaveTitle: 'Discard this email?',
+        leaveMessage: 'The email you are writing hasn’t been sent: it will be lost.',
+        keepWriting: 'Keep writing',
+        discard: 'Discard'
       },
       toolbar: {
         bold: 'Bold',

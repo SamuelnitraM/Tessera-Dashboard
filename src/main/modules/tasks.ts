@@ -111,24 +111,41 @@ interface GoogleTask {
   hidden?: boolean
 }
 
+/** Toutes les pages d'une liste de l'API Google (`nextPageToken`), 20 pages au plus. */
+async function allPages<T>(token: TokenSource, url: string): Promise<T[]> {
+  const items: T[] = []
+  let pageToken: string | undefined
+  for (let page = 0; page < 20; page++) {
+    const separator = url.includes('?') ? '&' : '?'
+    const data = await apiJson<{ items?: T[]; nextPageToken?: string }>(
+      token,
+      pageToken ? `${url}${separator}pageToken=${encodeURIComponent(pageToken)}` : url
+    )
+    items.push(...(data.items ?? []))
+    pageToken = data.nextPageToken
+    if (!pageToken) break
+  }
+  return items
+}
+
 async function googleState(): Promise<{ lists: TaskList[]; tasks: Task[] }> {
   const lists: TaskList[] = []
   const tasks: Task[] = []
   for (const account of getSettings().tasks.accounts) {
     const token = tokenOf(account.id)
     try {
-      const data = await apiJson<{ items?: { id: string; title: string }[] }>(
+      const googleLists = await allPages<{ id: string; title: string }>(
         token,
         `${API}/users/@me/lists?maxResults=100`
       )
-      for (const list of data.items ?? []) {
+      for (const list of googleLists) {
         const listId = `google:${account.id}:${list.id}`
         lists.push({ id: listId, name: list.title, source: 'google', account: account.email })
-        const items = await apiJson<{ items?: GoogleTask[] }>(
+        const items = await allPages<GoogleTask>(
           token,
           `${API}/lists/${encodeURIComponent(list.id)}/tasks?maxResults=100&showCompleted=true&showHidden=true`
         )
-        for (const item of items.items ?? []) {
+        for (const item of items) {
           if (item.deleted || !item.title) continue
           tasks.push({
             id: item.id,
@@ -209,12 +226,14 @@ function googleBody(input: TaskInput): Record<string, unknown> {
   }
 }
 
-/** Crée ou modifie une tâche (et la déplace si sa liste change). */
+/**
+ * Crée ou modifie une tâche, et la déplace si sa liste change : créée dans la nouvelle liste
+ * d'abord, retirée de l'ancienne ensuite (une erreur ne fait jamais perdre la tâche).
+ */
 export async function saveTask(raw: TaskInput, previousListId?: string): Promise<TasksState> {
   const input = cleanInput(raw)
   const target = parseList(input.listId)
   const from = previousListId && previousListId !== input.listId ? previousListId : null
-  if (from && input.id) await deleteTask(input.id, from)
   const id = from ? undefined : input.id
 
   if ('local' in target) {
@@ -254,6 +273,7 @@ export async function saveTask(raw: TaskInput, previousListId?: string): Promise
       await apiFetch(token, url, jsonBody(googleBody(input)))
     }
   }
+  if (from && input.id) return deleteTask(input.id, from)
   return tasksState()
 }
 

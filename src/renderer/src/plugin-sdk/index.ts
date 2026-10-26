@@ -292,6 +292,8 @@ export {
   type PluginMail
 } from './mail'
 export { mailErrorMessage } from '../stores/mail'
+/** Texte d'une erreur pour l'utilisateur (sans l'enrobage d'Electron, erreurs de compte traduites). */
+export { errorMessage } from './errors'
 
 // ---------------------------------------------------------------------------
 // Lecteurs vidéo (permission `web`) et comptes YouTube / Twitch (permission `media`)

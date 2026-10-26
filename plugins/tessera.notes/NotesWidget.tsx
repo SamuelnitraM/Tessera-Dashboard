@@ -18,6 +18,7 @@ import {
 import {
   Button,
   ConfirmDialog,
+  EDIT_ACTIVE,
   getPluginFileErrorCode,
   isValidFileName,
   openContextMenu,
@@ -65,6 +66,8 @@ interface OpenNote {
   saved: string
   content: string
   modifiedAt: number
+  /** Numéro de lecture du fichier : l'éditeur est recréé quand la note est relue du disque. */
+  revision: number
 }
 
 type PendingAction =
@@ -82,6 +85,9 @@ const FORMAT_ICONS: Record<NoteFormat, LucideIcon> = { plain: FileText, markdown
  * automatique désactivé) : on les retrouve en revenant sur la page, tant que l'app tourne.
  */
 const drafts = new Map<string, string>()
+
+/** Compteur des lectures de notes (voir `OpenNote.revision`). */
+let readCount = 0
 
 export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): React.JSX.Element {
   const t = usePluginTranslation()
@@ -137,7 +143,10 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
           format: selected.format,
           saved,
           content: drafts.get(selected.name) ?? saved,
-          modifiedAt: selectedModifiedAt
+          modifiedAt: selectedModifiedAt,
+          // Note modifiée ailleurs (autre bloc Notes, Explorateur) : l'éditeur reprend le
+          // nouveau contenu au lieu de l'écraser à la première frappe
+          revision: ++readCount
         })
       })
       .catch(showError)
@@ -486,7 +495,7 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
           ) : !current ? (
             <div className={styles.centered}>
               <p>{t('empty')}</p>
-              <div className={styles.emptyActions}>
+              <div {...EDIT_ACTIVE} className={`${styles.emptyActions} no-drag`}>
                 <Button variant="primary" icon={Plus} onClick={() => void createNote()}>
                   {t('createFirst')}
                 </Button>
@@ -497,7 +506,7 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
             </div>
           ) : current.format === 'rich' ? (
             <RichEditor
-              key={current.name}
+              key={`${current.name}:${current.revision}`}
               value={current.content}
               onChange={updateContent}
               placeholder={t('placeholder')}
@@ -506,7 +515,7 @@ export function NotesWidget({ config, setConfig }: WidgetProps<NotesConfig>): Re
             <MarkdownPreview source={current.content} />
           ) : (
             <CodeEditor
-              key={current.name}
+              key={`${current.name}:${current.revision}`}
               value={current.content}
               onChange={updateContent}
               markdown={current.format === 'markdown'}

@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { ExternalLink, Lock, Pencil, Plus, RefreshCw, Trash2 } from 'lucide-react'
-import { openMenuBelow, openWebPage, useLanguage, usePluginTranslation } from '@tessera/plugin-sdk'
+import {
+  ConfirmDialog,
+  errorMessage,
+  openMenuBelow,
+  openWebPage,
+  useLanguage,
+  usePluginTranslation
+} from '@tessera/plugin-sdk'
 import { MONITOR_INTERVALS, type MonitoredSite, type SiteStatus } from '@shared/devtools'
 import styles from './MonitorWidget.module.css'
 
@@ -17,10 +24,20 @@ export function MonitorWidget(): React.JSX.Element {
   const [sites, setSites] = useState<SiteStatus[] | null>(null)
   const [editing, setEditing] = useState<Partial<MonitoredSite> | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /** Échec du chargement de la liste (affiché tant qu'elle n'a pas pu être lue). */
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<SiteStatus | null>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    const load = (): void => void api.state().then(setSites)
+    const load = (): void =>
+      void api
+        .state()
+        .then((next) => {
+          setSites(next)
+          setLoadError(null)
+        })
+        .catch((failure: unknown) => setLoadError(errorMessage(failure)))
     load()
     const timer = window.setInterval(() => !document.hidden && load(), REFRESH_MS)
     return () => window.clearInterval(timer)
@@ -31,9 +48,7 @@ export function MonitorWidget(): React.JSX.Element {
     setError(null)
     promise
       .then(setSites)
-      .catch((failure: Error) =>
-        setError(failure.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))
-      )
+      .catch((failure: unknown) => setError(errorMessage(failure)))
       .finally(() => setBusy(false))
   }
 
@@ -111,7 +126,11 @@ export function MonitorWidget(): React.JSX.Element {
 
       <div className={styles.list}>
         {sites === null ? (
-          <p className={styles.empty}>{t('loading')}</p>
+          loadError ? (
+            <p className={styles.error}>{loadError}</p>
+          ) : (
+            <p className={styles.empty}>{t('loading')}</p>
+          )
         ) : sites.length === 0 ? (
           <p className={styles.empty}>{t('empty')}</p>
         ) : (
@@ -147,7 +166,7 @@ export function MonitorWidget(): React.JSX.Element {
                           label: t('remove'),
                           icon: Trash2,
                           danger: true,
-                          onSelect: () => run(api.remove(site.id))
+                          onSelect: () => setRemoving(site)
                         }
                       ])}
                     >
@@ -191,6 +210,24 @@ export function MonitorWidget(): React.JSX.Element {
         )}
       </div>
       {busy && <p className={styles.footnote}>{t('checking')}</p>}
+
+      <ConfirmDialog
+        open={removing !== null}
+        title={t('removeTitle')}
+        message={t('removeMessage', { name: removing?.name ?? '' })}
+        onClose={() => setRemoving(null)}
+        actions={[
+          { label: t('cancel'), onClick: () => setRemoving(null) },
+          {
+            label: t('remove'),
+            variant: 'danger',
+            onClick: () => {
+              if (removing) run(api.remove(removing.id))
+              setRemoving(null)
+            }
+          }
+        ]}
+      />
     </div>
   )
 }

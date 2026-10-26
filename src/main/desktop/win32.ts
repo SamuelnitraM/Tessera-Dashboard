@@ -73,6 +73,7 @@ const api = {
   IsIconic: fn(user32, 'bool __stdcall IsIconic(intptr_t hwnd)'),
   IsZoomed: fn(user32, 'bool __stdcall IsZoomed(intptr_t hwnd)'),
   IsHungAppWindow: fn(user32, 'bool __stdcall IsHungAppWindow(intptr_t hwnd)'),
+  IsWindowEnabled: fn(user32, 'bool __stdcall IsWindowEnabled(intptr_t hwnd)'),
   GetWindowTextW: fn(
     user32,
     'int __stdcall GetWindowTextW(intptr_t hwnd, _Out_ uint8_t *buf, int max)'
@@ -104,7 +105,6 @@ const api = {
     user32,
     'bool __stdcall SetWindowPlacement(intptr_t hwnd, WINDOWPLACEMENT *wp)'
   ),
-  SetWindowRgn: fn(user32, 'int __stdcall SetWindowRgn(intptr_t hwnd, intptr_t rgn, bool redraw)'),
   SetParent: fn(user32, 'intptr_t __stdcall SetParent(intptr_t child, intptr_t parent)'),
   GetParent: fn(user32, 'intptr_t __stdcall GetParent(intptr_t hwnd)'),
   PostMessageW: fn(
@@ -119,7 +119,6 @@ const api = {
   GetDC: fn(user32, 'intptr_t __stdcall GetDC(intptr_t hwnd)'),
   ReleaseDC: fn(user32, 'int __stdcall ReleaseDC(intptr_t hwnd, intptr_t dc)'),
   PrintWindow: fn(user32, 'bool __stdcall PrintWindow(intptr_t hwnd, intptr_t dc, uint32_t flags)'),
-  CreateRectRgn: fn(gdi32, 'intptr_t __stdcall CreateRectRgn(int l, int t, int r, int b)'),
   CreateCompatibleDC: fn(gdi32, 'intptr_t __stdcall CreateCompatibleDC(intptr_t dc)'),
   CreateCompatibleBitmap: fn(
     gdi32,
@@ -145,10 +144,6 @@ const api = {
     shell32,
     'intptr_t __stdcall ShellExecuteW(intptr_t hwnd, str16 operation, str16 file, str16 parameters, str16 directory, int show)'
   ),
-  DwmSetWindowAttribute: fn(
-    dwmapi,
-    'int32_t __stdcall DwmSetWindowAttribute(intptr_t hwnd, uint32_t attr, const void *value, uint32_t size)'
-  ),
   DwmGetWindowAttribute: fn(
     dwmapi,
     'int32_t __stdcall DwmGetWindowAttribute(intptr_t hwnd, uint32_t attr, _Out_ RECT *value, uint32_t size)'
@@ -157,7 +152,6 @@ const api = {
 
 const GWL_STYLE = -16
 const GWL_EXSTYLE = -20
-const GWLP_HWNDPARENT = -8
 const GW_OWNER = 4
 
 export const WS = {
@@ -202,8 +196,6 @@ export const WinEvent = {
 } as const
 
 const DWMWA_EXTENDED_FRAME_BOUNDS = 9
-const DWMWA_WINDOW_CORNER_PREFERENCE = 33
-const DWMWA_BORDER_COLOR = 34
 
 // ---------------------------------------------------------------------------
 // Fenêtres
@@ -224,7 +216,6 @@ export const getExStyle = (hwnd: Hwnd): number =>
   Number(api.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)) | 0
 export const setExStyle = (hwnd: Hwnd, style: number): void =>
   void api.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | 0)
-export const getOwner = (hwnd: Hwnd): Hwnd => Number(api.GetWindowLongPtrW(hwnd, GWLP_HWNDPARENT))
 /** Fenêtre propriétaire : la fenêtre reste au-dessus d'elle, et se réduit avec elle. */
 export const setParent = (hwnd: Hwnd, parent: Hwnd): void => void api.SetParent(hwnd, parent)
 export const getParent = (hwnd: Hwnd): Hwnd => Number(api.GetParent(hwnd))
@@ -233,9 +224,6 @@ export const postMessage = (hwnd: Hwnd, message: number): void =>
 export const WM_CLOSE = 0x0010
 /** Interrompt un déplacement ou un redimensionnement en cours (fenêtre tirée par l'utilisateur). */
 export const WM_CANCELMODE = 0x001f
-
-export const setOwner = (hwnd: Hwnd, owner: Hwnd): void =>
-  void api.SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, owner)
 
 export function setWindowPos(
   hwnd: Hwnd,
@@ -264,7 +252,6 @@ export function getWindowRect(hwnd: Hwnd): Rect {
   return rect
 }
 
-/** Rectangle visible (sans les bordures invisibles que Windows ajoute pour le redimensionnement). */
 /** Zone intérieure de la fenêtre (sans bordure ni barre de titre), en px depuis son coin. */
 export function getClientSize(hwnd: Hwnd): { width: number; height: number } {
   const rect = {} as Rect
@@ -272,6 +259,7 @@ export function getClientSize(hwnd: Hwnd): { width: number; height: number } {
   return { width: rect.right - rect.left, height: rect.bottom - rect.top }
 }
 
+/** Rectangle visible (sans les bordures invisibles que Windows ajoute pour le redimensionnement). */
 export function getFrameRect(hwnd: Hwnd): Rect {
   const rect = {} as Rect
   return api.DwmGetWindowAttribute(hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, rect, 16) === 0
@@ -295,25 +283,6 @@ export function getPlacement(hwnd: Hwnd): WindowPlacement {
 export const setPlacement = (hwnd: Hwnd, placement: WindowPlacement): void =>
   void api.SetWindowPlacement(hwnd, { ...placement, length: 44 })
 
-/** Découpe l'affichage de la fenêtre (coordonnées relatives à la fenêtre), `null` = aucune. */
-export function setRegion(hwnd: Hwnd, rect: Rect | null): void {
-  const region = rect ? api.CreateRectRgn(rect.left, rect.top, rect.right, rect.bottom) : 0
-  // Windows devient propriétaire de la région : pas de DeleteObject
-  api.SetWindowRgn(hwnd, region, true)
-}
-
-function dwmInt(hwnd: Hwnd, attribute: number, value: number): void {
-  const buffer = Buffer.alloc(4)
-  buffer.writeUInt32LE(value >>> 0)
-  api.DwmSetWindowAttribute(hwnd, attribute, buffer, 4)
-}
-
-/** Coins carrés et sans bordure (fenêtre intégrée dans un bloc), ou apparence d'origine. */
-export function setDockedLook(hwnd: Hwnd, docked: boolean): void {
-  dwmInt(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, docked ? 1 : 0) // DWMWCP_DONOTROUND / DEFAULT
-  dwmInt(hwnd, DWMWA_BORDER_COLOR, docked ? 0xfffffffe : 0xffffffff) // DWMWA_COLOR_NONE / DEFAULT
-}
-
 export function getProcessId(hwnd: Hwnd): number {
   const pid = [0]
   api.GetWindowThreadProcessId(hwnd, pid)
@@ -331,20 +300,46 @@ export function getProcessPath(pid: number): string {
   return ok ? buffer.toString('utf16le', 0, size[0] * 2) : ''
 }
 
+/** La fenêtre accepte la souris et le clavier (pas désactivée par une boîte de dialogue). */
+export const isEnabled = (hwnd: Hwnd): boolean => api.IsWindowEnabled(hwnd)
+
+/**
+ * Fenêtres visibles et actives dont `owner` est le propriétaire : la boîte de dialogue qui a
+ * désactivé une fenêtre (une application désactive sa fenêtre tant qu'elle est ouverte).
+ */
+export function ownedPopups(owner: Hwnd): Hwnd[] {
+  const found: Hwnd[] = []
+  api.EnumWindows((hwnd: Hwnd) => {
+    if (
+      Number(api.GetWindow(hwnd, GW_OWNER)) === owner &&
+      api.IsWindowVisible(hwnd) &&
+      api.IsWindowEnabled(hwnd)
+    ) {
+      found.push(Number(hwnd))
+    }
+    return true
+  }, 0)
+  return found
+}
+
 export interface TopWindow {
   hwnd: Hwnd
   pid: number
   title: string
   width: number
   height: number
+  /** Barre de titre ou bord redimensionnable : une vraie fenêtre, pas un écran de démarrage. */
+  framed: boolean
 }
 
 /**
  * Fenêtres principales visibles d'un exécutable (sans propriétaire, hors fenêtres « outil »),
- * de la plus grande à la plus petite.
+ * de la plus grande à la plus petite. `folder` : aussi celles des programmes de ce dossier
+ * (LibreOffice : `swriter.exe` lance `soffice.bin`, qui affiche la fenêtre).
  */
-export function findTopWindows(processName: string): TopWindow[] {
+export function findTopWindows(processName: string, folder?: string): TopWindow[] {
   const wanted = processName.toLowerCase()
+  const inFolder = folder ? `${folder.toLowerCase().replace(/\\$/, '')}\\` : null
   const paths = new Map<number, string>()
   const found: TopWindow[] = []
   api.EnumWindows((hwnd: Hwnd) => {
@@ -353,8 +348,9 @@ export function findTopWindows(processName: string): TopWindow[] {
     const pid = getProcessId(hwnd)
     if (!paths.has(pid)) paths.set(pid, getProcessPath(pid).toLowerCase())
     const path = paths.get(pid)!
-    if (!path.endsWith(`\\${wanted}`)) return true
+    if (!path.endsWith(`\\${wanted}`) && !(inFolder && path.startsWith(inFolder))) return true
     const rect = getWindowRect(hwnd)
+    const style = getStyle(hwnd)
     const buffer = Buffer.alloc(512)
     const length = api.GetWindowTextW(hwnd, buffer, 256)
     found.push({
@@ -362,17 +358,12 @@ export function findTopWindows(processName: string): TopWindow[] {
       pid,
       title: buffer.toString('utf16le', 0, length * 2),
       width: rect.right - rect.left,
-      height: rect.bottom - rect.top
+      height: rect.bottom - rect.top,
+      framed: (style & (WS.CAPTION | WS.THICKFRAME)) !== 0
     })
     return true
   }, 0)
   return found.sort((a, b) => b.width * b.height - a.width * a.height)
-}
-
-/** La fenêtre a-t-elle une barre de titre Windows (zone cliente plus basse que le cadre) ? */
-export function hasNativeCaption(hwnd: Hwnd): boolean {
-  if (!(getStyle(hwnd) & WS.CAPTION)) return false
-  return clientOrigin(hwnd).y - getFrameRect(hwnd).top > 8
 }
 
 /**

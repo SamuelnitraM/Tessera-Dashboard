@@ -17,6 +17,7 @@ import { getTranslation } from '../i18n'
 import { notify } from '../notifications'
 import { JsonStore } from '../json-store'
 import { hasPermission } from './manifests'
+import { systemProgram } from '../executables'
 
 /**
  * Programmes lancés par les extensions (permission `processes`).
@@ -191,8 +192,13 @@ export function startProcess(pluginId: string, owner: string, options: LaunchOpt
     commandArgs = [...splitArgs(link.args ?? ''), ...commandArgs]
     if (!options.cwd?.trim()) cwd = link.cwd || dirname(link.target)
   } else if (kind === 'script') {
+    // Arguments d'un script : cmd.exe interprète & | < > ^ % et les guillemets. Refusés : un
+    // module ne doit pas pouvoir ajouter sa propre commande au script choisi par l'utilisateur.
+    if (/[&|<>^%"\r\n]/.test(args)) {
+      throw processError('invalid', 'Arguments refusés pour un script (caractères & | < > ^ % ").')
+    }
     // Un .bat passe par cmd.exe. `chcp 65001` : sortie en UTF-8 (accents corrects).
-    command = 'cmd.exe'
+    command = systemProgram('cmd.exe')
     commandArgs = ['/d', '/s', '/c', `"chcp 65001 >nul & "${path}" ${args}"`]
     verbatim = true
   }
@@ -323,9 +329,9 @@ export function stopProcess(pluginId: string, runId: string): void {
 
   const force = (): void => {
     if (state.info.status === 'running')
-      execFile('taskkill', ['/PID', String(pid), '/T', '/F'], () => {})
+      execFile(systemProgram('taskkill.exe'), ['/PID', String(pid), '/T', '/F'], () => {})
   }
-  execFile('taskkill', ['/PID', String(pid), '/T'], (error) => {
+  execFile(systemProgram('taskkill.exe'), ['/PID', String(pid), '/T'], (error) => {
     // Les programmes en console refusent la fermeture normale : arrêt forcé immédiat
     if (error) force()
     else setTimeout(force, GRACEFUL_STOP_MS)
@@ -375,7 +381,7 @@ export function isTargetRunning(pluginId: string, path: string): Promise<boolean
   const image = basename(executable)
   return new Promise((resolvePromise) => {
     execFile(
-      'tasklist',
+      systemProgram('tasklist.exe'),
       ['/FI', `IMAGENAME eq ${image}`, '/FO', 'CSV', '/NH'],
       { windowsHide: true },
       (error, stdout) =>
@@ -393,7 +399,9 @@ export function stopCapturedProcesses(): void {
   for (const state of runs.values()) {
     if (state.info.mode === 'captured' && state.info.status === 'running' && state.info.pid) {
       try {
-        execFileSync('taskkill', ['/PID', String(state.info.pid), '/T', '/F'], { stdio: 'ignore' })
+        execFileSync(systemProgram('taskkill.exe'), ['/PID', String(state.info.pid), '/T', '/F'], {
+          stdio: 'ignore'
+        })
       } catch {
         // Déjà terminé
       }

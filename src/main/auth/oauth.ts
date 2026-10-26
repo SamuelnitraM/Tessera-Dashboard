@@ -151,7 +151,13 @@ export async function authorize(client: OAuthClient, loginHint?: string): Promis
     }
     const code = url.searchParams.get('code')
     const error = url.searchParams.get('error')
-    const ok = !!code && url.searchParams.get('state') === state
+    // Requête sans le bon `state` (autre programme, page qui sonde les ports) : ignorée, elle
+    // n'interrompt pas la connexion en cours
+    if (url.searchParams.get('state') !== state) {
+      response.writeHead(400).end()
+      return
+    }
+    const ok = !!code
     response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
     response.end(
       ok ? page(text.successTitle, text.successText) : page(text.failedTitle, text.failedText)
@@ -233,7 +239,9 @@ export async function authorizeDevice(
     cancelled = true
   }
   try {
-    await shell.openExternal(String(device.verification_uri))
+    const verification = String(device.verification_uri)
+    if (!/^https:\/\//i.test(verification)) throw mailError('auth', 'verification_uri')
+    await shell.openExternal(verification)
     const deadline = Date.now() + Math.min(Number(device.expires_in) || 600, 900) * 1000
     const interval = Math.max(Number(device.interval) || 5, 2) * 1000
     while (Date.now() < deadline) {

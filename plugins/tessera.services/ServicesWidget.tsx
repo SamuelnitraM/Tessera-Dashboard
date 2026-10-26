@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import {
   ConfirmDialog,
+  errorMessage,
   openWebPage,
   usePluginTranslation,
   type WidgetProps
@@ -37,7 +38,10 @@ export function ServicesWidget({
   const api = window.tessera.services
   const [state, setState] = useState<LocalServicesState | null>(null)
   const [query, setQuery] = useState('')
+  /** Échec d'une action (arrêter, redémarrer…). */
   const [error, setError] = useState<string | null>(null)
+  /** Échec de la lecture des services, effacé à la lecture suivante réussie. */
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [stopping, setStopping] = useState<LocalService | null>(null)
   const [tick, setTick] = useState(0)
   const showSystem = config.showSystem ?? false
@@ -52,8 +56,12 @@ export function ServicesWidget({
       if (document.hidden) return next()
       api
         .state()
-        .then((result) => !cancelled && setState(result))
-        .catch((failure: Error) => !cancelled && setError(failure.message))
+        .then((result) => {
+          if (cancelled) return
+          setState(result)
+          setLoadError(null)
+        })
+        .catch((failure: unknown) => !cancelled && setLoadError(errorMessage(failure)))
         .finally(next)
     }
     run()
@@ -66,9 +74,7 @@ export function ServicesWidget({
   const act = (promise: Promise<unknown>): void =>
     void promise
       .then(() => setError(null))
-      .catch((failure: Error) =>
-        setError(failure.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))
-      )
+      .catch((failure: unknown) => setError(errorMessage(failure)))
       .finally(() => setTick((value) => value + 1))
 
   const words = query.toLowerCase().split(/\s+/).filter(Boolean)
@@ -112,14 +118,17 @@ export function ServicesWidget({
           <RefreshCw size={14} aria-hidden />
         </button>
       </div>
-      {error && (
+      {(error ?? loadError) && (
         <p className={styles.error}>
-          {error}
+          {error ?? loadError}
           <button
             type="button"
             className={styles.iconButton}
             aria-label={t('close')}
-            onClick={() => setError(null)}
+            onClick={() => {
+              setError(null)
+              setLoadError(null)
+            }}
           >
             <X size={12} aria-hidden />
           </button>

@@ -56,8 +56,12 @@ function texts(value: unknown): string[] {
   return value as string[]
 }
 
-/** Lien ouvert dans le navigateur par défaut (http et https uniquement). */
-function openExternal(url: string): void {
+/**
+ * Lien ouvert dans le navigateur par défaut (http et https uniquement), après accord de
+ * l'utilisateur (le processus principal le demande) : sinon un module sans la permission
+ * « network » pourrait envoyer des données dans l'adresse.
+ */
+function openExternal(pluginId: string, url: string): Promise<boolean> {
   let parsed: URL
   try {
     parsed = new URL(url)
@@ -67,14 +71,13 @@ function openExternal(url: string): void {
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new BridgeCallError('Seules les adresses http(s) peuvent être ouvertes.', 'invalid')
   }
-  // Toute fenêtre demandée par l'interface s'ouvre dans le navigateur par défaut (window.ts)
-  window.open(parsed.href, '_blank', 'noopener')
+  return api().modules.openLink(pluginId, parsed.href)
 }
 
 const api = (): typeof window.tessera => window.tessera
 
 const METHODS: Record<string, Method> = {
-  'app.openExternal': { permission: null, run: (_id, [url]) => openExternal(text(url, 'url')) },
+  'app.openExternal': { permission: null, run: (id, [url]) => openExternal(id, text(url, 'url')) },
 
   'files.list': { permission: 'files', run: (id) => api().pluginFiles.list(id) },
   'files.read': {

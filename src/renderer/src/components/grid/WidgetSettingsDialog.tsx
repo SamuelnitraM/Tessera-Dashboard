@@ -1,4 +1,4 @@
-import { useId } from 'react'
+import { useId, useState } from 'react'
 import { localize, type WidgetSettingField } from '@shared/plugins'
 import { useResolvedLanguage } from '../../stores/settings'
 import { Dialog } from '../ui/Dialog'
@@ -91,23 +91,61 @@ function SettingField({ field, value, onChange }: SettingFieldProps): React.JSX.
         />
       )}
       {field.type === 'number' && (
-        <input
-          id={`${id}-input`}
-          className={styles.input}
-          type="number"
-          value={Number(value)}
-          min={Number.isFinite(field.min) ? field.min : undefined}
-          max={Number.isFinite(field.max) ? field.max : undefined}
-          step={field.step}
-          onChange={(event) => {
-            const number = event.target.valueAsNumber
-            // Valeur hors limites ou vide : ignorée, le champ reste sur la dernière valeur valide
-            if (Number.isFinite(number) && number >= field.min && number <= field.max) {
-              onChange(number)
-            }
-          }}
-        />
+        <NumberInput id={`${id}-input`} field={field} value={value} onChange={onChange} />
       )}
     </div>
+  )
+}
+
+/**
+ * Champ nombre : le texte tapé reste affiché tel quel (« 3 » en route vers « 30 », champ
+ * vidé) ; une valeur valide s'applique tout de suite, le reste est ramené dans les limites à la
+ * sortie du champ.
+ */
+function NumberInput({
+  id,
+  field,
+  value,
+  onChange
+}: {
+  id: string
+  field: Extract<WidgetSettingField, { type: 'number' }>
+  value: unknown
+  onChange: (value: unknown) => void
+}): React.JSX.Element {
+  const [text, setText] = useState(String(Number(value)))
+  // Valeur changée ailleurs : le champ la reprend
+  const [shownValue, setShownValue] = useState(value)
+  if (shownValue !== value) {
+    setShownValue(value)
+    if (Number(text) !== Number(value) || text.trim() === '') setText(String(Number(value)))
+  }
+  const valid = (number: number): boolean =>
+    Number.isFinite(number) && number >= field.min && number <= field.max
+
+  return (
+    <input
+      id={id}
+      className={styles.input}
+      type="number"
+      value={text}
+      min={Number.isFinite(field.min) ? field.min : undefined}
+      max={Number.isFinite(field.max) ? field.max : undefined}
+      step={field.step}
+      onChange={(event) => {
+        setText(event.target.value)
+        const number = event.target.valueAsNumber
+        if (valid(number)) onChange(number)
+      }}
+      onBlur={(event) => {
+        const number = event.target.valueAsNumber
+        // Vide ou illisible : dernière valeur valide ; hors limites : ramenée à la limite
+        const next = Number.isFinite(number)
+          ? Math.min(field.max, Math.max(field.min, number))
+          : Number(value)
+        setText(String(next))
+        if (next !== Number(value)) onChange(next)
+      }}
+    />
   )
 }

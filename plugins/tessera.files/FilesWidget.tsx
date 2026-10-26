@@ -28,13 +28,14 @@ import {
   openContextMenu,
   revealInstalledApp,
   useLanguage,
+  useLatest,
   usePluginTranslation,
   type MenuItem,
   type WidgetProps
 } from '@tessera/plugin-sdk'
 import type { FileEntry, FileFavorite, FilePlace, FolderListing } from '@shared/files'
 import { isValidFileName } from '@shared/files'
-import { NAVIGATE_EVENT, useFavorites, type NavigateDetail } from './favorites'
+import { NAVIGATE_EVENT, openFavorite, useFavorites, type NavigateDetail } from './favorites'
 import styles from './FilesWidget.module.css'
 
 interface FilesConfig {
@@ -97,6 +98,10 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
   const showHidden = config.showHidden ?? false
   const sort = config.sort ?? 'name'
   const descending = config.descending ?? false
+  // Dossier affiché : une réponse arrivée après un changement de dossier (dossier lent) ou de
+  // recherche est ignorée, sinon elle remplacerait le contenu du dossier courant
+  const pathRef = useLatest(path)
+  const searchToken = useRef(0)
 
   useEffect(() => {
     void api.places().then(setPlaces)
@@ -117,12 +122,13 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
       api
         .list(target)
         .then((result) => {
+          if (target !== pathRef.current) return
           setListing(result)
           setError(null)
         })
-        .catch(() => setError(t('cannotOpen', { path: target })))
+        .catch(() => target === pathRef.current && setError(t('cannotOpen', { path: target })))
     },
-    [api, t]
+    [api, t, pathRef]
   )
 
   useEffect(() => {
@@ -135,6 +141,8 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
   const go = (target: string, record = true): void => {
     if (!target || target === path) return
     if (record) setHistory((current) => ({ back: [...current.back, path].slice(-50), forward: [] }))
+    searchToken.current += 1
+    setSearching(false)
     setSelected(new Set())
     setResults(null)
     setQuery('')
@@ -274,15 +282,18 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
 
   const runSearch = (): void => {
     const text = query.trim()
+    const token = ++searchToken.current
     if (!text || !path) {
       setResults(null)
+      setSearching(false)
       return
     }
     setSearching(true)
-    void api
+    api
       .search(path, text)
-      .then(setResults)
-      .finally(() => setSearching(false))
+      .then((found) => token === searchToken.current && setResults(found))
+      .catch(() => token === searchToken.current && flash(t('searchFailed')))
+      .finally(() => token === searchToken.current && setSearching(false))
   }
 
   /** Clic : sélection simple, Ctrl (ajout), Maj (plage). */
@@ -654,12 +665,11 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
                     className={styles.place}
                     data-active={favorite.path === path}
                     title={favorite.path}
+                    // Un dossier s'ouvre dans ce bloc, un fichier comme depuis le bloc Favoris
                     onClick={() =>
                       favorite.isDirectory
                         ? go(favorite.path)
-                        : void api
-                            .open(favorite.path)
-                            .then(({ appId }) => appId && revealInstalledApp(appId))
+                        : void openFavorite(favorite).catch(() => flash(t('cannotOpenFile')))
                     }
                     onContextMenu={openContextMenu(() =>
                       placeMenu(favorite.path, favorite.isDirectory)

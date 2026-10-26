@@ -3,6 +3,7 @@ import type { Readable, Writable } from 'node:stream'
 import { join } from 'node:path'
 import type {
   FrameActive,
+  FrameFocus,
   FrameCommand,
   FramePan,
   FrameReply,
@@ -23,6 +24,12 @@ let onHostLost: () => void = () => {}
 let onPan: (pan: FramePan) => void = () => {}
 let onWheel: (wheel: FrameWheel) => void = () => {}
 let onActive: (active: FrameActive) => void = () => {}
+let onFocus: (focus: FrameFocus) => void = () => {}
+
+/** Clavier refusé par une fenêtre insérée (journal). */
+export function setFrameFocusListener(listener: (focus: FrameFocus) => void): void {
+  onFocus = listener
+}
 
 /** Appelé si l'hébergeur s'arrête alors que Tessera tourne (ses cadres ont disparu). */
 export function setFrameHostLostListener(listener: () => void): void {
@@ -53,19 +60,30 @@ function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
     detached: true
   })
   child.unref()
+  // Hébergeur arrêté avant que Tessera ne le sache : une écriture échoue (EPIPE) sans planter
+  child.stdin.on('error', () => {})
   let buffer = ''
   child.stdout.setEncoding('utf8')
   child.stdout.on('data', (chunk: string) => {
     buffer += chunk
     for (let end = buffer.indexOf('\n'); end >= 0; end = buffer.indexOf('\n')) {
-      const message = JSON.parse(buffer.slice(0, end)) as FrameReply
+      const line = buffer.slice(0, end)
       buffer = buffer.slice(end + 1)
+      let message: FrameReply
+      try {
+        message = JSON.parse(line) as FrameReply
+      } catch {
+        // Ligne illisible : ignorée (relue en boucle, elle bloquait toutes les réponses)
+        continue
+      }
       if ('pan' in message) {
         onPan(message)
       } else if ('wheel' in message) {
         onWheel(message)
       } else if ('active' in message) {
         onActive(message)
+      } else if ('focus' in message) {
+        onFocus(message)
       } else if ('id' in message) {
         pending.get(message.id)?.(message.frame)
         pending.delete(message.id)

@@ -119,7 +119,11 @@ export function ProspectWidget({
         .catch(() => active && setHealth({ status: 'offline', apiVersion: null }))
     }
     probe()
-    const timer = window.setInterval(probe, ownRunning && !ready ? HEALTH_FAST_MS : HEALTH_SLOW_MS)
+    // Fenêtre de Tessera masquée : pas de sonde (reprise dès qu'elle revient)
+    const timer = window.setInterval(
+      () => !document.hidden && probe(),
+      ownRunning && !ready ? HEALTH_FAST_MS : HEALTH_SLOW_MS
+    )
     return () => {
       active = false
       window.clearInterval(timer)
@@ -142,7 +146,7 @@ export function ProspectWidget({
       loadData().catch(() => active && setHealth({ status: 'offline', apiVersion: null }))
     }
     load()
-    const timer = window.setInterval(load, DATA_POLL_MS)
+    const timer = window.setInterval(() => !document.hidden && load(), DATA_POLL_MS)
     return () => {
       active = false
       window.clearInterval(timer)
@@ -171,6 +175,7 @@ export function ProspectWidget({
   }
   const onJobsRef = useLatest(onJobs)
   const anyRunning = jobs.some((job) => job.status === 'running')
+  const notifyJobs = config.notifyJobs
 
   useEffect(() => {
     if (!ready) {
@@ -185,12 +190,16 @@ export function ProspectWidget({
         .catch(() => {})
     }
     load()
-    const timer = window.setInterval(load, anyRunning ? JOBS_FAST_MS : JOBS_SLOW_MS)
+    // Fenêtre masquée : suivi seulement d'une tâche en cours dont la fin doit être notifiée
+    const timer = window.setInterval(
+      () => (!document.hidden || (anyRunning && notifyJobs)) && load(),
+      anyRunning ? JOBS_FAST_MS : JOBS_SLOW_MS
+    )
     return () => {
       active = false
       window.clearInterval(timer)
     }
-  }, [prospect, port, ready, anyRunning, onJobsRef])
+  }, [prospect, port, ready, anyRunning, notifyJobs, onJobsRef])
 
   // Rappel des relances du jour, une fois par jour
   const followUpsDue = statistics?.followUpsDue ?? 0
@@ -230,7 +239,7 @@ export function ProspectWidget({
     if (current && current.status !== 'offline') {
       setHealth(current)
       setError(
-        current.status === 'ready' ? t('errors.alreadyRunning') : t('errors.portBusy', { port })
+        current.status === 'ready' ? t('errors.running-elsewhere') : t('errors.port-busy', { port })
       )
       return
     }
@@ -251,14 +260,31 @@ export function ProspectWidget({
 
   /** N'arrête que le serveur lancé par ce bloc (et les programmes qu'il a lancés lui-même). */
   const stop = (): void => {
-    if (run && ownRunning) void processes.stop(run.id).catch(fail)
+    if (run && ownRunning) {
+      void processes
+        .stop(run.id)
+        .then(() => setError(null))
+        .catch(fail)
+    }
+  }
+
+  // Le serveur lancé ici se met à répondre : une erreur précédente (arrêt, tâche…) n'a plus
+  // lieu d'être
+  const ownReady = ready && ownRunning
+  const [wasOwnReady, setWasOwnReady] = useState(ownReady)
+  if (ownReady !== wasOwnReady) {
+    setWasOwnReady(ownReady)
+    if (ownReady) setError(null)
   }
 
   const cancelJob = (jobId: number): void => {
     prospect
       .cancelJob(port, jobId)
       .then(() => prospect.jobs(port))
-      .then((list) => onJobsRef.current(list))
+      .then((list) => {
+        setError(null)
+        onJobsRef.current(list)
+      })
       .catch((cause) => setError(t(`errors.${getIntegrationErrorCode(cause)}`)))
   }
 
@@ -326,6 +352,7 @@ export function ProspectWidget({
           <div className={styles.empty}>
             <p>{t('intro')}</p>
             <Button
+              {...EDIT_ACTIVE}
               variant="primary"
               icon={FolderSearch}
               className="no-drag"

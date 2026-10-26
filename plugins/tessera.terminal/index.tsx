@@ -13,7 +13,9 @@ export default definePlugin({
       chooseCwd: 'Choisir le dossier de départ',
       home: 'dossier personnel',
       loading: 'Recherche des shells…',
-      noTab: 'Ouvre un onglet avec le bouton +.',
+      noTab: 'Aucun onglet ouvert.',
+      noShell: 'Aucun shell trouvé sur ce PC.',
+      openTab: 'Ouvrir un onglet {{shell}}',
       exited: 'Programme terminé : ferme l’onglet ou ouvres-en un autre.'
     },
     en: {
@@ -23,7 +25,9 @@ export default definePlugin({
       chooseCwd: 'Choose the start folder',
       home: 'home folder',
       loading: 'Looking for shells…',
-      noTab: 'Open a tab with the + button.',
+      noTab: 'No tab open.',
+      noShell: 'No shell found on this PC.',
+      openTab: 'Open a {{shell}} tab',
       exited: 'Program ended: close the tab or open another one.'
     }
   }

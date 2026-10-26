@@ -4,7 +4,7 @@
   "apiVersion": 1,
   "name": { "fr": "Vidéo locale", "en": "Local video" },
   "description": {
-    "fr": "Les vidéos et musiques de ton PC : lecture qui reprend où tu t'étais arrêté, mini-lecteur et « Ouvrir dans VLC ».",
+    "fr": "Les vidéos et musiques de ton PC : lecture qui reprend où tu t’étais arrêté, mini-lecteur et « Ouvrir dans VLC ».",
     "en": "The videos and music on your PC: playback resumes where you left off, mini-player and “Open in VLC”."
   },
   "author": "Tessera Dashboard",

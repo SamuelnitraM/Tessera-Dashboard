@@ -3,7 +3,9 @@ import { Pause, Play, Square, Timer } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
 import i18n from 'i18next'
+import { useBlockSize } from './helpers'
 import { HeaderPopover } from './HeaderPopover'
+import { PanelTitle } from './parts'
 import styles from './HeaderBar.module.css'
 
 /** Durées proposées (minutes). */
@@ -142,10 +144,13 @@ function TimerPanel({
   const [minutes, setMinutes] = useState('20')
   const custom = Number(minutes.replace(',', '.'))
   const customValid = Number.isFinite(custom) && custom > 0 && custom <= 24 * 60
+  // En bloc, titre comme les autres blocs de la boîte à outils (le bouton de la barre en tient lieu)
+  const title = useBlockSize() !== null && <PanelTitle title={t('headerBar.names.timer')} />
 
   if (left !== null) {
     return (
       <div className={styles.timer}>
+        {title}
         <p className={styles.timerLeft} data-paused={!running}>
           {formatLeft(left)}
         </p>
@@ -169,6 +174,7 @@ function TimerPanel({
 
   return (
     <div className={styles.timer}>
+      {title}
       <div className={styles.presets}>
         {PRESETS.map((preset) => (
           <button

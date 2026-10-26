@@ -15,7 +15,7 @@
       "type": "launcher",
       "name": { "fr": "Lanceur", "en": "Launcher" },
       "description": {
-        "fr": "Un programme à lancer et arrêter d'un clic, avec ses journaux.",
+        "fr": "Un programme à lancer et arrêter d’un clic, avec ses journaux.",
         "en": "A program to start and stop in one click, with its logs."
       },
       "icon": "rocket",

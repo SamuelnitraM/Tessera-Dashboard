@@ -38,6 +38,9 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - Une application qui ouvre **plusieurs fenêtres** : seule sa fenêtre principale est affichée dans le bloc ; les autres (paramètres, fenêtres détachées) s'ouvrent normalement.
 - **Taille minimale** : la fenêtre ne devient jamais plus petite que ce que l'application autorise ; dans un bloc plus petit, elle est rognée.
 - **Version installée** : l'hébergeur des cadres utilise le mode Node d'Electron, dont le fusible (`RunAsNode`) reste donc activé dans `electron-builder.yml`.
+- **Clavier** : une application dont une boîte de dialogue est ouverte (restaurer les onglets, autorisation…) refuse la souris et le clavier dans sa fenêtre ; Tessera met cette boîte de dialogue au premier plan. Si une barre d'adresse ne reçoit toujours rien, le journal (`logs/applications.log`, lignes « clavier ») dit si Windows a refusé le focus.
+- **Boîte de dialogue de taille fixe** (Table des caractères…) : elle garde sa taille dans un bloc plus grand, le reste du bloc est vide.
+- **Lanceurs** (LibreOffice : `swriter.exe` ouvre `soffice.bin`) : la fenêtre est cherchée parmi les programmes du même dossier, jamais dans un dossier de Windows.
 
 - **Changer de navigateur** : seuls les navigateurs reconnus sont proposés (Brave, Chrome, Edge, Firefox, Vivaldi, Opera). Les navigateurs mis de côté restent ouverts tant que Tessera tourne et se ferment avec lui comme les autres applications ; au lancement suivant, seul le navigateur affiché s'ouvre.
 
@@ -72,6 +75,11 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - **Services locaux** : liste les ports en écoute en TCP (pas UDP). « Arrêter » termine le programme brutalement (comme le Gestionnaire des tâches) ; les programmes de Windows et Tessera ne peuvent pas être arrêtés. Le projet est deviné d'après la ligne de commande (Node, Python, PHP…). Docker est facultatif ; Docker Desktop doit être lancé.
 - **Surveillance de sites** : vérification depuis ce PC seulement (si le PC est hors ligne, tous les sites paraissent en panne), uniquement pendant que Tessera tourne. Historique des 288 dernières vérifications (24 heures à une vérification toutes les 5 minutes).
 - **Spotify** : il faut créer sa propre application sur developer.spotify.com (mode développement : 25 comptes au plus, ajoutés à la main dans « User Management »). Avec un compte gratuit, l'API ne permet pas de piloter la lecture : un clic ouvre le titre dans l'application Spotify. Spotify ne se lit pas dans une page web de Tessera (DRM, voir plus bas) ; l'application Spotify installée, elle, peut être affichée dans un bloc.
+
+## Sécurité
+
+- L'installeur et les mises à jour ne sont pas encore signés : leur intégrité repose sur le compte GitHub du projet (`latest.yml` et son empreinte). La vérification de l'archive de l'application (fusible `EmbeddedAsarIntegrityValidation`) viendra avec la signature.
+- Les messages d'erreur du processus principal (Git, Actualités, Spotify, Terminal) sont en français, même avec l'interface en anglais.
 
 ## Modules
 

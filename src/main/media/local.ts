@@ -17,6 +17,7 @@ import {
 import { getTranslation } from '../i18n'
 import { JsonStore } from '../json-store'
 import { hasPermission } from '../plugins/manifests'
+import { systemProgram } from '../executables'
 
 /**
  * Vidéos et musiques du PC (permission `videos`).
@@ -33,6 +34,8 @@ interface StoredFile {
   position: number
   duration: number
   openedAt: number
+  /** Extensions qui ont ouvert ce fichier : un module ne voit que les siens. */
+  owners: string[]
 }
 
 /** Fichiers récents gardés (les plus anciens sont oubliés). */
@@ -56,7 +59,10 @@ const files = new JsonStore<StoredFile[]>('local-media.json', (input) => {
       path: item.path,
       position: number(item.position),
       duration: number(item.duration),
-      openedAt: number(item.openedAt)
+      openedAt: number(item.openedAt),
+      owners: Array.isArray(item.owners)
+        ? item.owners.filter((owner): owner is string => typeof owner === 'string')
+        : []
     }))
     .sort((a, b) => b.openedAt - a.openedAt)
     .slice(0, MAX_FILES)
@@ -90,19 +96,26 @@ const samePath = (a: string, b: string): boolean =>
   resolve(a).toLowerCase() === resolve(b).toLowerCase()
 
 /** Ajoute (ou remonte en tête) un fichier choisi par l'utilisateur. */
-function remember(path: string): LocalMediaFile {
+function remember(path: string, pluginId: string): LocalMediaFile {
   if (!isLocalMediaPath(path)) throw new Error('Format de fichier non pris en charge.')
   if (!existsSync(path) || !statSync(path).isFile()) throw new Error('Fichier introuvable.')
   const current = files.get()
   const existing = current.find((file) => samePath(file.path, path))
   const file: StoredFile = existing
-    ? { ...existing, openedAt: Date.now() }
+    ? {
+        ...existing,
+        openedAt: Date.now(),
+        owners: existing.owners.includes(pluginId)
+          ? existing.owners
+          : [...existing.owners, pluginId]
+      }
     : {
         id: randomBytes(16).toString('hex'),
         path: resolve(path),
         position: 0,
         duration: 0,
-        openedAt: Date.now()
+        openedAt: Date.now(),
+        owners: [pluginId]
       }
   files.set([file, ...current.filter((item) => item.id !== file.id)])
   return describe(file)
@@ -133,19 +146,24 @@ export async function openLocalMedia(
     : await dialog.showOpenDialog(options)
   const path = result.filePaths[0]
   if (result.canceled || !path) return null
-  return remember(path)
+  return remember(path, pluginId)
 }
 
 /** Fichier déposé sur le bloc (chemin donné par le préchargement, pas par la page). */
 export function addDroppedMedia(pluginId: string, path: unknown): LocalMediaFile {
   requirePermission(pluginId)
   if (typeof path !== 'string' || !path) throw new Error('Fichier introuvable.')
-  return remember(path)
+  return remember(path, pluginId)
 }
 
 export function recentLocalMedia(pluginId: string): LocalMediaFile[] {
   requirePermission(pluginId)
-  return files.get().map(describe)
+  // Fichiers ouverts par ce module ; les anciens (sans propriétaire) : extensions de Tessera
+  const builtin = pluginId.startsWith('tessera.')
+  return files
+    .get()
+    .filter((file) => file.owners.includes(pluginId) || (file.owners.length === 0 && builtin))
+    .map(describe)
 }
 
 export function getLocalMedia(pluginId: string, id: unknown): LocalMediaFile | null {
@@ -193,10 +211,14 @@ function findVlc(): string | null {
     folders.map((folder) => join(folder, 'VideoLAN', 'VLC', 'vlc.exe')).find(existsSync) ?? null
   if (!vlcPath) {
     try {
-      const output = execFileSync('reg', ['query', 'HKLM\\SOFTWARE\\VideoLAN\\VLC', '/ve'], {
-        encoding: 'utf8',
-        windowsHide: true
-      })
+      const output = execFileSync(
+        systemProgram('reg.exe'),
+        ['query', 'HKLM\\SOFTWARE\\VideoLAN\\VLC', '/ve'],
+        {
+          encoding: 'utf8',
+          windowsHide: true
+        }
+      )
       const found = output.match(/REG_SZ\s+(.+?vlc\.exe)\s*$/im)?.[1]
       if (found && existsSync(found)) vlcPath = found
     } catch {

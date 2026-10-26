@@ -123,6 +123,8 @@ export const IpcChannels = {
   accountsConnectGoogle: 'accounts:connect-google',
   accountsConnectTwitch: 'accounts:connect-twitch',
   modulesList: 'modules:list',
+  /** Lien ouvert par un module tiers : confirmé par l'utilisateur. */
+  modulesOpenLink: 'modules:open-link',
   modulesPickPackage: 'modules:pick-package',
   modulesTakeOpened: 'modules:take-opened',
   modulesOpened: 'modules:opened',

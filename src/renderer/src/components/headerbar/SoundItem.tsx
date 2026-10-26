@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { AudioEndpoint, AudioFlow, AudioState } from '@shared/header-bar'
 import { Select } from '../ui/Select'
 import { HeaderPopover } from './HeaderPopover'
-import { usePolling } from './helpers'
+import { formatPercent, usePolling } from './helpers'
 import { PanelTitle } from './parts'
 import styles from './Widgets.module.css'
 
@@ -81,7 +81,7 @@ function useLocalAudio(state: AudioState | null): {
 
 /** Son : volume dans la barre (molette pour le régler), sortie et micro dans le panneau. */
 export function SoundItem(): React.JSX.Element {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { data, failed, refresh } = usePolling(() => window.tessera.headerBar.audio(), REFRESH_MS)
   const { audio, setVolume, setMute } = useLocalAudio(data)
   const output = audio?.output
@@ -90,7 +90,7 @@ export function SoundItem(): React.JSX.Element {
     <HeaderPopover
       label={
         output?.volume != null
-          ? `${t('headerBar.names.sound')} · ${output.muted ? t('headerBar.sound.muted') : `${output.volume} %`}`
+          ? `${t('headerBar.names.sound')} · ${output.muted ? t('headerBar.sound.muted') : formatPercent(output.volume, i18n.language)}`
           : t('headerBar.names.sound')
       }
       onWheel={(event) => {
@@ -103,7 +103,7 @@ export function SoundItem(): React.JSX.Element {
           <VolumeIcon volume={output?.volume ?? null} muted={output?.muted ?? false} />
           {output?.volume != null && (
             <span className={styles.chipValue} data-muted={output.muted}>
-              {output.volume} %
+              {formatPercent(output.volume, i18n.language)}
             </span>
           )}
         </>
@@ -135,7 +135,7 @@ function EndpointControls({
   onMute: (flow: AudioFlow, value: boolean) => void
   onDevice: () => void
 }): React.JSX.Element {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const output = flow === 'output'
   const current = endpoint.devices.find((device) => device.isDefault)
   const muteLabel = output
@@ -199,7 +199,9 @@ function EndpointControls({
               aria-label={output ? t('headerBar.sound.volume') : t('headerBar.sound.micVolume')}
               onChange={(event) => onVolume(flow, Number(event.target.value))}
             />
-            <span className={styles.volumeValue}>{endpoint.volume ?? 0} %</span>
+            <span className={styles.volumeValue}>
+              {formatPercent(endpoint.volume ?? 0, i18n.language)}
+            </span>
           </div>
         </>
       )}

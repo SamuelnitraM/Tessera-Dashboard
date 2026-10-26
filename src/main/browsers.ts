@@ -9,6 +9,7 @@ import { normalizeWebUrl } from '@shared/web-apps'
 import { getAppStates } from './desktop/docking'
 import { addApp, iconOf } from './desktop/programs'
 import { getSettings } from './settings-store'
+import { POWERSHELL } from './executables'
 
 /**
  * Navigateurs installés sur le PC, pour ouvrir une application web dans le navigateur de
@@ -75,7 +76,8 @@ const KNOWN_BROWSERS: KnownBrowser[] = [
   {
     id: 'opera',
     name: 'Opera',
-    executables: ['opera.exe', 'launcher.exe'],
+    // Pas `launcher.exe` (lanceur d'Opera) : bien d'autres programmes portent ce nom
+    executables: ['opera.exe'],
     chromium: true,
     fallbackPaths: [`${LOCAL}\\Programs\\Opera\\opera.exe`]
   }
@@ -88,7 +90,7 @@ function readRegisteredCommands(): Promise<string[]> {
     "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Clients\\StartMenuInternet\\*\\shell\\open\\command','HKCU:\\SOFTWARE\\Clients\\StartMenuInternet\\*\\shell\\open\\command' -ErrorAction SilentlyContinue | ForEach-Object { $_.'(default)' }"
   return new Promise((resolve) => {
     execFile(
-      'powershell.exe',
+      POWERSHELL,
       ['-NoProfile', '-NonInteractive', '-Command', script],
       { windowsHide: true, encoding: 'utf8', timeout: 10_000 },
       (_error, stdout) => resolve((stdout ?? '').split(/\r?\n/).filter(Boolean))

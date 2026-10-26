@@ -77,8 +77,8 @@ export default definePlugin({
         io: 'Le serveur n’a pas pu être démarré.',
         unavailable: 'Prospect Solution ne répond pas.',
         failed: 'L’opération a échoué.',
-        alreadyRunning: 'Prospect Solution tourne déjà (lancé hors de Tessera).',
-        portBusy: 'Le port {{port}} est occupé par un autre programme.'
+        'running-elsewhere': 'Prospect Solution tourne déjà (lancé hors de Tessera).',
+        'port-busy': 'Le port {{port}} est occupé par un autre programme.'
       }
     },
     en: {
@@ -152,8 +152,8 @@ export default definePlugin({
         io: 'The server could not be started.',
         unavailable: 'Prospect Solution does not answer.',
         failed: 'The operation failed.',
-        alreadyRunning: 'Prospect Solution is already running (started outside Tessera).',
-        portBusy: 'Port {{port}} is used by another program.'
+        'running-elsewhere': 'Prospect Solution is already running (started outside Tessera).',
+        'port-busy': 'Port {{port}} is used by another program.'
       }
     }
   }

@@ -155,13 +155,22 @@ function AppTab({ app, active }: { app: WebApp; active: boolean }): React.JSX.El
   )
 }
 
+/** Partie affichée de la fenêtre rognée de chaque onglet (gardée si l'onglet est recréé). */
+const tabOffsets = new Map<string, PanOffset>()
+
 /** Onglet d'une application installée : sa fenêtre occupe toute la zone sous la barre. */
 function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): React.JSX.Element {
   const { t } = useTranslation()
   const closeApp = useNavigationStore((state) => state.closeApp)
   // La barre de l'onglet sert de poignée pour déplacer le contenu d'une fenêtre rognée
   const toolbar = useRef<HTMLElement>(null)
-  const [offset, setOffset] = useState<PanOffset>({ x: 0, y: 0 })
+  const [offset, setShownOffset] = useState<PanOffset>(
+    () => tabOffsets.get(app.id) ?? { x: 0, y: 0 }
+  )
+  const setOffset = (next: PanOffset): void => {
+    tabOffsets.set(app.id, next)
+    setShownOffset(next)
+  }
 
   return (
     <section
@@ -176,6 +185,12 @@ function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): R
           <span className={styles.appName}>{app.name}</span>
           <span className={styles.host}>{app.processName}</span>
         </div>
+        {/* Comme dans un bloc : fenêtre grise ou vide remise en place et redessinée */}
+        <ToolbarButton
+          icon={RotateCw}
+          label={t('desktopApps.refresh')}
+          onClick={() => void window.tessera.desktopApps.refresh(app.id)}
+        />
         <ToolbarButton
           icon={LogOut}
           label={t('desktopApps.takeOut')}

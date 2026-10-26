@@ -3,6 +3,8 @@ import { Flag, Pause, Play, RotateCcw, Watch } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
 import { HeaderPopover } from './HeaderPopover'
+import { useBlockSize } from './helpers'
+import { PanelTitle } from './parts'
 import styles from './Widgets.module.css'
 
 /**
@@ -93,9 +95,12 @@ export function StopwatchPanel(): React.JSX.Element {
   const running = useStopwatchStore((state) => state.startedAt !== null)
   const laps = useStopwatchStore((state) => state.laps)
   const decimal = (1.5).toLocaleString(i18n.language).charAt(1)
+  // En bloc, titre comme les autres blocs de la boîte à outils (le bouton de la barre en tient lieu)
+  const inBlock = useBlockSize() !== null
 
   return (
     <div className={styles.stopwatch}>
+      {inBlock && <PanelTitle title={t('headerBar.names.stopwatch')} />}
       <p className={styles.bigTime} data-paused={!running && elapsed > 0}>
         {format(elapsed, true, decimal)}
       </p>

@@ -257,7 +257,10 @@ function AgendaPanel({
       {broken.map((account) => (
         <div key={account.id} className={styles.agendaError}>
           <p className={styles.error}>
-            {account.email} : {mailErrorMessage(new Error(`mail-error:${account.error}`))}
+            {t('headerBar.agenda.accountError', {
+              email: account.email,
+              error: mailErrorMessage(new Error(`mail-error:${account.error}`))
+            })}
           </p>
         </div>
       ))}

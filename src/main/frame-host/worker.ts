@@ -125,7 +125,14 @@ const frameProc = koffi.register(
     if (message === WM_SETFOCUS) {
       const window = windowIn(Number(hwnd))
       if (window && w.isWindow(window)) {
-        api.SetFocus(window)
+        // Fenêtre désactivée par une de ses boîtes de dialogue (restaurer les onglets,
+        // autorisation…) : c'est la boîte de dialogue qui reçoit le clavier, au premier plan
+        const disabled = !w.isEnabled(window)
+        const popup = disabled ? (w.ownedPopups(window)[0] ?? 0) : 0
+        if (popup) api.SetForegroundWindow(popup)
+        const ok = disabled ? popup !== 0 : Number(api.SetFocus(window)) !== 0
+        // Refus ou fenêtre désactivée : noté dans le journal de Tessera
+        if (!ok || disabled) reply({ focus: Number(hwnd), ok, disabled, popup })
         return 0
       }
     }

@@ -112,6 +112,7 @@ import {
   recentLocalMedia,
   saveLocalMediaPosition
 } from './media/local'
+import { openModuleLink } from './plugins/module-links'
 import {
   cancelPreview,
   installPreview,
@@ -420,6 +421,9 @@ export function registerIpcHandlers(): void {
 
   // Modules tiers : installation (aperçu puis consentement), permissions, mode développeur
   ipcMain.handle(IpcChannels.modulesList, () => listModules())
+  ipcMain.handle(IpcChannels.modulesOpenLink, (_event, pluginId: unknown, url: unknown) =>
+    openModuleLink(String(pluginId), String(url))
+  )
   ipcMain.handle(IpcChannels.modulesPickPackage, (event) =>
     pickModulePackage(BrowserWindow.fromWebContents(event.sender))
   )

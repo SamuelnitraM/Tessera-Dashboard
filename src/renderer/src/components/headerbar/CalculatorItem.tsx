@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
 import { useResolvedLanguage } from '../../stores/settings'
 import { evaluate } from './calculator'
+import { useBlockSize } from './helpers'
 import { HeaderPopover } from './HeaderPopover'
 import styles from './HeaderBar.module.css'
 
@@ -46,7 +47,11 @@ export function CalculatorPanel(): React.JSX.Element {
   const expression = useCalculatorStore((state) => state.expression)
   const history = useCalculatorStore((state) => state.history)
   const inputRef = useRef<HTMLInputElement>(null)
-  useEffect(() => inputRef.current?.focus(), [])
+  // Focus à l'ouverture du panneau de la barre ; en bloc, la page ne doit pas sauter jusqu'à lui
+  const inBlock = useBlockSize() !== null
+  useEffect(() => {
+    if (!inBlock) inputRef.current?.focus()
+  }, [inBlock])
 
   const result = evaluate(expression)
   // Séparateur décimal de la langue (virgule en français) ; le point est aussi accepté

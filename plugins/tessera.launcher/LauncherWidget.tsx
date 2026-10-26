@@ -124,7 +124,8 @@ export function LauncherWidget({
         .catch(() => active && setExternal(false))
     }
     check()
-    const timer = window.setInterval(check, EXTERNAL_CHECK_MS)
+    // Fenêtre de Tessera masquée : pas de vérification inutile
+    const timer = window.setInterval(() => !document.hidden && check(), EXTERNAL_CHECK_MS)
     return () => {
       active = false
       window.clearInterval(timer)
@@ -168,7 +169,12 @@ export function LauncherWidget({
   const startRef = useLatest(start)
 
   const stop = (): void => {
-    if (run) void processes.stop(run.id).catch(fail)
+    if (!run) return
+    void processes.stop(run.id).catch((cause: unknown) => {
+      // Arrêt refusé : pas de relance au prochain arrêt
+      restartPending.current = false
+      fail(cause)
+    })
   }
 
   // Relancer = arrêter, puis lancer dès que l'arrêt est confirmé
@@ -198,6 +204,7 @@ export function LauncherWidget({
         <Rocket size={22} aria-hidden />
         <span>{t('empty')}</span>
         <Button
+          {...EDIT_ACTIVE}
           variant="primary"
           icon={FolderSearch}
           className="no-drag"

@@ -39,7 +39,7 @@ export function childStyle(style: number): number {
  */
 export function returnWindow(hwnd: w.Hwnd, saved: SavedWindow, visible: boolean): void {
   if (!w.isWindow(hwnd)) return
-  w.showWindow(hwnd, w.SW.HIDE)
+  w.showWindowAsync(hwnd, w.SW.HIDE)
   w.setParent(hwnd, 0)
   w.setStyle(hwnd, saved.style & ~w.WS.VISIBLE & ~w.WS.MAXIMIZE & ~w.WS.MINIMIZE)
   w.setExStyle(hwnd, saved.exStyle)

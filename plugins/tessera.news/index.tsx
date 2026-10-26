@@ -26,6 +26,9 @@ export default definePlugin({
       notifyOff: 'Ne plus me notifier',
       openSite: 'Ouvrir le site',
       unfollow: 'Ne plus suivre',
+      unfollowTitle: 'Ne plus suivre ce flux ?',
+      unfollowMessage: 'Les articles de « {{title}} » disparaîtront de la liste.',
+      cancel: 'Annuler',
       markRead: 'Marquer comme lu',
       markUnread: 'Marquer comme non lu',
       feedsHint: 'Clic droit sur un flux : notifications, ne plus suivre.'
@@ -50,6 +53,9 @@ export default definePlugin({
       notifyOff: 'Stop notifying me',
       openSite: 'Open the site',
       unfollow: 'Unfollow',
+      unfollowTitle: 'Unfollow this feed?',
+      unfollowMessage: 'The articles from “{{title}}” will disappear from the list.',
+      cancel: 'Cancel',
       markRead: 'Mark as read',
       markUnread: 'Mark as unread',
       feedsHint: 'Right-click a feed: notifications, unfollow.'

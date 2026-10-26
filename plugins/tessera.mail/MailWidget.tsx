@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Mail, Menu, PenSquare, RefreshCw, Search, Settings, X } from 'lucide-react'
 import {
   Button,
+  ConfirmDialog,
+  EDIT_ACTIVE,
   INBOX,
   mailErrorMessage,
   openMailSettings,
@@ -53,7 +55,7 @@ export function MailWidget({ config, setConfig }: WidgetProps<MailConfig>): Reac
           <Mail size={24} aria-hidden />
           <p className={styles.stateTitle}>{t('noAccount')}</p>
           <p>{t('noAccountText')}</p>
-          <Button variant="primary" onClick={openMailSettings}>
+          <Button {...EDIT_ACTIVE} className="no-drag" variant="primary" onClick={openMailSettings}>
             {t('addAccount')}
           </Button>
         </div>
@@ -128,9 +130,20 @@ function AccountInbox({
   const [notice, setNoticeState] = useState<{ text: string; at: number } | null>(null)
   const setNotice = (text: string): void => setNoticeState({ text, at: Date.now() })
   const [refreshing, setRefreshing] = useState(false)
+  /** Le mail en cours d'écriture a-t-il du contenu (fourni par MailComposer). */
+  const composerContent = useRef<(() => boolean) | null>(null)
+  /** Action en attente de confirmation : elle fermerait un mail en cours d'écriture. */
+  const [leaving, setLeaving] = useState<(() => void) | null>(null)
+  /** Quitte l'écriture d'un mail (autre dossier, recherche…) sans perdre un brouillon en silence. */
+  const leaveComposer = (action: () => void): void => {
+    if (view.kind === 'compose' && composerContent.current?.()) setLeaving(() => action)
+    else action()
+  }
 
   // Clic sur la notification d'un mail de ce compte : il s'ouvre ici
-  useMailOpenRequest(account.id, (messageId) => setView({ kind: 'read', id: messageId }))
+  useMailOpenRequest(account.id, (messageId) =>
+    leaveComposer(() => setView({ kind: 'read', id: messageId }))
+  )
 
   // Les messages passagers (« Mail envoyé »…) disparaissent d'eux-mêmes
   useEffect(() => {
@@ -157,16 +170,20 @@ function AccountInbox({
         .then(inbox.reload, (failure) => setNotice(mailErrorMessage(failure)))
   }
 
-  const openFolder = (id: string): void => {
-    setConfig({ folder: id })
-    setView({ kind: 'list' })
-    if (narrow) setMenuOpen(false)
-  }
+  const openFolder = (id: string): void =>
+    leaveComposer(() => {
+      setConfig({ folder: id })
+      setView({ kind: 'list' })
+      if (narrow) setMenuOpen(false)
+    })
 
   const submitSearch = (event: React.FormEvent): void => {
     event.preventDefault()
-    setSearch(searchInput.trim())
-    setView({ kind: 'list' })
+    const text = searchInput.trim()
+    leaveComposer(() => {
+      setSearch(text)
+      setView({ kind: 'list' })
+    })
   }
 
   return (
@@ -187,7 +204,7 @@ function AccountInbox({
             value={account.id}
             aria-label={t('account')}
             options={accounts.map((item) => ({ value: item.id, label: item.name }))}
-            onChange={onAccountChange}
+            onChange={(accountId) => leaveComposer(() => onAccountChange(accountId))}
           />
         ) : (
           <span className={styles.accountName} title={account.address}>
@@ -333,6 +350,7 @@ function AccountInbox({
             <MailComposer
               account={account}
               request={view.request}
+              hasContentRef={composerContent}
               onClose={(sent) => {
                 setView({ kind: 'list' })
                 if (sent) setNotice(t('composer.sent'))
@@ -341,6 +359,24 @@ function AccountInbox({
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={leaving !== null}
+        title={t('composer.leaveTitle')}
+        message={t('composer.leaveMessage')}
+        onClose={() => setLeaving(null)}
+        actions={[
+          { label: t('composer.keepWriting'), onClick: () => setLeaving(null) },
+          {
+            label: t('composer.discard'),
+            variant: 'danger',
+            onClick: () => {
+              leaving?.()
+              setLeaving(null)
+            }
+          }
+        ]}
+      />
     </div>
   )
 }

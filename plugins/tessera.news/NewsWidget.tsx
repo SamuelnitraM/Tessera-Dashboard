@@ -11,12 +11,14 @@ import {
   Trash2
 } from 'lucide-react'
 import {
+  ConfirmDialog,
+  errorMessage,
   openContextMenu,
   useLanguage,
   usePluginTranslation,
   type WidgetProps
 } from '@tessera/plugin-sdk'
-import type { NewsItem, NewsState } from '@shared/news'
+import type { NewsFeed, NewsItem, NewsState } from '@shared/news'
 import styles from './NewsWidget.module.css'
 
 interface NewsConfig {
@@ -38,6 +40,9 @@ export function NewsWidget({ config, setConfig }: WidgetProps<NewsConfig>): Reac
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Échec du chargement (affiché tant que les articles n'ont pas pu être lus). */
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<NewsFeed | null>(null)
   const [wide, setWide] = useState(true)
   /** Heure de référence des dates relatives (mise à jour avec la liste). */
   const [now, setNow] = useState(() => Date.now())
@@ -48,10 +53,14 @@ export function NewsWidget({ config, setConfig }: WidgetProps<NewsConfig>): Reac
   // L'état est tenu par le processus principal (lecture toutes les 15 minutes)
   useEffect(() => {
     const load = (): void =>
-      void api.state().then((next) => {
-        setState(next)
-        setNow(Date.now())
-      })
+      void api
+        .state()
+        .then((next) => {
+          setState(next)
+          setNow(Date.now())
+          setLoadError(null)
+        })
+        .catch((failure: unknown) => setLoadError(errorMessage(failure)))
     load()
     const timer = window.setInterval(() => !document.hidden && load(), REFRESH_MS)
     // Changement fait dans un autre bloc, ou nouvelle lecture des flux
@@ -78,9 +87,7 @@ export function NewsWidget({ config, setConfig }: WidgetProps<NewsConfig>): Reac
     setError(null)
     action
       .then(setState)
-      .catch((failure: Error) =>
-        setError(failure.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, ''))
-      )
+      .catch((failure: unknown) => setError(errorMessage(failure)))
       .finally(() => setBusy(false))
   }
 
@@ -256,10 +263,7 @@ export function NewsWidget({ config, setConfig }: WidgetProps<NewsConfig>): Reac
                     label: t('unfollow'),
                     icon: Trash2,
                     danger: true,
-                    onSelect: () => {
-                      run(api.removeFeed(feed.id))
-                      if (feedId === feed.id) setConfig({ feedId: 'all' })
-                    }
+                    onSelect: () => setRemoving(feed)
                   }
                 ])}
               >
@@ -273,7 +277,7 @@ export function NewsWidget({ config, setConfig }: WidgetProps<NewsConfig>): Reac
         )}
         <div className={styles.items}>
           {state === null ? (
-            <p className={styles.empty}>{t('loading')}</p>
+            <p className={loadError ? styles.error : styles.empty}>{loadError ?? t('loading')}</p>
           ) : state.feeds.length === 0 ? (
             <div className={styles.empty}>
               <Rss size={26} aria-hidden />
@@ -311,6 +315,27 @@ export function NewsWidget({ config, setConfig }: WidgetProps<NewsConfig>): Reac
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={removing !== null}
+        title={t('unfollowTitle')}
+        message={t('unfollowMessage', { title: removing?.title ?? '' })}
+        onClose={() => setRemoving(null)}
+        actions={[
+          { label: t('cancel'), onClick: () => setRemoving(null) },
+          {
+            label: t('unfollow'),
+            variant: 'danger',
+            onClick: () => {
+              if (removing) {
+                run(api.removeFeed(removing.id))
+                if (feedId === removing.id) setConfig({ feedId: 'all' })
+              }
+              setRemoving(null)
+            }
+          }
+        ]}
+      />
     </div>
   )
 }

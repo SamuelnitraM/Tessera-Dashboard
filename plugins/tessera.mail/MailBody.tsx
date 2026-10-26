@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { usePluginTranslation } from '@tessera/plugin-sdk'
 import { textToHtml } from './format'
 import { sanitizeMailHtml } from './sanitize'
 
@@ -47,6 +48,7 @@ export function MailBody({
   onLink,
   className
 }: MailBodyProps): React.JSX.Element {
+  const t = usePluginTranslation()
   const frame = useRef<HTMLIFrameElement>(null)
   const document = useMemo(() => buildDocument(html, text, remote), [html, text, remote])
   const onLinkRef = useRef(onLink)
@@ -75,7 +77,7 @@ export function MailBody({
     <iframe
       ref={frame}
       className={className}
-      title="mail"
+      title={t('reader.frameTitle')}
       // Même origine (pour intercepter les clics), mais aucun script ni formulaire
       sandbox="allow-same-origin"
       srcDoc={document}

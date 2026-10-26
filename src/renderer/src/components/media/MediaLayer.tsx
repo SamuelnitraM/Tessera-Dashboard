@@ -12,6 +12,12 @@ import { LocalVideo, type LocalVideoHandle } from './LocalVideo'
 import styles from './MediaLayer.module.css'
 
 /**
+ * Après un changement (défilement, bloc déplacé, transition de la grille…), l'emplacement est
+ * suivi image par image pendant ce temps (ms), puis plus rien jusqu'au changement suivant.
+ */
+const FOLLOW_MS = 400
+
+/**
  * Couche des lecteurs : chaque lecteur est posé sur l'emplacement de son bloc (même position,
  * même partie visible), ou affiché en mini-lecteur. Le lecteur n'est jamais déplacé dans la
  * page (une <webview> déplacée se recharge) : seule sa position change.
@@ -94,7 +100,8 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session.slot])
 
-  // Suit l'emplacement à chaque image (déplacement dans la grille, défilement, fenêtre)
+  // Suit l'emplacement quand il peut bouger (déplacement dans la grille, défilement, fenêtre),
+  // sans mesurer à chaque image le reste du temps
   useEffect(() => {
     const element = wrapper.current
     const slot = session.slot
@@ -104,8 +111,9 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
       return
     }
     let frame = 0
+    let until = 0
     let last = ''
-    const follow = (): void => {
+    const place = (): void => {
       const rect = measure(slot)
       const style = rect
         ? `left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px;` +
@@ -118,10 +126,44 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
         last = style
         element.setAttribute('style', style)
       }
-      frame = requestAnimationFrame(follow)
     }
+    const tick = (): void => {
+      place()
+      frame = performance.now() < until ? requestAnimationFrame(tick) : 0
+    }
+    const follow = (): void => {
+      until = performance.now() + FOLLOW_MS
+      if (!frame) frame = requestAnimationFrame(tick)
+    }
+    // Taille du bloc ou d'un conteneur (fenêtre, menu latéral, bandeau du mode édition…)
+    const resizeObserver = new ResizeObserver(follow)
+    for (let node: Element | null = slot; node; node = node.parentElement) {
+      resizeObserver.observe(node)
+    }
+    // La grille déplace les blocs en changeant leur style (transform, avec une transition)
+    const mutationObserver = new MutationObserver(follow)
+    const gridItem = slot.closest('.react-grid-item')
+    if (gridItem) {
+      mutationObserver.observe(gridItem, { attributes: true, attributeFilter: ['style'] })
+    }
+    const onTransition = (event: Event): void => {
+      if (event.target instanceof Node && event.target.contains(slot)) follow()
+    }
+    window.addEventListener('resize', follow)
+    window.addEventListener('scroll', follow, true)
+    document.addEventListener('transitionrun', onTransition, true)
+    document.addEventListener('transitionend', onTransition, true)
+    place()
     follow()
-    return () => cancelAnimationFrame(frame)
+    return () => {
+      cancelAnimationFrame(frame)
+      resizeObserver.disconnect()
+      mutationObserver.disconnect()
+      window.removeEventListener('resize', follow)
+      window.removeEventListener('scroll', follow, true)
+      document.removeEventListener('transitionrun', onTransition, true)
+      document.removeEventListener('transitionend', onTransition, true)
+    }
   }, [session.slot])
 
   /** Retour à la page du bloc. */

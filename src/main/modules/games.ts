@@ -5,10 +5,11 @@ import { basename, join } from 'node:path'
 import { app, ipcMain, nativeImage, shell } from 'electron'
 import { BuiltinChannels } from '@shared/builtin-ipc'
 import type { Game, GameStatus } from '@shared/games'
-import { launchApp } from '../desktop/docking'
+import { insertWindow } from '../desktop/docking'
 import { addApp, iconOf } from '../desktop/programs'
 import * as w from '../desktop/win32'
 import { helperRequest } from '../headerbar/helper'
+import { systemProgram } from '../executables'
 
 /**
  * Module Jeux : bibliothèques Steam et Epic Games installées sur le PC. Les jeux se lancent
@@ -82,7 +83,7 @@ const value = (vdf: Vdf | string | undefined, key: string): string =>
 function steamPath(): Promise<string | null> {
   return new Promise((resolve) => {
     execFile(
-      'reg',
+      systemProgram('reg.exe'),
       ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath'],
       { windowsHide: true, timeout: 5000 },
       (_error, stdout) => {
@@ -142,9 +143,11 @@ async function steamGames(): Promise<Game[]> {
   try {
     const vdf = parseVdf(await readFile(join(root, 'steamapps', 'libraryfolders.vdf'), 'utf8'))
     const folders = child(vdf, 'libraryfolders') ?? {}
-    libraries = Object.values(folders)
+    const found = Object.values(folders)
       .map((folder) => value(folder, 'path'))
       .filter(Boolean)
+    // Ancien format ou fichier vide : au moins la bibliothèque de Steam lui-même
+    if (found.length > 0) libraries = found
   } catch {
     // Bibliothèque par défaut seulement
   }
@@ -345,7 +348,7 @@ export async function setGameVolume(
 }
 
 /** Fenêtre principale d'un jeu en cours (la plus grande de ses programmes), ou `null`. */
-function gameWindow(status: GameStatus): { pid: number; path: string } | null {
+function gameWindow(status: GameStatus): { pid: number; path: string; hwnd: number } | null {
   for (const pid of status.pids) {
     const path = w.getProcessPath(pid)
     if (!path) continue
@@ -354,7 +357,7 @@ function gameWindow(status: GameStatus): { pid: number; path: string } | null {
       .find(
         (candidate) => candidate.pid === pid && candidate.width >= 400 && candidate.height >= 300
       )
-    if (found) return { pid, path }
+    if (found) return { pid, path, hwnd: found.hwnd }
   }
   return null
 }
@@ -378,8 +381,8 @@ export async function captureGame(id: string): Promise<string | null> {
     icon: game.icon ?? (await iconOf(found.path)),
     release: 'desktop'
   })
-  // Déjà ouvert : la fenêtre est insérée (même si elle avait été rendue au bureau avant)
-  void launchApp(desktopApp.id)
+  // La fenêtre trouvée est insérée telle quelle (jamais de relance du jeu hors de son lanceur)
+  insertWindow(desktopApp.id, found.hwnd, found.pid)
   return desktopApp.id
 }
 

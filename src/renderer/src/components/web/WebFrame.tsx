@@ -74,6 +74,9 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
   const containerRef = useRef<HTMLDivElement>(null)
   const webviewRef = useRef<WebviewElement | null>(null)
   const readyRef = useRef(false)
+  /** Dernière adresse demandée, et dernière chargée (une adresse arrivée avant `dom-ready`). */
+  const srcRef = useRef(src)
+  const loadedSrcRef = useRef(src)
   const eventsRef = useRef(events)
   const zoomRef = useRef(zoom)
 
@@ -93,6 +96,7 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     webview.className = styles.webview
     webviewRef.current = webview
     readyRef.current = false
+    loadedSrcRef.current = src
 
     const navigated = (event: Event): void => {
       const { url } = event as Event & { url: string }
@@ -134,6 +138,11 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
         () => {
           readyRef.current = true
           wheelToHost = null
+          // Adresse changée avant que la page soit prête : chargée maintenant
+          if (srcRef.current !== loadedSrcRef.current) {
+            loadedSrcRef.current = srcRef.current
+            webview.loadURL(srcRef.current).catch(() => {})
+          }
           updateWheel()
           webview.setZoomFactor(zoomRef.current)
           // Fin d'une vidéo : la page le signale par un message de console (aucun accès à Tessera)
@@ -166,14 +175,15 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
       ['media-started-playing', () => eventsRef.current.onMedia?.(true)],
       ['media-paused', () => eventsRef.current.onMedia?.(false)],
       ['did-navigate-in-page', navigated],
-      ['did-start-loading', () => eventsRef.current.onLoading?.(true)],
       [
-        'did-stop-loading',
+        'did-start-loading',
         () => {
-          eventsRef.current.onLoading?.(false)
+          eventsRef.current.onLoading?.(true)
+          // Nouveau chargement : l'erreur du précédent s'efface (elle reste affichée jusque-là)
           eventsRef.current.onError?.(null)
         }
       ],
+      ['did-stop-loading', () => eventsRef.current.onLoading?.(false)],
       [
         'did-fail-load',
         (e) => {
@@ -200,10 +210,14 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partition])
 
-  // Nouvelle adresse demandée
+  // Nouvelle adresse demandée (avant `dom-ready` : chargée à ce moment-là). Un chargement
+  // interrompu par un autre rejette sa promesse (ERR_ABORTED) : sans conséquence.
   useEffect(() => {
+    srcRef.current = src
     const webview = webviewRef.current
-    if (webview && readyRef.current && webview.getURL() !== src) void webview.loadURL(src)
+    if (!webview || !readyRef.current) return
+    loadedSrcRef.current = src
+    if (webview.getURL() !== src) webview.loadURL(src).catch(() => {})
   }, [src])
 
   useEffect(() => {
@@ -214,7 +228,7 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     reload: () => webviewRef.current?.reload(),
     goBack: () => webviewRef.current?.goBack(),
     goForward: () => webviewRef.current?.goForward(),
-    load: (url) => void webviewRef.current?.loadURL(url),
+    load: (url) => void webviewRef.current?.loadURL(url).catch(() => {}),
     getURL: () => (readyRef.current ? (webviewRef.current?.getURL() ?? '') : ''),
     isPlaying: async () => {
       const webview = webviewRef.current

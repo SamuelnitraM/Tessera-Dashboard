@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bug,
   CircleAlert,
@@ -48,6 +48,26 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
   const [settingsOpen, setSettingsOpen] = useState(false)
   // Bloc qui a le focus (dernier cliqué) : bordure et barre du haut colorées
   const focused = useActiveBlockStore((state) => !editing && state.focusedId === widget.id)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // Mode édition : le contenu ne réagit pas à la souris (CSS) ni au clavier (Tab, Suppr dans
+  // le bloc Fichiers…), sauf ses parties prévues pour ce mode (`data-edit-active`)
+  useEffect(() => {
+    const active = document.activeElement
+    if (editing && active instanceof HTMLElement && !isEditActive(active)) {
+      if (contentRef.current?.contains(active)) active.blur()
+    }
+  }, [editing])
+  const onContentFocus = (event: React.FocusEvent): void => {
+    if (event.target instanceof HTMLElement && !isEditActive(event.target)) event.target.blur()
+  }
+  const onContentKeyDown = (event: React.KeyboardEvent): void => {
+    // Échap (sortie du mode édition) et Tab (passer au suivant) restent à la page
+    if (event.key === 'Escape' || event.key === 'Tab') return
+    if (event.target instanceof Element && isEditActive(event.target)) return
+    event.preventDefault()
+    event.stopPropagation()
+  }
 
   const registered = getWidget(widget.type)
   const disabled = registered !== undefined && disabledPlugins.includes(registered.pluginId)
@@ -114,7 +134,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
               type="button"
               className={`${styles.toolbarButton} no-drag`}
               title={t('blocks.settings')}
-              aria-label={`${t('blocks.settings')} : ${name}`}
+              aria-label={t('blocks.settingsOf', { name })}
               onClick={() => setSettingsOpen(true)}
             >
               <Settings2 size={14} aria-hidden />
@@ -124,7 +144,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
             type="button"
             className={`${styles.toolbarButton} ${styles.remove} no-drag`}
             title={t('blocks.remove')}
-            aria-label={`${t('blocks.remove')} : ${name}`}
+            aria-label={t('blocks.removeOf', { name })}
             onClick={() => removeWidget(pageId, widget.id)}
           >
             <X size={14} aria-hidden />
@@ -132,7 +152,12 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
         </header>
       )}
 
-      <div className={styles.content}>
+      <div
+        ref={contentRef}
+        className={styles.content}
+        onFocusCapture={editing ? onContentFocus : undefined}
+        onKeyDownCapture={editing ? onContentKeyDown : undefined}
+      >
         {!Component ? (
           <Placeholder icon={CircleAlert} text={name} />
         ) : disabled ? (
@@ -154,7 +179,7 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
 
       {hasSettings && registered && (
         <WidgetSettingsDialog
-          title={`${t('blocks.settings')} : ${name}`}
+          title={t('blocks.settingsOf', { name })}
           fields={registered.manifest.settings}
           config={config}
           onChange={setConfig}
@@ -165,6 +190,9 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
     </article>
   )
 }
+
+/** Partie d'un bloc qui reste utilisable en mode édition. */
+const isEditActive = (element: Element): boolean => element.closest('[data-edit-active]') !== null
 
 function Placeholder({
   icon: Icon,

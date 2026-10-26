@@ -19,6 +19,7 @@ export default definePlugin({
       home: 'Revenir à la page de départ',
       openInBrowser: 'Ouvrir dans le navigateur',
       change: 'Changer de site',
+      cancel: 'Annuler',
       loadError: 'Page indisponible : {{error}}'
     },
     en: {
@@ -34,6 +35,7 @@ export default definePlugin({
       home: 'Back to the start page',
       openInBrowser: 'Open in browser',
       change: 'Change site',
+      cancel: 'Cancel',
       loadError: 'Page unavailable: {{error}}'
     }
   }

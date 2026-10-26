@@ -63,13 +63,19 @@ const nextFrame = (): Promise<void> =>
 
 /** Numéro de la dernière demande : une demande plus récente annule la précédente. */
 let suspendRequest = 0
+/**
+ * Fenêtres masquées par le processus principal. Diffère de `suspended` (images affichées)
+ * pendant les transitions : les fenêtres reviennent avant que leurs images ne s'effacent.
+ */
+let nativeSuspended = false
 
 async function updateSuspension(): Promise<void> {
   const request = ++suspendRequest
   const { overlays: open, suspended } = useDesktopAppsStore.getState()
   const reasons = overlayNames(open)
   const overlays = reasons ? 1 : 0
-  if (overlays > 0 && !suspended) {
+  // Fenêtres revenues mais images encore affichées (sortie en cours) : on les remasque aussi
+  if (overlays > 0 && (!suspended || !nativeSuspended)) {
     // Image d'abord, puis masquage une fois l'image affichée : pas de clignotement
     const snapshots = await window.tessera.desktopApps.capture()
     if (request !== suspendRequest) return
@@ -77,11 +83,18 @@ async function updateSuspension(): Promise<void> {
     await nextFrame()
     await nextFrame()
     if (request !== suspendRequest) return
+    nativeSuspended = true
     await window.tessera.desktopApps.setSuspended(true, reasons)
   } else if (overlays === 0 && suspended) {
-    useDesktopAppsStore.setState({ suspended: false })
+    // Fenêtres d'abord, puis images retirées une fois les fenêtres affichées : sinon les blocs
+    // montrent un instant « fenêtre absente »
+    nativeSuspended = false
     await window.tessera.desktopApps.setSuspended(false)
-    if (request === suspendRequest) useDesktopAppsStore.setState({ snapshots: {} })
+    await nextFrame()
+    await nextFrame()
+    if (request === suspendRequest) {
+      useDesktopAppsStore.setState({ suspended: false, snapshots: {} })
+    }
   }
 }
 
@@ -133,29 +146,41 @@ function usedApps(): Set<string> {
 }
 
 /**
+ * Application affichée nulle part : fermée, ou rendue au bureau si elle est marquée
+ * `release: 'desktop'` (jeu).
+ */
+function releaseApp(appId: string): void {
+  const app = useSettingsStore.getState().settings.apps.items.find((item) => item.id === appId)
+  if (app && isDesktopApp(app) && app.release === 'desktop') {
+    void window.tessera.desktopApps.takeOut(appId)
+  } else {
+    void window.tessera.desktopApps.close(appId)
+  }
+}
+
+/**
  * Suit les états envoyés par le processus principal, et ferme une application qui n'est plus
  * affichée nulle part (bloc retiré, onglet fermé, application supprimée). Une application
  * marquée `release: 'desktop'` (jeu) est rendue au bureau au lieu d'être fermée.
  */
 export async function initDesktopAppsStore(): Promise<void> {
-  useDesktopAppsStore.setState({ states: await window.tessera.desktopApps.getStates() })
+  const states = await window.tessera.desktopApps.getStates()
+  useDesktopAppsStore.setState({ states })
   window.tessera.desktopApps.onChange((appId, state) =>
     useDesktopAppsStore.setState((current) => ({ states: { ...current.states, [appId]: state } }))
   )
 
   let used = usedApps()
+  // Interface rechargée : une application encore dans Tessera mais affichée nulle part (bloc
+  // retiré entre-temps) resterait masquée pour toujours, rien ne la comparant à l'avant
+  for (const [appId, state] of Object.entries(states)) {
+    if ((state.status === 'running' || state.status === 'starting') && !used.has(appId)) {
+      releaseApp(appId)
+    }
+  }
   const check = (): void => {
     const next = usedApps()
-    const items = useSettingsStore.getState().settings.apps.items
-    for (const appId of used) {
-      if (next.has(appId)) continue
-      const app = items.find((item) => item.id === appId)
-      if (app && isDesktopApp(app) && app.release === 'desktop') {
-        void window.tessera.desktopApps.takeOut(appId)
-      } else {
-        void window.tessera.desktopApps.close(appId)
-      }
-    }
+    for (const appId of used) if (!next.has(appId)) releaseApp(appId)
     used = next
   }
   useDashboardStore.subscribe(check)

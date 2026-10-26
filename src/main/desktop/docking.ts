@@ -15,6 +15,7 @@ import {
   createFrame,
   releaseFrame,
   setFrameHostLostListener,
+  setFrameFocusListener,
   setFramePanListener,
   setFramePannable,
   setFrameWheel,
@@ -64,6 +65,7 @@ interface DockedWindow {
   hiddenByApp: boolean
   /** Masquée par Tessera avec son cadre (dialogue, autre page…) : ce n'est pas l'application. */
   hiddenByUs: boolean
+  hiddenByUsAt: number
   /** Rectangle de la fenêtre (écran) après le dernier placement, et emplacement visé. */
   placed: w.Rect | null
   target: string | null
@@ -102,10 +104,16 @@ interface DockingListeners {
   activate: (hostId: string | null) => void
 }
 
+/** Masquage signalé moins de 2 s après celui de Tessera : c'est le sien, pas celui de l'application. */
+const OWN_HIDE_MS = 2000
 /** Délai maximal d'apparition de la fenêtre après le lancement. */
 const LAUNCH_TIMEOUT_MS = 30_000
 /** Une fenêtre plus petite est un écran de démarrage, pas la fenêtre principale. */
 const MIN_MAIN_WINDOW = { width: 400, height: 300 }
+/** Fenêtre avec barre de titre ou bord : plus petite, ce n'est qu'une boîte de dialogue. */
+const MIN_FRAMED_WINDOW = { width: 240, height: 160 }
+/** Après ce délai, une fenêtre sans barre de titre ni bord est prise pour la fenêtre principale. */
+const UNFRAMED_AFTER_MS = 12_000
 
 let hostWindow: BrowserWindow | null = null
 let hostHwnd: w.Hwnd = 0
@@ -127,6 +135,8 @@ const windows = new Map<string, DockedWindow>()
 const states = new Map<string, DesktopAppState>()
 /** Applications en cours d'insertion (création du cadre). */
 const docking = new Set<string>()
+/** Fermées ou sorties de Tessera pendant leur insertion : l'insertion s'arrête. */
+const cancelled = new Set<string>()
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -246,6 +256,7 @@ function hideFrame(docked: DockedWindow): void {
   if (!docked.shown) return
   docked.shown = false
   docked.hiddenByUs = true
+  docked.hiddenByUsAt = Date.now()
   w.showWindowAsync(docked.hwnd, w.SW.HIDE)
   w.showWindow(docked.frame, w.SW.HIDE)
 }
@@ -365,7 +376,13 @@ function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
   docked.unwatch()
   if (windows.get(docked.appId) === docked) windows.delete(docked.appId)
   if (w.isWindow(docked.hwnd)) {
-    returnWindow(docked.hwnd, docked.saved, mode === 'restore' && !docked.hiddenByApp)
+    // Application qui ne répond plus : ses appels attendraient sans fin (Tessera figé, ou
+    // impossible à quitter). L'hébergeur des cadres lui rendra sa fenêtre en se fermant.
+    if (w.isHung(docked.hwnd)) {
+      logDocking(`${docked.appId} : ne répond plus, fenêtre laissée à l'hébergeur des cadres`)
+    } else {
+      returnWindow(docked.hwnd, docked.saved, mode === 'restore' && !docked.hiddenByApp)
+    }
     if (mode === 'close') w.postMessage(docked.hwnd, w.WM_CLOSE)
   }
   releaseFrame(docked.hwnd, docked.frame)
@@ -373,7 +390,15 @@ function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
 
 async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
   if (docking.has(appId) || windows.has(appId)) return
+  // Application figée (en plein chargement…) : l'insérer bloquerait Tessera. Elle sera
+  // insérée à la prochaine demande (bloc affiché, Réafficher).
+  if (w.isHung(hwnd)) {
+    logDocking(`${appId} : ne répond pas, insertion remise à plus tard`)
+    setState(appId, { status: 'error', error: 'not-responding' })
+    return
+  }
   docking.add(appId)
+  cancelled.delete(appId)
   try {
     const saved = saveWindow(hwnd)
     // Jeu : sa taille actuelle est gardée (un jeu supporte mal d'être redimensionné, surtout
@@ -398,6 +423,13 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
     saveMinSize(appId, Math.round(min.width / scale), Math.round(min.height / scale))
 
     const frame = await createFrame(hostHwnd, { x: 0, y: 0, width: 1, height: 1 })
+    // Fermée ou sortie de Tessera pendant la création du cadre : rendue telle quelle
+    if (cancelled.has(appId)) {
+      cancelled.delete(appId)
+      if (frame) releaseFrame(hwnd, frame)
+      if (w.isWindow(hwnd)) returnWindow(hwnd, saved, true)
+      return
+    }
     if (!frame || !w.isWindow(hwnd)) {
       if (w.isWindow(hwnd)) returnWindow(hwnd, saved, true)
       setState(appId, { status: 'error', error: 'frame' })
@@ -427,6 +459,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       pannable: false,
       hiddenByApp: false,
       hiddenByUs: false,
+      hiddenByUsAt: 0,
       placed: null,
       target: null,
       size: { width: 0, height: 0 },
@@ -464,8 +497,9 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       return
 
     case w.WinEvent.OBJECT_HIDE:
-      // Déjà réaffichée, ou masquée par Tessera avec son cadre : rien à faire
-      if (visible || docked.hiddenByUs) return
+      // Déjà réaffichée, ou masquée par Tessera avec son cadre (le masquage, demandé sans
+      // attendre, peut être signalé après que Tessera a réaffiché la fenêtre) : rien à faire
+      if (visible || docked.hiddenByUs || Date.now() - docked.hiddenByUsAt < OWN_HIDE_MS) return
       // Masquée par l'application : fermée dans sa zone de notification (Discord…). Pas
       // quand c'est Tessera qui l'a masquée avec son cadre.
       if (!docked.hiddenByApp) {
@@ -528,23 +562,47 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
 // ---------------------------------------------------------------------------
 
 /** Fenêtre principale de l'application, si elle est ouverte (hors de Tessera). */
-function findMainWindow(desktopApp: DesktopApp): w.TopWindow | undefined {
-  return w
-    .findTopWindows(desktopApp.processName)
-    .find(
-      (candidate) =>
-        candidate.title !== '' &&
-        (w.isMinimized(candidate.hwnd) ||
-          (candidate.width >= MIN_MAIN_WINDOW.width && candidate.height >= MIN_MAIN_WINDOW.height))
-    )
+function findMainWindow(desktopApp: DesktopApp, allowUnframed = true): w.TopWindow | undefined {
+  // Une vraie fenêtre (barre de titre ou bord) peut être petite : l'application a pu garder la
+  // taille d'un bloc (fermée de force pendant son insertion). Sans cadre, c'est souvent un écran
+  // de démarrage : il doit être grand.
+  const usable = (list: w.TopWindow[]): w.TopWindow[] =>
+    list.filter((candidate) => {
+      if (candidate.title === '') return false
+      if (w.isMinimized(candidate.hwnd)) return true
+      const min = candidate.framed ? MIN_FRAMED_WINDOW : MIN_MAIN_WINDOW
+      return candidate.width >= min.width && candidate.height >= min.height
+    })
+  let candidates = usable(w.findTopWindows(desktopApp.processName))
+  // Rien sous ce nom : un lanceur (swriter.exe) peut ouvrir la fenêtre d'un autre programme de
+  // son dossier (soffice.bin). Jamais pour un dossier de Windows (System32…), partagé.
+  const folder = dirname(desktopApp.path).toLowerCase()
+  const windowsFolder = (process.env.SystemRoot ?? 'C:\\Windows').toLowerCase()
+  if (candidates.length === 0 && !folder.startsWith(windowsFolder)) {
+    candidates = usable(w.findTopWindows(desktopApp.processName, folder))
+  }
+  // Un écran de démarrage (sans barre de titre ni bord : GIMP…) n'est pris que s'il n'y a rien
+  // d'autre et que l'application a eu le temps de s'ouvrir (`allowUnframed`)
+  return (
+    candidates.find((candidate) => candidate.framed) ?? (allowUnframed ? candidates[0] : undefined)
+  )
 }
 
 /** Insère la fenêtre de l'application si elle est déjà ouverte. */
-function connect(desktopApp: DesktopApp): boolean {
-  const found = findMainWindow(desktopApp)
+function connect(desktopApp: DesktopApp, allowUnframed = true): boolean {
+  const found = findMainWindow(desktopApp, allowUnframed)
   if (!found) return false
   void dock(desktopApp.id, found.hwnd, found.pid)
   return true
+}
+
+/**
+ * Insère une fenêtre déjà trouvée (fenêtre d'un jeu en cours) : jamais de relance du programme,
+ * même si sa fenêtre n'a pas de titre.
+ */
+export function insertWindow(appId: string, hwnd: w.Hwnd, pid: number): void {
+  if (windows.get(appId)?.hwnd === hwnd) return
+  void dock(appId, hwnd, pid)
 }
 
 /** Lance (ou rouvre, ou ramène dans Tessera) l'application, puis insère sa fenêtre. */
@@ -568,10 +626,12 @@ export async function launchApp(appId: string): Promise<void> {
     await sleep(400)
     const current = windows.get(appId)
     if (current && !current.hiddenByApp) return
-    if (!current && !docking.has(appId) && findMainWindow(desktopApp)) {
+    // Écran de démarrage sans barre de titre : accepté seulement après quelques secondes
+    const allowUnframed = Date.now() - start > UNFRAMED_AFTER_MS
+    if (!current && !docking.has(appId) && findMainWindow(desktopApp, allowUnframed)) {
       // Laisse le temps à un éventuel écran de démarrage de se fermer
       await sleep(800)
-      if (connect(desktopApp)) return
+      if (connect(desktopApp, allowUnframed)) return
     }
     if (docking.has(appId)) return
   }
@@ -641,14 +701,17 @@ export function detachHost(hostId: string): void {
  * notification. Elle n'apparaît jamais sur le bureau.
  */
 export function closeApp(appId: string): void {
+  if (docking.has(appId)) cancelled.add(appId)
   const docked = windows.get(appId)
-  if (docked) undock(docked, 'close')
+  // Fenêtre d'un jeu : jamais fermée par Tessera, rendue au bureau
+  if (docked) undock(docked, docked.fixedSize ? 'restore' : 'close')
   states.delete(appId)
   listeners.changed(appId, getAppState(appId))
 }
 
 /** « Sortir la fenêtre de Tessera » : l'application retrouve sa fenêtre sur le bureau. */
 export function takeOutApp(appId: string): void {
+  if (docking.has(appId)) cancelled.add(appId)
   const docked = windows.get(appId)
   if (docked) undock(docked, 'restore')
   setState(appId, { status: 'outside', error: null })
@@ -835,7 +898,8 @@ export function closeRemovedApps(): void {
 
 /** Avant de quitter : les applications sont fermées, ou rendues au bureau (réglage). */
 export function releaseAllApps(mode: QuitMode): void {
-  for (const docked of [...windows.values()]) undock(docked, mode)
+  // Un jeu n'est jamais fermé par Tessera (partie non sauvegardée) : rendu au bureau
+  for (const docked of [...windows.values()]) undock(docked, docked.fixedSize ? 'restore' : mode)
 }
 
 /** Branche le gestionnaire sur la fenêtre de Tessera. */
@@ -852,6 +916,20 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
       windows.delete(docked.appId)
       setState(docked.appId, { status: 'closed' })
     }
+  })
+
+  // Clavier refusé par une fenêtre insérée après un clic (barre d'adresse qui ne reçoit rien) :
+  // noté, avec la raison connue (fenêtre désactivée par une boîte de dialogue)
+  setFrameFocusListener(({ focus, ok, disabled, popup }) => {
+    const docked = [...windows.values()].find((candidate) => candidate.frame === focus)
+    if (!docked) return
+    logDocking(
+      `${docked.appId} : clavier ${ok ? 'donné' : 'refusé par Windows'}${
+        disabled
+          ? ` (fenêtre désactivée par une boîte de dialogue${popup ? ', mise au premier plan' : ' introuvable'})`
+          : ''
+      } (${describe(docked)})`
+    )
   })
 
   // Clic gauche + droit sur une fenêtre rognée : transmis à son bloc (px CSS)
@@ -898,10 +976,15 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
   window.on('show', placeAll)
   screen.on('display-metrics-changed', placeAll)
 
-  // Interface rechargée : les blocs vont se réenregistrer
-  window.webContents.on('did-start-loading', () => {
+  // Interface rechargée : les blocs vont se réenregistrer. Seulement la page elle-même :
+  // `did-start-loading` arrive aussi quand un cadre interne charge (corps d'un mail, module…),
+  // et toutes les fenêtres perdaient alors leur bloc (blocs gris).
+  window.webContents.on('did-start-navigation', (details) => {
+    if (!details.isMainFrame || details.isSameDocument) return
+    logDocking('interface rechargée : les blocs vont se réenregistrer')
     hosts.clear()
     activeHosts.clear()
+    for (const appId of states.keys()) setState(appId, {})
     placeAll()
   })
   window.on('closed', () => {

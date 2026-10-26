@@ -116,8 +116,19 @@ Avancement de Tessera Dashboard, étape par étape. Les fonctionnalités termin�
     - [x] Applications installées : vérification toutes les 2 secondes de chaque fenêtre insérée (cadre et fenêtre visibles, parent, position, application qui répond) ; un écart est noté et réparé. Journal détaillé des blocs (ce que montre chaque bloc, ce qui masque les fenêtres et pourquoi) dans `logs/applications.log`.
     - [x] Mode édition : le contenu des blocs ne réagit plus (clic, molette, survol), seuls les réglages prévus pour ce mode restent utilisables ; déplacer les blocs et faire défiler la page est plus simple.
     - [x] Jeux dans le bloc : le jeu garde sa taille (plus de redimensionnement en tout petit pour la mesurer) et le bloc s'agrandit pour la contenir.
+- [x] **Étape 20 : audit complet et nettoyage.** Tests de tous les blocs (pages larges et étroites, mode édition, paramètres), de 7 programmes installés de technologies différentes, des navigateurs, revue de sécurité et revue du code. Corrigé :
+  - [x] Critique : jetons Google Tâches, Google Agenda et Spotify effacés au premier changement de réglages ; `git`, `gh`, `cmd`, `powershell`… lancés par leur seul nom (un `git.exe` déposé dans un dépôt aurait été exécuté) ; logo et nom « Electron » dans la barre des tâches et les notifications.
+  - [x] Blocs d'applications gris : un cadre interne qui chargeait (corps d'un mail…) faisait oublier tous les blocs au processus principal.
+  - [x] Sécurité : chaque message IPC vérifie son expéditeur ; arguments des scripts `.bat` des modules filtrés ; liens ouverts par un module confirmés par l'utilisateur ; vidéos du PC séparées par module ; cookies chiffrés ; ouvertures en rafale bloquées ; connexion OAuth plus robuste.
+  - [x] Applications installées : jeux jamais fermés par Tessera, programmes figés qui ne bloquent plus Tessera, insertion annulable, programmes lancés par un intermédiaire (LibreOffice), écrans de démarrage (GIMP), fenêtres restées petites, journal du clavier (barre d'adresse), fenêtres orphelines après un rechargement, plein écran F11 rétabli après une vidéo.
+  - [x] Données : pagination de Google Tasks et des listes GitHub, tâche déplacée sans risque de perte, fichiers JSON illisibles gardés, écritures réessayées, réglages de GitSpread jamais effacés, « Annuler » de Git qui met à la corbeille au lieu de supprimer.
+  - [x] Blocs : une quarantaine de corrections (réponses en retard, chargements bloqués, erreurs jamais effacées, mode édition, focus volé, défilement gardé d'une page à l'autre, brouillon de mail perdu, terminal, YouTube, notes, tâches, traductions et typographie).
 
 ## Plus tard
+
+- [ ] Fusionner les blocs qui se recoupent (Horloge, Date et heure, Horloges du monde ; Minuteur et Concentration), avec une migration qui convertit aussi leurs réglages.
+- [ ] Messages d'erreur du processus principal (Git, Actualités, Spotify…) traduits en anglais.
+- [ ] Signature du code (installeur et mises à jour), puis vérification de l'intégrité de l'archive de l'application.
 
 - [ ] Application Android compagnon (SMS et notifications).
 - [ ] Intégration expérimentale de fenêtres externes.

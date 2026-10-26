@@ -16,6 +16,7 @@ import {
 import {
   Button,
   closeMediaView,
+  EDIT_ACTIVE,
   MEDIA_REFERRER,
   MediaView,
   mailErrorMessage,
@@ -114,7 +115,12 @@ export function YouTubeWidget({
   // La file a avancé (fin de vidéo, même en mini-lecteur) : le bloc retient la vidéo en cours
   const currentLink = queue.current?.link
   const currentTitle = queue.current?.title
+  // Seul un changement de la file compte : « Lire maintenant » change la vidéo du bloc sans
+  // passer par la file, et l'ancienne vidéo de la file ne doit pas la remplacer de nouveau
+  const lastLink = useRef(currentLink)
   useEffect(() => {
+    if (currentLink === lastLink.current) return
+    lastLink.current = currentLink
     if (currentLink && currentLink !== config.link) {
       setConfig({ link: currentLink, title: currentTitle })
     }
@@ -352,6 +358,7 @@ export function YouTubeWidget({
         ) : search !== null ? (
           <AccountGate account={account}>
             <SearchResults
+              key={`${account?.id ?? ''}:${search}`}
               account={account?.id ?? ''}
               query={search}
               grid={grid}
@@ -409,7 +416,13 @@ function Welcome({ onPlay }: { onPlay: (link: string, title: string) => void }):
     <form className={styles.state} onSubmit={submit}>
       <SquarePlay size={26} aria-hidden />
       <p>{t('welcome')}</p>
-      <Button variant="primary" icon={LogIn} onClick={openMediaSettings}>
+      <Button
+        {...EDIT_ACTIVE}
+        className="no-drag"
+        variant="primary"
+        icon={LogIn}
+        onClick={openMediaSettings}
+      >
         {t('signIn')}
       </Button>
       <p className={styles.or}>{t('orPasteLink')}</p>
@@ -447,7 +460,7 @@ function AccountGate({
   return (
     <div className={styles.state}>
       <p>{account ? t('expired') : t('connect')}</p>
-      <Button icon={LogIn} onClick={openMediaSettings}>
+      <Button {...EDIT_ACTIVE} className="no-drag" icon={LogIn} onClick={openMediaSettings}>
         {account ? t('reconnect') : t('signIn')}
       </Button>
     </div>

@@ -14,6 +14,11 @@ import { WebviewChannels } from '@shared/webview-channels'
  * afficher ses propres notifications.
  */
 const notificationListeners = new Map<string, (type: string) => void>()
+/**
+ * Notifications suivies au plus : la page ne ferme pas celles que l'utilisateur ou Windows ont
+ * fait disparaître. Au-delà, les plus anciennes sont oubliées (leur clic n'est plus renvoyé).
+ */
+const MAX_NOTIFICATIONS = 50
 
 contextBridge.exposeInMainWorld('__tesseraNotifications', {
   show: (
@@ -22,6 +27,11 @@ contextBridge.exposeInMainWorld('__tesseraNotifications', {
   ): string => {
     const id = crypto.randomUUID()
     notificationListeners.set(id, listener)
+    // Ordre d'ajout gardé par la Map : la première est la plus ancienne
+    for (const old of notificationListeners.keys()) {
+      if (notificationListeners.size <= MAX_NOTIFICATIONS) break
+      notificationListeners.delete(old)
+    }
     ipcRenderer.send(WebviewChannels.notify, id, {
       title: String(input?.title ?? ''),
       body: String(input?.body ?? ''),
@@ -38,6 +48,8 @@ contextBridge.exposeInMainWorld('__tesseraNotifications', {
 
 ipcRenderer.on(WebviewChannels.notificationEvent, (_event, id: string, type: string) => {
   notificationListeners.get(id)?.(type)
+  // Fermée par l'utilisateur ou Windows : plus rien à renvoyer à la page
+  if (type === 'close') notificationListeners.delete(id)
 })
 
 contextBridge.executeInMainWorld({

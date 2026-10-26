@@ -5,6 +5,7 @@ import { basename, dirname } from 'node:path'
 import { app, dialog, type BrowserWindow } from 'electron'
 import type { IntegrationErrorCode } from '@shared/integrations'
 import { getTranslation } from '../../i18n'
+import { systemProgram } from '../../executables'
 
 /**
  * Dossier `%APPDATA%` où les autres applications rangent leurs données (variable d'environnement,
@@ -67,7 +68,7 @@ export const isFile = (path: string): boolean => {
 export function isImageRunning(image: string): Promise<boolean> {
   return new Promise((resolve) => {
     execFile(
-      'tasklist',
+      systemProgram('tasklist.exe'),
       ['/FI', `IMAGENAME eq ${image}`, '/FO', 'CSV', '/NH'],
       { windowsHide: true },
       (error, stdout) =>

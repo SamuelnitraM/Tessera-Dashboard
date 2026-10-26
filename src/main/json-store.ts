@@ -6,6 +6,8 @@ type Listener<T> = (next: T, previous: T) => void
 
 /** Délai avant écriture : plusieurs changements rapprochés (ex. sélecteur de couleur) = 1 écriture. */
 const SAVE_DELAY_MS = 300
+/** Nouvel essai après une écriture refusée. */
+const RETRY_DELAY_MS = 2000
 
 /**
  * Données JSON sauvegardées dans le dossier de l'app (`%APPDATA%/Tessera Dashboard/`).
@@ -55,16 +57,24 @@ export class JsonStore<T> {
     return () => this.listeners.delete(listener)
   }
 
-  /** Écrit immédiatement les changements en attente (appelé avant de quitter). */
+  /**
+   * Écrit immédiatement les changements en attente (appelé avant de quitter). Une écriture
+   * refusée (fichier verrouillé par un antivirus ou l'indexation de Windows) est réessayée.
+   */
   flush(): void {
     if (!this.saveTimer) return
     clearTimeout(this.saveTimer)
     this.saveTimer = undefined
-    writeJsonFile(this.path, this.value)
+    try {
+      writeJsonFile(this.path, this.value)
+    } catch (error) {
+      console.warn(`[json-store] Écriture impossible de ${this.fileName}, nouvel essai.`, error)
+      this.scheduleSave(RETRY_DELAY_MS)
+    }
   }
 
-  private scheduleSave(): void {
+  private scheduleSave(delay = SAVE_DELAY_MS): void {
     clearTimeout(this.saveTimer)
-    this.saveTimer = setTimeout(() => this.flush(), SAVE_DELAY_MS)
+    this.saveTimer = setTimeout(() => this.flush(), delay)
   }
 }

@@ -76,7 +76,7 @@ export function ContextMenuHost(): React.JSX.Element | null {
         item === 'separator' ? (
           <li key={`separator-${index}`} className={styles.separator} role="separator" />
         ) : (
-          <li key={item.label} role="none">
+          <li key={`item-${index}`} role="none">
             <button
               type="button"
               role="menuitem"

@@ -36,7 +36,6 @@ export function loadSecrets(): void {
 export const flushSecrets = (): void => store.flush()
 
 export const GOOGLE_SECRET = 'google-client-secret'
-export const TWITCH_SECRET = 'twitch-client-secret'
 /** Comptes uniques (pas des comptes mail) : jamais supprimés avec les comptes mail retirés. */
 export const YOUTUBE_ACCOUNT = 'youtube'
 export const TWITCH_ACCOUNT = 'twitch'
@@ -80,19 +79,14 @@ export function getAccountSecret<T>(accountId: string): T | null {
 export const setAccountSecret = (accountId: string, value: object | null): void =>
   setSecret(accountSecret(accountId), value === null ? null : JSON.stringify(value))
 
-/** Supprime les secrets des comptes mail qui n'existent plus. */
-export function pruneAccountSecrets(accountIds: string[]): void {
-  const keep = new Set([...accountIds, ...RESERVED].map(accountSecret))
+/**
+ * Supprime les secrets des comptes mail retirés (et seulement eux). Les autres services
+ * (YouTube, Twitch, Agenda, Tâches, Spotify) suppriment les leurs à leur déconnexion : une
+ * liste de comptes « à garder » effaçait les jetons des services qu'elle ne connaissait pas.
+ */
+export function removeAccountSecrets(accountIds: string[]): void {
+  const remove = new Set(accountIds.filter((id) => !RESERVED.has(id)).map(accountSecret))
   const current = store.get()
-  const next = Object.fromEntries(
-    Object.entries(current).filter(
-      ([key]) =>
-        !key.startsWith('account:') ||
-        keep.has(key) ||
-        // Comptes YouTube et Twitch : supprimés par leur propre déconnexion
-        key.startsWith(`account:${YOUTUBE_ACCOUNT}`) ||
-        key === accountSecret(TWITCH_ACCOUNT)
-    )
-  )
+  const next = Object.fromEntries(Object.entries(current).filter(([key]) => !remove.has(key)))
   if (Object.keys(next).length !== Object.keys(current).length) store.set(next)
 }

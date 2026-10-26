@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CalendarDays,
   Columns3,
@@ -13,6 +13,8 @@ import {
 } from 'lucide-react'
 import {
   Button,
+  ConfirmDialog,
+  EDIT_ACTIVE,
   mailErrorMessage,
   openContextMenu,
   openMenuBelow,
@@ -39,27 +41,40 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  const [deleting, setDeleting] = useState<TaskList | null>(null)
   const view = config.view ?? 'list'
   const showDone = config.showDone ?? false
+  // Chaque requête renvoie l'état complet : seule la réponse de la plus récente est gardée
+  // (une réponse lente ne remet pas un état plus ancien)
+  const lastRequest = useRef(0)
+  const pending = useRef(0)
 
-  const apply = useCallback((promise: Promise<TasksState>) => {
-    setBusy(true)
+  const request = useCallback((promise: Promise<TasksState>, track: boolean) => {
+    const id = ++lastRequest.current
+    if (track) {
+      pending.current += 1
+      setBusy(true)
+    }
     promise
       .then((next) => {
+        if (id !== lastRequest.current) return
         setState(next)
         setError(null)
       })
-      .catch((failure: unknown) => setError(mailErrorMessage(failure)))
-      .finally(() => setBusy(false))
+      .catch(
+        (failure: unknown) => id === lastRequest.current && setError(mailErrorMessage(failure))
+      )
+      .finally(() => {
+        if (!track) return
+        pending.current -= 1
+        if (pending.current === 0) setBusy(false)
+      })
   }, [])
+  const apply = useCallback((promise: Promise<TasksState>) => request(promise, true), [request])
 
   // Chargement, puis toutes les 5 minutes (sans indicateur d'activité)
   useEffect(() => {
-    const load = (): void =>
-      void api
-        .state()
-        .then(setState)
-        .catch((failure: unknown) => setError(mailErrorMessage(failure)))
+    const load = (): void => request(api.state(), false)
     load()
     const timer = window.setInterval(() => !document.hidden && load(), REFRESH_MS)
     // Changement fait dans un autre bloc
@@ -68,7 +83,7 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
       window.clearInterval(timer)
       off()
     }
-  }, [api])
+  }, [api, request])
 
   const lists = state?.lists ?? []
   const current = lists.find((list) => list.id === config.listId) ?? lists[0]
@@ -210,7 +225,10 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
         .filter((account) => account.error)
         .map((account) => (
           <p key={account.id} className={styles.error}>
-            {account.email} : {mailErrorMessage(new Error(`mail-error:${account.error}`))}
+            {t('accountError', {
+              email: account.email,
+              message: mailErrorMessage(new Error(`mail-error:${account.error}`))
+            })}
           </p>
         ))}
 
@@ -225,12 +243,7 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
           lists={lists}
           onSave={save}
           onDelete={(task) => apply(api.remove(task.id, task.listId))}
-          onDeleteList={() => {
-            if (window.confirm?.(t('deleteListConfirm', { name: current.name }))) {
-              apply(api.deleteList(current.id))
-              setConfig({ listId: undefined })
-            }
-          }}
+          onDeleteList={() => setDeleting(current)}
         />
       ) : (
         <div className={styles.kanban}>
@@ -250,13 +263,38 @@ export function TasksWidget({ config, setConfig }: WidgetProps<TasksConfig>): Re
       )}
 
       {state && state.accounts.length === 0 && (
-        <div className={styles.connect}>
+        <div {...EDIT_ACTIVE} className={`${styles.connect} no-drag`}>
           <span>{t('googleHint')}</span>
           <Button disabled={connecting} onClick={connect}>
             {connecting ? t('waiting') : t('connectGoogle')}
           </Button>
+          {connecting && (
+            // Page de connexion abandonnée : la connexion en attente est annulée
+            <Button variant="ghost" onClick={() => void window.tessera.accounts.cancel()}>
+              {t('cancel')}
+            </Button>
+          )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title={t('deleteList')}
+        message={t('deleteListConfirm', { name: deleting?.name ?? '' })}
+        onClose={() => setDeleting(null)}
+        actions={[
+          { label: t('cancel'), onClick: () => setDeleting(null) },
+          {
+            label: t('delete'),
+            variant: 'danger',
+            onClick: () => {
+              if (deleting) apply(api.deleteList(deleting.id))
+              setDeleting(null)
+              setConfig({ listId: undefined })
+            }
+          }
+        ]}
+      />
     </div>
   )
 }
@@ -345,8 +383,17 @@ function TaskRow({
   const language = useLanguage()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(task.title)
-  const [notes, setNotes] = useState(task.notes)
+  /** Notes en cours de modification, `null` : celles de la tâche. */
+  const [notes, setNotes] = useState<string | null>(null)
+  const [notesFocused, setNotesFocused] = useState(false)
   const [open, setOpen] = useState(false)
+  // Tâche changée ailleurs (autre bloc, Google Tasks) : les notes affichées suivent, sauf
+  // pendant leur saisie
+  const [seenNotes, setSeenNotes] = useState(task.notes)
+  if (seenNotes !== task.notes) {
+    setSeenNotes(task.notes)
+    if (!notesFocused) setNotes(null)
+  }
   const today = new Date().toISOString().slice(0, 10)
   const overdue = !task.done && task.due !== null && task.due < today
 
@@ -407,7 +454,11 @@ function TaskRow({
             type="button"
             className={styles.title}
             onClick={() => setOpen(!open)}
-            onDoubleClick={() => setEditing(true)}
+            onDoubleClick={() => {
+              // Titre repris de la tâche (il a pu changer depuis l'affichage)
+              setTitle(task.title)
+              setEditing(true)
+            }}
           >
             {task.title}
           </button>
@@ -437,11 +488,18 @@ function TaskRow({
         {open && (
           <textarea
             className={styles.notes}
-            value={notes}
+            value={notes ?? task.notes}
             placeholder={t('notes')}
             aria-label={t('notes')}
+            onFocus={() => setNotesFocused(true)}
             onChange={(event) => setNotes(event.target.value)}
-            onBlur={() => notes !== task.notes && onSave(task, { listId: task.listId, notes })}
+            onBlur={() => {
+              setNotesFocused(false)
+              // Enregistrées seulement si elles ont été modifiées
+              if (notes !== null && notes !== task.notes) {
+                onSave(task, { listId: task.listId, notes })
+              }
+            }}
           />
         )}
       </div>

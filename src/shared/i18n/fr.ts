@@ -31,7 +31,14 @@ export const fr = {
     importSound: 'Importer un son',
     soundFilter: 'Sons (.mp3, .wav, .ogg, .m4a)',
     soundInvalid: 'Format de son non pris en charge.',
-    soundTooBig: 'Ce son est trop lourd (3 Mo au maximum).'
+    soundTooBig: 'Ce son est trop lourd (3 Mo au maximum).',
+    openLinkTitle: 'Ouvrir un lien',
+    openLinkMessage: '« {{module}} » veut ouvrir {{host}} dans ton navigateur.',
+    openLinkDetail:
+      'Adresse complète : {{url}}\n\nUn module peut transmettre des informations dans une adresse : n’ouvre que les sites que tu attends.',
+    openLinkAllow: 'Ouvrir',
+    openLinkCancel: 'Annuler',
+    openLinkRemember: 'Ne plus demander pour ce site (jusqu’à la fermeture de Tessera)'
   },
   web: {
     contextMenu: {
@@ -137,6 +144,7 @@ export const fr = {
     closed: '{{name}} est fermé.',
     missing: '{{name}} n’apparaît pas ?',
     refresh: 'Réafficher',
+    afterEdit: '{{name}} s’affichera à la sortie du mode édition.',
     reopen: 'Rouvrir',
     elsewhere: 'Cette application est affichée ailleurs (autre bloc ou onglet).',
     showHere: 'L’afficher ici',
@@ -386,6 +394,7 @@ export const fr = {
     },
     agenda: {
       now: 'Maintenant',
+      accountError: '{{email}} : {{error}}',
       connect: 'Connecter Google Agenda',
       reconnect: 'Reconnecter Google Agenda',
       intro:
@@ -568,7 +577,9 @@ export const fr = {
       other: 'Autres'
     },
     settings: 'Réglages du bloc',
+    settingsOf: 'Réglages du bloc : {{name}}',
     remove: 'Retirer le bloc',
+    removeOf: 'Retirer le bloc : {{name}}',
     unknown: 'Bloc indisponible ({{type}})',
     disabledPlugin: 'Désactivé : {{name}}',
     error: 'Ce bloc a rencontré une erreur.',

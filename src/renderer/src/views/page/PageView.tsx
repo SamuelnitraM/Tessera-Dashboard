@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LayoutGrid, Plus, RotateCcw, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { DashboardGrid } from '../../components/grid/DashboardGrid'
@@ -38,6 +38,10 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
     gridRef(element)
   }
   const mode = size ? getLayoutMode(size.width) : 'wide'
+  // Autre page : elle s'ouvre en haut (la zone de la grille reste la même d'une page à l'autre)
+  useLayoutEffect(() => {
+    if (scroller.current) scroller.current.scrollTop = 0
+  }, [page.id])
   const [pickerOpen, setPickerOpen] = useState(false)
 
   // Échap quitte le mode édition (sauf si la fenêtre d'ajout est ouverte : elle se ferme d'abord)
