@@ -20,10 +20,11 @@ Compose tes pages avec des **blocs** posés sur une grille libre : tes mails, te
 
 ### Versions disponibles
 
-| Version                                                                        | Date            | Contenu                                                                                                                        |
-| ------------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| [0.1.1](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.1) | 25 octobre 2026 | Nouvelle grille (aperçu des déplacements, Ajuster, Automatique), clavier et étirement des applications installées, corrections |
-| [0.1.0](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.0) | 24 octobre 2026 | Première version publique de Tessera Dashboard                                                                                 |
+| Version                                                                        | Date            | Contenu                                                                                                                                                                                                                    |
+| ------------------------------------------------------------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [0.1.2](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.2) | 26 octobre 2026 | Barre des pages et ses widgets, modules intégrés (fichiers, jeux, GitSpread, terminal, tâches, actualités, services, surveillance, Spotify), grands blocs, changement de navigateur, fiabilité des applications installées |
+| [0.1.1](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.1) | 25 octobre 2026 | Nouvelle grille (aperçu des déplacements, Ajuster, Automatique), clavier et étirement des applications installées, corrections                                                                                             |
+| [0.1.0](https://github.com/SamuelnitraM/Tessera-Dashboard/releases/tag/v0.1.0) | 24 octobre 2026 | Première version publique de Tessera Dashboard                                                                                                                                                                             |
 
 Toutes les versions et leurs notes : **[page des versions](https://github.com/SamuelnitraM/Tessera-Dashboard/releases)**.
 
@@ -34,7 +35,7 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 ### Une grille à ta main
 
 - Des **blocs déplaçables et redimensionnables**, sur autant de **pages** que tu veux (« Travail », « Détente »…). Une page remplit la hauteur de la fenêtre et continue en dessous si tu as besoin de plus de place.
-- **Mode édition** (bouton « Modifier ») pour ajouter, déplacer et redimensionner les blocs ; le reste du temps, la grille est verrouillée.
+- **Mode édition** (bouton « Modifier ») pour ajouter, déplacer et redimensionner les blocs : leur contenu ne réagit plus, tu les attrapes n'importe où. Le reste du temps, la grille est verrouillée.
 - **Déplacer sans tout chambouler** : pendant que tu tiens un bloc, rien ne bouge ; un aperçu montre où il sera posé et où iront les blocs qui s'écartent. Les autres blocs ne bougent qu'au relâchement : ils se décalent de quelques cases, ou prennent la place libérée.
 - **Ajuster** remonte et resserre les blocs d'un clic ; **Automatique** garde la page toujours rangée.
 - La **molette** fait défiler la page ; un clic dans un bloc lui rend la molette, le temps d'y faire défiler son contenu.
