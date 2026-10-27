@@ -54,6 +54,8 @@ export function MailReader({
   const [error, setError] = useState<string | null>(null)
   const [showImages, setShowImages] = useState(remoteImages)
   const [notice, setNotice] = useState<string | null>(null)
+  // En-tête réduit (objet et expéditeur sur une ligne) dès que l'on fait défiler le mail
+  const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     // Un lecteur par mail (clé) : rien à remettre à zéro ici
@@ -143,7 +145,11 @@ export function MailReader({
 
       {message && (
         <>
-          <header className={styles.readerHeader}>
+          <header
+            className={styles.readerHeader}
+            data-collapsed={collapsed}
+            onClick={collapsed ? () => setCollapsed(false) : undefined}
+          >
             <h3 className={styles.readerSubject}>{message.subject || t('noSubject')}</h3>
             <p className={styles.readerFrom}>
               <strong>{senderName(message.from) || t('unknownSender')}</strong>
@@ -195,6 +201,11 @@ export function MailReader({
             text={message.text}
             remote={showImages}
             onLink={(url) => void mail.openLink(url)}
+            onScroll={(top) => {
+              // Écart entre les deux seuils : l'en-tête ne bascule pas sans cesse
+              if (top > 48) setCollapsed(true)
+              else if (top === 0) setCollapsed(false)
+            }}
           />
         </>
       )}

@@ -148,6 +148,12 @@
   flex-shrink: 0;
   width: clamp(14rem, 32%, 22rem);
   border-left: 1px solid var(--color-border);
+  /* Fondu à l'apparition */
+  transition: opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .linkRow {

@@ -39,6 +39,7 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - Une application qui ouvre **plusieurs fenêtres** : seule sa fenêtre principale est affichée dans le bloc ; les autres (paramètres, fenêtres détachées) s'ouvrent normalement.
 - **Taille minimale** : la fenêtre ne devient jamais plus petite que ce que l'application autorise ; dans un bloc plus petit, elle est rognée.
 - **Version installée** : l'hébergeur des cadres utilise le mode Node d'Electron, dont le fusible (`RunAsNode`) reste donc activé dans `electron-builder.yml`.
+- **Plein écran** : un fichier ouvert hors de Tessera (photo dans la visionneuse de Windows…) s'ouvre dans sa propre fenêtre, devant Tessera, avec la barre des tâches : c'est une autre application qui a le clavier. La barre des tâches disparaît dès que l'on revient dans Tessera.
 - **Clavier** : une application dont une boîte de dialogue est ouverte (restaurer les onglets, autorisation…) refuse la souris et le clavier dans sa fenêtre ; Tessera met cette boîte de dialogue au premier plan. Si une barre d'adresse ne reçoit toujours rien, le journal (`logs/applications.log`, lignes « clavier ») dit si Windows a refusé le focus.
 - **Boîte de dialogue de taille fixe** (Table des caractères…) : elle garde sa taille dans un bloc plus grand, le reste du bloc est vide.
 - **Lanceurs** (LibreOffice : `swriter.exe` ouvre `soffice.bin`) : la fenêtre est cherchée parmi les programmes du même dossier, jamais dans un dossier de Windows.

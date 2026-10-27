@@ -25,6 +25,7 @@ import {
   type PluginManifest
 } from '@shared/plugins'
 import { PluginIcon } from '../../../components/PluginIcon'
+import { usePresence } from '../../../hooks/usePresence'
 import { SearchField } from '../../../components/ui/SearchField'
 import { groupByCategory, matchesSearch } from '../../../lib/catalog'
 import { Button } from '../../../components/ui/Button'
@@ -284,6 +285,8 @@ function CollectionGroup({ plugins }: { plugins: LoadedPlugin[] }): React.JSX.El
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
   const update = useSettingsStore((state) => state.update)
   const [expanded, setExpanded] = useState(false)
+  // Liste gardée le temps de se replier
+  const list = usePresence(expanded)
 
   const collection = plugins[0].module?.collection
   const name = collection ? localize(collection.name, language) : ''
@@ -318,8 +321,8 @@ function CollectionGroup({ plugins }: { plugins: LoadedPlugin[] }): React.JSX.El
           onChange={toggle}
         />
       </div>
-      {expanded && (
-        <ul className={styles.extensionList}>
+      {list.mounted && (
+        <ul className={styles.extensionList} data-closing={list.closing || undefined}>
           {plugins.map((plugin) => (
             <ExtensionCard key={plugin.id} plugin={plugin} />
           ))}

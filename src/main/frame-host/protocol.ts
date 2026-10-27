@@ -15,7 +15,15 @@ export type FrameCommand =
       y: number
       width: number
       height: number
+      /** Tessera est en plein écran (voir `fullScreen`). */
+      fullScreen: boolean
     }
+  /**
+   * Tessera passe en plein écran ou en sort : les cadres sont signalés à la barre des tâches comme
+   * des fenêtres plein écran, sans quoi elle repasse par-dessus Tessera dès qu'une application
+   * insérée a le clavier (le cadre est alors la fenêtre active de Windows).
+   */
+  | { cmd: 'fullScreen'; value: boolean }
   /** La fenêtre `window` est insérée dans `frame` : à rendre si Tessera disparaît. */
   | { cmd: 'adopt'; window: number; frame: number; saved: SavedWindow }
   /** Tessera a repris la fenêtre : le cadre est détruit. */

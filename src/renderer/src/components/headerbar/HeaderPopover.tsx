@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { usePresence } from '../../hooks/usePresence'
 import { useCoverDesktopApps } from '../../stores/desktopApps'
 import styles from './HeaderBar.module.css'
 
@@ -49,7 +50,9 @@ export function HeaderPopover({
   const rootRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
-  useCoverDesktopApps(open, `widget « ${label} »`)
+  // Panneau gardé le temps de sa disparition
+  const { mounted, closing } = usePresence(open)
+  useCoverDesktopApps(mounted, `widget « ${label} »`)
 
   // Focus dans le panneau (s'il n'y est pas déjà : champ de la calculatrice…), puis rendu au
   // bouton, sauf si l'utilisateur l'a mis ailleurs (clic sur un autre champ)
@@ -125,8 +128,15 @@ export function HeaderPopover({
       >
         {button}
       </button>
-      {open && (
-        <div ref={panelRef} className={styles.panel} role="dialog" aria-label={label} tabIndex={-1}>
+      {mounted && (
+        <div
+          ref={panelRef}
+          className={styles.panel}
+          role="dialog"
+          aria-label={label}
+          tabIndex={-1}
+          data-closing={closing || undefined}
+        >
           {children(() => setOpen(false))}
         </div>
       )}

@@ -47,5 +47,5 @@ Chaque compte se règle à part dans **Paramètres → Notifications** : activat
 
 ## Confidentialité
 
-- Les images des mails (souvent des « pixels espions ») ne sont chargées que si tu cliques sur **Afficher les images**, ou si tu actives « Toujours afficher les images » dans les réglages du bloc.
+- Les images des mails s'affichent par défaut. Elles peuvent contenir des « pixels espions » qui préviennent l'expéditeur que tu as ouvert son mail : décoche « Toujours afficher les images » dans les réglages du bloc pour les masquer, puis clique sur **Afficher les images** dans un mail quand tu le veux.
 - Le contenu des mails est nettoyé et affiché sans scripts ni formulaires ; les liens s'ouvrent dans ton navigateur.

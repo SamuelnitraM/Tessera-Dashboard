@@ -29,10 +29,31 @@
   --sidebar-width: 240px;
   --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-accent);
 
+  /*
+   * Animations d'apparition et de disparition (panneaux, menus, fenêtres, parties qui se
+   * plient). `--motion-exit` est aussi l'attente avant de retirer un élément qui disparaît
+   * (hooks/usePresence.ts). Hauteurs animables jusqu'à `auto` (interpolate-size).
+   */
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --motion-exit: 140ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  interpolate-size: allow-keywords;
+
   font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Animations réduites dans Windows : apparitions et disparitions immédiates */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+    --motion-exit: 0ms;
+  }
 }
 
 @media (prefers-color-scheme: dark) {

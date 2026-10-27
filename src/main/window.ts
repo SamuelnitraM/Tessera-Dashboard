@@ -3,6 +3,7 @@ import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { getAppIcons } from './app-icon'
+import { setFramesFullScreen } from './desktop/frames'
 import { protectModuleFrames } from './plugins/module-protocol'
 import { getSettings } from './settings-store'
 import { getWindowBackground } from './system'
@@ -92,8 +93,11 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
   mainWindow.on('closed', () => nativeTheme.off('updated', updateBackground))
 
   // Plein écran (F11 ou bouton du menu latéral) : l'interface met son bouton à jour
-  const sendFullScreen = (): void =>
-    mainWindow?.webContents.send(IpcChannels.windowFullScreenChanged, mainWindow.isFullScreen())
+  const sendFullScreen = (): void => {
+    if (!mainWindow) return
+    mainWindow.webContents.send(IpcChannels.windowFullScreenChanged, mainWindow.isFullScreen())
+    setFramesFullScreen(mainWindow.isFullScreen())
+  }
   mainWindow.on('enter-full-screen', sendFullScreen)
   mainWindow.on('leave-full-screen', sendFullScreen)
 

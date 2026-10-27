@@ -201,7 +201,9 @@ export function NotificationsSection(): React.JSX.Element {
                 <span className={styles.appIcon}>
                   <SourceIcon info={info} size={20} />
                 </span>
-                <span className={styles.sourceName}>{info.name}</span>
+                <span className={styles.sourceName} title={info.name}>
+                  {info.name}
+                </span>
                 <Select
                   aria-label={t('settings.notifications.soundFor', { name: info.name })}
                   value={own.sound}

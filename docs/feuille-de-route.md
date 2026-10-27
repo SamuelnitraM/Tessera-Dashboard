@@ -130,6 +130,12 @@ Avancement de Tessera Dashboard, étape par étape. Les fonctionnalités termin�
   - [x] **Connexion des comptes unifiée** : Mails, YouTube, Twitch, Tâches, Prochain événement et Spotify affichent le même encadré (`AccountRequired` du SDK) : « Se connecter avec… » sur place, Annuler pendant l'attente, « Gérer les comptes » ; la reconnexion (accès retiré, case décochée chez Google, API désactivée) passe par le même encadré. Spotify rejoint Paramètres → Comptes (son identifiant personnel est dans « Avancé »).
   - [x] **Journal** : Paramètres → À propos → Journal affiche les erreurs et plantages de Tessera (`logs/tessera.log`, nouveau) et le journal des applications installées, avec Copier et Ouvrir le dossier.
   - [x] Signature de code prête : l'installeur et l'application sont signés dès qu'un certificat est configuré (`build/sign.mjs`, secrets de l'action « Version »). Reste à obtenir le certificat (voir le guide de distribution).
+- [x] **Étape 22 : clavier, plein écran et lecture des mails.**
+  - [x] Barre d'adresse des navigateurs Chromium (Brave, Chrome, Edge…) : leur fenêtre insérée peut maintenant devenir la fenêtre active de Windows (style WS_CHILD | WS_POPUP), condition posée par Chromium pour donner le clavier à sa barre d'adresse ; Tessera repasse devant les autres fenêtres quand on clique dedans. L'activation relayée aux autres applications arrive aussi avant le clic.
+  - [x] Plein écran (F11) : la barre des tâches de Windows ne repasse plus par-dessus Tessera quand une application insérée a le clavier (cadres signalés comme plein écran à la barre des tâches).
+  - [x] Mails : images affichées par défaut (réglage du bloc), en-tête réduit à une ligne pendant la lecture (un clic le déplie), molette du contenu du mail comme celle des autres blocs (elle fait défiler la page tant que l'on n'a pas cliqué dans le bloc).
+  - [x] Animations d'apparition et de disparition : fenêtres, menus, panneaux de la barre d'en-tête, centre de notifications, en-tête du mail, parties qui se déplient (collections de modules, « Avancé » des comptes, formulaires des blocs…). Coupées quand les animations sont réduites dans Windows.
+  - [x] Paramètres plus larges : le nom des applications reste lisible dans « Notifications » (leurs réglages passent à la ligne si la place manque).
 
 ## Plus tard
 

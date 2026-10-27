@@ -99,6 +99,17 @@
   background: var(--color-bg);
   border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
+  /* Se déplie à l'apparition */
+  overflow: clip;
+  overflow-clip-margin: 4px;
+  transition:
+    height var(--motion-normal) var(--ease-out),
+    opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    height: 0;
+    opacity: 0;
+  }
 }
 
 .primary {

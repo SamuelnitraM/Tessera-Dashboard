@@ -3,6 +3,7 @@ import { BellOff, CheckCheck, Settings, Trash2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { isDoNotDisturbActive, type TesseraNotification } from '@shared/notifications'
 import { useNotificationSources } from '../../hooks/useNotificationSources'
+import { usePresence } from '../../hooks/usePresence'
 import { useCoverDesktopApps } from '../../stores/desktopApps'
 import { useNavigationStore } from '../../stores/navigation'
 import { openNotificationSource, useNotificationsStore } from '../../stores/notifications'
@@ -45,7 +46,9 @@ export function NotificationCenter(): React.JSX.Element | null {
   const dndLabel = useId()
 
   // Les fenêtres des applications installées passeraient devant le panneau
-  useCoverDesktopApps(open, 'centre de notifications')
+  // Panneau gardé le temps de sa disparition
+  const { mounted, closing } = usePresence(open)
+  useCoverDesktopApps(mounted, 'centre de notifications')
 
   // Fermeture : Échap, clic ailleurs. Les notifications vues sont alors marquées comme lues.
   useEffect(() => {
@@ -68,7 +71,7 @@ export function NotificationCenter(): React.JSX.Element | null {
     }
   }, [open, setOpen])
 
-  if (!open) return null
+  if (!mounted) return null
 
   const scheduled = !settings.doNotDisturb && isDoNotDisturbActive(settings)
 
@@ -79,7 +82,12 @@ export function NotificationCenter(): React.JSX.Element | null {
   }
 
   return (
-    <aside ref={panelRef} className={styles.panel} aria-label={t('notifications.center.title')}>
+    <aside
+      ref={panelRef}
+      className={styles.panel}
+      aria-label={t('notifications.center.title')}
+      data-closing={closing || undefined}
+    >
       <header className={styles.header}>
         <h2 className={styles.title}>{t('notifications.center.title')}</h2>
         <button

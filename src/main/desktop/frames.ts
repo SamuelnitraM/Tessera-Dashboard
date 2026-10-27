@@ -103,6 +103,14 @@ function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
   return child
 }
 
+/** Tessera en plein écran : chaque cadre créé l'est aussi pour la barre des tâches. */
+let fullScreen = false
+
+export function setFramesFullScreen(value: boolean): void {
+  fullScreen = value
+  if (host) send({ cmd: 'fullScreen', value })
+}
+
 function send(command: FrameCommand): void {
   ensureHost().stdin.write(`${JSON.stringify(command)}\n`)
 }
@@ -115,7 +123,7 @@ export function createFrame(
   return new Promise((resolve) => {
     const id = nextId++
     pending.set(id, resolve)
-    send({ cmd: 'create', id, owner, ...rect })
+    send({ cmd: 'create', id, owner, ...rect, fullScreen })
   })
 }
 

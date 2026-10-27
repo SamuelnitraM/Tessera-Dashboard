@@ -8,7 +8,9 @@ import { sanitizeMailHtml } from './sanitize'
  * - HTML nettoyé (DOMPurify) et cadre sans scripts (`sandbox`) ;
  * - images et polices distantes bloquées tant que `remote` est faux (règle de sécurité du
  *   contenu) : un expéditeur ne peut pas savoir que le mail a été ouvert ;
- * - liens ouverts dans le navigateur par défaut.
+ * - liens ouverts dans le navigateur par défaut ;
+ * - clic et molette relayés à la page de Tessera, qui ne les voit pas dans un cadre : la molette
+ *   fait défiler la page tant que l'on n'a pas cliqué dans le bloc, comme pour les autres blocs.
  */
 
 interface MailBodyProps {
@@ -16,6 +18,8 @@ interface MailBodyProps {
   text: string
   remote: boolean
   onLink: (url: string) => void
+  /** Défilement du contenu (px depuis le haut). */
+  onScroll?: (top: number) => void
   className?: string
 }
 
@@ -46,14 +50,17 @@ export function MailBody({
   text,
   remote,
   onLink,
+  onScroll,
   className
 }: MailBodyProps): React.JSX.Element {
   const t = usePluginTranslation()
   const frame = useRef<HTMLIFrameElement>(null)
   const document = useMemo(() => buildDocument(html, text, remote), [html, text, remote])
   const onLinkRef = useRef(onLink)
+  const onScrollRef = useRef(onScroll)
   useEffect(() => {
     onLinkRef.current = onLink
+    onScrollRef.current = onScroll
   })
 
   // Clic sur un lien : ouvert hors de Tessera (le cadre n'exécute aucun script)
@@ -61,13 +68,43 @@ export function MailBody({
     const element = frame.current
     if (!element) return
     const attach = (): void => {
-      element.contentDocument?.addEventListener('click', (event) => {
+      const content = element.contentDocument
+      if (!content) return
+      content.addEventListener('click', (event) => {
         const link = (event.target as Element | null)?.closest?.('a[href]')
         if (!link) return
         event.preventDefault()
         const href = link.getAttribute('href') ?? ''
         if (/^(https?:|mailto:)/i.test(href)) onLinkRef.current(href)
       })
+      // Clic : le bloc devient actif (sa molette fait alors défiler le mail)
+      content.addEventListener('pointerdown', (event) => {
+        element.dispatchEvent(
+          new PointerEvent('pointerdown', {
+            bubbles: true,
+            button: event.button,
+            pointerType: event.pointerType
+          })
+        )
+      })
+      // Molette : rejouée sur le cadre ; si la page la prend (bloc inactif), le mail ne défile pas
+      content.addEventListener(
+        'wheel',
+        (event) => {
+          const relayed = new WheelEvent('wheel', {
+            deltaX: event.deltaX,
+            deltaY: event.deltaY,
+            deltaMode: event.deltaMode,
+            bubbles: true,
+            cancelable: true
+          })
+          if (!element.dispatchEvent(relayed)) event.preventDefault()
+        },
+        { passive: false }
+      )
+      content.addEventListener('scroll', () =>
+        onScrollRef.current?.(content.scrollingElement?.scrollTop ?? 0)
+      )
     }
     element.addEventListener('load', attach)
     return () => element.removeEventListener('load', attach)

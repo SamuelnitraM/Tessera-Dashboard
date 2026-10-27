@@ -106,7 +106,11 @@ const api = {
     'bool __stdcall SetWindowPlacement(intptr_t hwnd, WINDOWPLACEMENT *wp)'
   ),
   SetParent: fn(user32, 'intptr_t __stdcall SetParent(intptr_t child, intptr_t parent)'),
-  GetParent: fn(user32, 'intptr_t __stdcall GetParent(intptr_t hwnd)'),
+  GetAncestor: fn(user32, 'intptr_t __stdcall GetAncestor(intptr_t hwnd, uint32_t flags)'),
+  GetClassNameW: fn(
+    user32,
+    'int __stdcall GetClassNameW(intptr_t hwnd, _Out_ uint8_t *buf, int max)'
+  ),
   PostMessageW: fn(
     user32,
     'bool __stdcall PostMessageW(intptr_t hwnd, uint32_t msg, uintptr_t wParam, intptr_t lParam)'
@@ -218,7 +222,18 @@ export const setExStyle = (hwnd: Hwnd, style: number): void =>
   void api.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | 0)
 /** Fenêtre propriétaire : la fenêtre reste au-dessus d'elle, et se réduit avec elle. */
 export const setParent = (hwnd: Hwnd, parent: Hwnd): void => void api.SetParent(hwnd, parent)
-export const getParent = (hwnd: Hwnd): Hwnd => Number(api.GetParent(hwnd))
+/**
+ * Fenêtre parente dans l'arbre des fenêtres. `GetParent` ne convient pas : il rend le
+ * propriétaire d'une fenêtre insérée qui garde le style WS_POPUP (voir `childStyle`).
+ */
+export const getParent = (hwnd: Hwnd): Hwnd => Number(api.GetAncestor(hwnd, 1 /* GA_PARENT */))
+
+/** Classe de la fenêtre (`Chrome_WidgetWin_1`…). */
+export function getClassName(hwnd: Hwnd): string {
+  const buffer = Buffer.alloc(512)
+  const length = api.GetClassNameW(hwnd, buffer, 256)
+  return buffer.toString('utf16le', 0, length * 2)
+}
 export const postMessage = (hwnd: Hwnd, message: number): void =>
   void api.PostMessageW(hwnd, message, 0, 0)
 export const WM_CLOSE = 0x0010

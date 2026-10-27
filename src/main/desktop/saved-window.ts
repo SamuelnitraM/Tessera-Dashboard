@@ -19,8 +19,14 @@ export function saveWindow(hwnd: w.Hwnd): SavedWindow {
  * Style d'une fenêtre insérée dans un cadre : fenêtre enfant, sans barre de titre, sans bord
  * redimensionnable ni bouton agrandir. Elle ne peut plus être déplacée ni redimensionnée par
  * Windows : seule Tessera la place.
+ *
+ * `activatable` : la fenêtre garde aussi WS_POPUP (WS_CHILD | WS_POPUP). Placée et rognée comme
+ * une fenêtre enfant, elle peut pourtant devenir la fenêtre active de Windows, ce qu'une fenêtre
+ * seulement enfant ne peut pas être (c'est son cadre qui l'est). Chromium (Brave, Chrome,
+ * Discord…) ne donne le clavier à ses propres champs, comme la barre d'adresse, que si
+ * `GetActiveWindow()` est sa fenêtre ; les pages, elles, le reçoivent quand même.
  */
-export function childStyle(style: number): number {
+export function childStyle(style: number, activatable = false): number {
   const removed =
     w.WS.POPUP |
     w.WS.CAPTION |
@@ -30,8 +36,12 @@ export function childStyle(style: number): number {
     w.WS.MAXIMIZEBOX |
     w.WS.MAXIMIZE |
     w.WS.MINIMIZE
-  return (style & ~removed) | w.WS.CHILD
+  return (style & ~removed) | w.WS.CHILD | (activatable ? w.WS.POPUP : 0)
 }
+
+/** Fenêtre de Chromium : insérée avec `childStyle(style, true)`. */
+export const isChromium = (hwnd: w.Hwnd): boolean =>
+  w.getClassName(hwnd).startsWith('Chrome_WidgetWin_')
 
 /**
  * Sort la fenêtre de son cadre et lui rend son style et sa position d'origine.

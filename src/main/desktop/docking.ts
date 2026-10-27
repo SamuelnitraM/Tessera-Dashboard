@@ -23,7 +23,7 @@ import {
 } from './frames'
 import { logDocking } from '../log'
 import { saveMinSize } from './programs'
-import { childStyle, returnWindow, saveWindow, type SavedWindow } from './saved-window'
+import { childStyle, isChromium, returnWindow, saveWindow, type SavedWindow } from './saved-window'
 import * as w from './win32'
 
 /**
@@ -77,6 +77,8 @@ interface DockedWindow {
   raised: boolean
   /** Fenêtre d'un jeu : elle garde sa taille (jamais réduite ni agrandie à celle du bloc). */
   fixedSize: boolean
+  /** Fenêtre de Chromium : elle peut devenir la fenêtre active (voir `childStyle`). */
+  activatable: boolean
   /** Dernier état noté dans le journal (affichée, ou raison du masquage), et dernière anomalie. */
   logged: string
   problem: string
@@ -291,9 +293,9 @@ function place(docked: DockedWindow): void {
   // écran, ou de lui-même) : plus « enfant » du cadre, elle échappe au placement et prend la
   // taille de l'écran. Elle redevient une fenêtre enfant, puis est remise dans son bloc.
   const style = w.getStyle(docked.hwnd)
-  if (style !== childStyle(style)) {
+  if (style !== childStyle(style, docked.activatable)) {
     logDocking(`${docked.appId} : style rétabli (0x${(style >>> 0).toString(16)})`)
-    w.setStyle(docked.hwnd, childStyle(style))
+    w.setStyle(docked.hwnd, childStyle(style, docked.activatable))
     w.setWindowPos(
       docked.hwnd,
       0,
@@ -436,7 +438,8 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       return
     }
     adoptWindow(hwnd, frame, saved)
-    w.setStyle(hwnd, childStyle(saved.style))
+    const activatable = isChromium(hwnd)
+    w.setStyle(hwnd, childStyle(saved.style, activatable))
     w.setExStyle(hwnd, saved.exStyle & ~w.WS_EX_APPWINDOW)
     w.setParent(hwnd, frame)
     w.setWindowPos(
@@ -467,6 +470,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       raised: false,
       pageWheel: false,
       fixedSize,
+      activatable,
       logged: '',
       problem: '',
       unwatch: () => {}

@@ -43,6 +43,12 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--color-text-muted);
+  /* Fondu à l'apparition */
+  transition: opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .toolbarName {

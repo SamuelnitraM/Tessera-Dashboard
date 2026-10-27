@@ -208,6 +208,12 @@
   border-radius: var(--radius-sm);
   color: var(--color-text);
   font: inherit;
+  /* Fondu à l'apparition (une zone de texte garde son propre défilement) */
+  transition: opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .remove {

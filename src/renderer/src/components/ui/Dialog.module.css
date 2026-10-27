@@ -7,6 +7,28 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: 0 24px 48px rgb(0 0 0 / 0.3);
+  /* Fondu et léger zoom à l'ouverture comme à la fermeture (display et overlay discrets) */
+  opacity: 0;
+  scale: 0.97;
+  transition:
+    opacity var(--motion-exit) var(--ease-in),
+    scale var(--motion-exit) var(--ease-in),
+    overlay var(--motion-exit) allow-discrete,
+    display var(--motion-exit) allow-discrete;
+}
+
+.dialog[open] {
+  opacity: 1;
+  scale: 1;
+  transition-duration: var(--motion-normal);
+  transition-timing-function: var(--ease-out);
+}
+
+@starting-style {
+  .dialog[open] {
+    opacity: 0;
+    scale: 0.97;
+  }
 }
 
 .dialog[data-wide='true'] {
@@ -14,7 +36,21 @@
 }
 
 .dialog::backdrop {
+  background: rgb(0 0 0 / 0);
+  transition:
+    background-color var(--motion-normal) var(--ease-out),
+    overlay var(--motion-normal) allow-discrete,
+    display var(--motion-normal) allow-discrete;
+}
+
+.dialog[open]::backdrop {
   background: rgb(0 0 0 / 0.45);
+}
+
+@starting-style {
+  .dialog[open]::backdrop {
+    background: rgb(0 0 0 / 0);
+  }
 }
 
 .header {

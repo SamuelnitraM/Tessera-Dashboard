@@ -29,7 +29,7 @@
             "fr": "Toujours afficher les images des mails (l’expéditeur peut savoir que tu l’as ouvert)",
             "en": "Always show images in emails (the sender may learn that you opened it)"
           },
-          "default": false
+          "default": true
         }
       ]
     }

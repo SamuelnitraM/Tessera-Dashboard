@@ -406,6 +406,12 @@
   flex-direction: column;
   min-height: 0;
   border-top: 1px solid var(--color-border);
+  /* Fondu à l'apparition */
+  transition: opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .watch:not([data-wide='true']) .queue {

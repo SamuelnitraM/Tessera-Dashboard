@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { usePresence } from '../../hooks/usePresence'
 import { useCoverDesktopApps } from '../../stores/desktopApps'
 import styles from './Dialog.module.css'
 
@@ -15,14 +16,16 @@ interface DialogProps {
 
 /**
  * Fenêtre modale basée sur l'élément natif <dialog> :
- * fond assombri, focus piégé et touche Échap gérés par le navigateur.
+ * fond assombri, focus piégé et touche Échap gérés par le navigateur. Elle apparaît et
+ * disparaît en fondu (CSS) ; son contenu reste affiché pendant la disparition.
  */
 export function Dialog({ title, open, onClose, children, wide }: DialogProps): React.JSX.Element {
   const { t } = useTranslation()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
+  const { mounted } = usePresence(open)
   // Les fenêtres des applications installées passeraient devant : remplacées par leur image
-  useCoverDesktopApps(open, `fenêtre « ${title} »`)
+  useCoverDesktopApps(mounted, `fenêtre « ${title} »`)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -53,7 +56,7 @@ export function Dialog({ title, open, onClose, children, wide }: DialogProps): R
           <X size={18} aria-hidden />
         </button>
       </header>
-      {open && <div className={styles.body}>{children}</div>}
+      {mounted && <div className={styles.body}>{children}</div>}
     </dialog>
   )
 }

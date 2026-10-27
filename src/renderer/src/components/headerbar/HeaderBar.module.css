@@ -166,6 +166,27 @@
   border-radius: var(--radius-md);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.28);
   font-size: 0.8125rem;
+  /* `transform`, pas `translate` : celui-ci décale le panneau dans une fenêtre étroite */
+  animation: panel-in var(--motion-fast) var(--ease-out);
+}
+
+.panel[data-closing] {
+  pointer-events: none;
+  animation: panel-out var(--motion-exit) var(--ease-in) forwards;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 
 /* Focus donné au panneau à l'ouverture (repère pour le clavier) : pas de contour */
