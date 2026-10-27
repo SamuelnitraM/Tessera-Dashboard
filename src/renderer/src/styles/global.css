@@ -47,6 +47,27 @@
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * Transitions de disposition (lib/layoutTransition.ts) : le menu et le contenu glissent vers
+ * leur nouvelle place ; les images ne sont pas étirées pendant le changement de taille.
+ */
+::view-transition-group(*) {
+  animation-duration: var(--motion-normal);
+  animation-timing-function: var(--ease-out);
+}
+
+::view-transition-old(main-content),
+::view-transition-new(main-content) {
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+}
+
+::view-transition-old(navigation),
+::view-transition-new(navigation) {
+  height: 100%;
+}
+
 /* Animations réduites dans Windows : apparitions et disparitions immédiates */
 @media (prefers-reduced-motion: reduce) {
   :root {

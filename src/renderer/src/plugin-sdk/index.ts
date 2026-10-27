@@ -69,6 +69,13 @@ export function useLatest<T>(value: T): RefObject<T> {
   return ref
 }
 
+/**
+ * Élément qui disparaît en s'animant : `usePresence(ouvert)` le garde affiché le temps de son
+ * animation (`closing` vrai, à mettre en `data-closing` pour le CSS) ; `useLingering(valeur)`
+ * garde la dernière valeur non nulle (petit message…).
+ */
+export { useLingering, usePresence } from '../hooks/usePresence'
+
 /** Langue actuelle de l'interface, pour formater dates et nombres (`Intl`). */
 export function useLanguage(): Language {
   const { i18n } = useTranslation()

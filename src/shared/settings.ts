@@ -115,7 +115,8 @@ export const DEFAULT_SETTINGS: Settings = {
     theme: 'system',
     accentColor: 'system',
     accentIcon: true,
-    sidebar: 'expanded'
+    // Menu rabattu (barre d'onglets en haut) à l'installation : toute la largeur pour les pages
+    sidebar: 'collapsed'
   },
   window: {
     startupMode: 'maximized',

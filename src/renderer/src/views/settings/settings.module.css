@@ -57,6 +57,66 @@
   font-weight: 600;
 }
 
+/* ---------- Recherche des paramètres ---------- */
+
+.settingsSearch {
+  margin-bottom: 0.5rem;
+}
+
+.searchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchResult {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  text-align: left;
+  transition: background-color var(--motion-fast) var(--ease-out);
+}
+
+.searchResult:hover {
+  background: var(--color-surface-hover);
+}
+
+.searchResultText {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  color: var(--color-text);
+}
+
+.searchResultSection {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+}
+
+/* Réglage choisi dans les résultats : il s'illumine un instant */
+.row[data-found],
+.card[data-found] {
+  animation: found 1.6s var(--ease-out);
+}
+
+@keyframes found {
+  from,
+  30% {
+    background: var(--color-accent-soft);
+    box-shadow: 0 0 0 6px var(--color-accent-soft);
+  }
+}
+
 /* ---------- Cartes et lignes de réglage ---------- */
 
 .card {

@@ -11,6 +11,7 @@ import {
   Select,
   useMail,
   useMailAccounts,
+  useLingering,
   useMailOpenRequest,
   usePluginTranslation,
   type MailAccount,
@@ -138,7 +139,8 @@ function AccountInbox({
     leaveComposer(() => setView({ kind: 'read', id: messageId }))
   )
 
-  // Les messages passagers (« Mail envoyé »…) disparaissent d'eux-mêmes
+  // Les messages passagers (« Mail envoyé »…) disparaissent d'eux-mêmes, en s'animant
+  const toast = useLingering(notice)
   useEffect(() => {
     if (!notice) return
     const timer = setTimeout(() => setNoticeState(null), 5000)
@@ -248,7 +250,11 @@ function AccountInbox({
             {state.error === 'auth' && <Button onClick={openMailSettings}>{t('reconnect')}</Button>}
           </div>
         ))}
-      {notice && <p className={styles.toast}>{notice.text}</p>}
+      {toast.shown && (
+        <p className={styles.toast} data-closing={toast.closing || undefined}>
+          {toast.shown.text}
+        </p>
+      )}
 
       <div className={styles.layout}>
         {sidebarVisible && (

@@ -12,6 +12,7 @@ import { TopBar } from './components/TopBar'
 import { ContextMenuHost } from './components/ui/ContextMenuHost'
 import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
+import { setSidebarMode } from './lib/layoutTransition'
 import { revealInstalledApp } from './plugin-sdk/apps'
 import { focusBlock } from './stores/activeBlock'
 import { useDashboardStore } from './stores/dashboard'
@@ -26,7 +27,6 @@ import styles from './App.module.css'
 export function App(): React.JSX.Element {
   const view = useNavigationStore((state) => state.view)
   const sidebar = useSettingsStore((state) => state.settings.appearance.sidebar)
-  const updateSettings = useSettingsStore((state) => state.update)
   const accentColor = useResolvedAccentColor()
   const language = useResolvedLanguage()
 
@@ -46,13 +46,11 @@ export function App(): React.JSX.Element {
         return
       if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return
       event.preventDefault()
-      void updateSettings({
-        appearance: { sidebar: sidebar === 'collapsed' ? 'expanded' : 'collapsed' }
-      })
+      setSidebarMode(sidebar === 'collapsed' ? 'expanded' : 'collapsed')
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [sidebar, updateSettings])
+  }, [sidebar])
 
   // Une application installée demande à s'afficher (clic sur sa notification, son icône…) :
   // on va vers son onglet s'il est ouvert, sinon vers son bloc (navigateur mis de côté

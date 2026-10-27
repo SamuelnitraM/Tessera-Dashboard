@@ -20,6 +20,17 @@ export function usePresence(open: boolean): { mounted: boolean; closing: boolean
   return { mounted: open || mounted, closing: !open && mounted }
 }
 
+/**
+ * `usePresence` pour une valeur affichée tant qu'elle n'est pas nulle (menu, petit message…) :
+ * la dernière valeur reste rendue (`shown`) pendant sa disparition.
+ */
+export function useLingering<T>(value: T | null): { shown: T | null; closing: boolean } {
+  const { mounted, closing } = usePresence(value !== null)
+  const [last, setLast] = useState(value)
+  if (value !== null && value !== last) setLast(value)
+  return { shown: mounted ? (value ?? last) : null, closing }
+}
+
 /** Durée de `--motion-exit` (ms). */
 function exitDuration(): number {
   const value = getComputedStyle(document.documentElement).getPropertyValue('--motion-exit')

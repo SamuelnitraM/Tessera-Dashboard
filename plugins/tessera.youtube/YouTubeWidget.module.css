@@ -352,13 +352,32 @@
   filter: brightness(1.15);
 }
 
+/* Petit message : se déplie à l'apparition, se replie en disparaissant */
 .toast {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   margin: 0;
   padding: 0.375rem 0.75rem;
+  overflow: clip;
   background: var(--color-accent-soft);
+  transition:
+    opacity var(--motion-normal) var(--ease-out),
+    height var(--motion-normal) var(--ease-out),
+    padding var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    height: 0;
+    opacity: 0;
+  }
+}
+
+.toast[data-closing] {
+  height: 0;
+  padding-block: 0;
+  opacity: 0;
+  transition-duration: var(--motion-exit);
+  transition-timing-function: var(--ease-in);
 }
 
 .toast span {
@@ -559,14 +578,20 @@
   position: absolute;
   top: 0.375rem;
   right: 0.375rem;
-  display: none;
+  display: flex;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    visibility var(--motion-fast);
   flex-direction: column;
   gap: 0.25rem;
 }
 
 .cardItem:hover .cardActions,
 .cardItem:focus-within .cardActions {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
 }
 
 .cardAction {

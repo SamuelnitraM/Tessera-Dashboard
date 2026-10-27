@@ -32,6 +32,12 @@ export default definePlugin({
         trash: 'Corbeille'
       },
       filters: { label: 'Afficher', all: 'Tous', unread: 'Non lus', read: 'Lus' },
+      select: {
+        one: 'Choisir « {{subject}} »',
+        all: 'Tout choisir',
+        count: 'Choisis : {{count}}',
+        clear: 'Annuler le choix'
+      },
       loadMore: 'Mails plus anciens',
       reconnect: 'Reconnecter',
       retry: 'Réessayer',
@@ -125,6 +131,12 @@ export default definePlugin({
         trash: 'Trash'
       },
       filters: { label: 'Show', all: 'All', unread: 'Unread', read: 'Read' },
+      select: {
+        one: 'Select “{{subject}}”',
+        all: 'Select all',
+        count: 'Selected: {{count}}',
+        clear: 'Clear selection'
+      },
       loadMore: 'Older emails',
       reconnect: 'Reconnect',
       retry: 'Try again',

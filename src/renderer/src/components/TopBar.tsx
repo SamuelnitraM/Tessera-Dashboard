@@ -8,6 +8,7 @@ import { openContextMenu } from '../stores/contextMenu'
 import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
+import { setSidebarMode } from '../lib/layoutTransition'
 import { useSettingsStore } from '../stores/settings'
 import { useWebAppsStore } from '../stores/webApps'
 import { AppIcon } from './AppIcon'
@@ -26,7 +27,6 @@ export function TopBar(): React.JSX.Element {
   const { t } = useTranslation()
   const pages = useDashboardStore((state) => state.dashboard.pages)
   const apps = useSettingsStore((state) => state.settings.apps.items)
-  const updateSettings = useSettingsStore((state) => state.update)
   const view = useNavigationStore((state) => state.view)
   const navigate = useNavigationStore((state) => state.navigate)
   const badges = useWebAppsStore((state) => state.badges)
@@ -95,7 +95,7 @@ export function TopBar(): React.JSX.Element {
           className={styles.iconButton}
           title={t('nav.expand')}
           aria-label={t('nav.expand')}
-          onClick={() => void updateSettings({ appearance: { sidebar: 'expanded' } })}
+          onClick={() => setSidebarMode('expanded')}
         >
           <PanelLeftOpen size={16} aria-hidden />
         </button>

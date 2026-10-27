@@ -1,4 +1,5 @@
 .topBar {
+  view-transition-name: navigation;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -82,6 +83,10 @@
 
 .tabClose {
   display: none;
+  opacity: 0;
+  transition:
+    opacity var(--motion-fast) var(--ease-out),
+    display var(--motion-fast) allow-discrete;
   place-items: center;
   width: 20px;
   height: 20px;
@@ -96,6 +101,11 @@
 .tab:hover .tabClose,
 .tabClose:focus-visible {
   display: grid;
+  opacity: 1;
+
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .tabClose:hover {

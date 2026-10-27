@@ -1,18 +1,21 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useLingering } from '../../hooks/usePresence'
 import { useContextMenuStore, type MenuAction } from '../../stores/contextMenu'
 import { useCoverDesktopApps } from '../../stores/desktopApps'
 import styles from './ContextMenuHost.module.css'
 
 /**
  * Affiche le menu du clic droit ouvert par `openContextMenu`. Se ferme au clic ailleurs,
- * avec Échap, au défilement ou quand la fenêtre perd le focus. Navigable au clavier.
+ * avec Échap, au défilement ou quand la fenêtre perd le focus. Navigable au clavier. Il
+ * apparaît et disparaît en fondu (le dernier menu reste affiché le temps de disparaître).
  */
 export function ContextMenuHost(): React.JSX.Element | null {
   const menu = useContextMenuStore((state) => state.menu)
   const close = useContextMenuStore((state) => state.close)
   const listRef = useRef<HTMLUListElement>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
-  useCoverDesktopApps(menu !== null, 'menu du clic droit')
+  const { shown, closing } = useLingering(menu)
+  useCoverDesktopApps(shown !== null, 'menu du clic droit')
 
   // Le menu reste entièrement visible, même ouvert près d'un bord de la fenêtre
   useLayoutEffect(() => {
@@ -57,7 +60,7 @@ export function ContextMenuHost(): React.JSX.Element | null {
     }
   }, [menu, close])
 
-  if (!menu) return null
+  if (!shown) return null
 
   const select = (item: MenuAction): void => {
     close()
@@ -69,10 +72,11 @@ export function ContextMenuHost(): React.JSX.Element | null {
       ref={listRef}
       className={styles.menu}
       role="menu"
-      style={position ?? { left: menu.x, top: menu.y, visibility: 'hidden' }}
+      data-closing={closing || undefined}
+      style={position ?? { left: shown.x, top: shown.y, visibility: 'hidden' }}
       onContextMenu={(event) => event.preventDefault()}
     >
-      {menu.items.map((item, index) =>
+      {shown.items.map((item, index) =>
         item === 'separator' ? (
           <li key={`separator-${index}`} className={styles.separator} role="separator" />
         ) : (

@@ -795,6 +795,11 @@ export const en: Translation = {
   },
   settings: {
     title: 'Settings',
+    search: {
+      placeholder: 'Search settings',
+      results: 'Results: {{count}}',
+      none: 'No setting matches the search.'
+    },
     sections: {
       general: 'General',
       extensions: 'Widgets and modules',

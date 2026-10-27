@@ -106,6 +106,25 @@ function changeOverlays(name: string, delta: 1 | -1): void {
 }
 
 /**
+ * Remplace les fenêtres d'applications par leur image (transition de toute l'interface…), puis
+ * attend que les images soient affichées (600 ms au plus). Renvoie de quoi les rendre.
+ */
+export async function coverDesktopApps(name: string): Promise<() => void> {
+  changeOverlays(name, 1)
+  await new Promise<void>((resolve) => {
+    if (useDesktopAppsStore.getState().suspended) return resolve()
+    const timer = setTimeout(done, 600)
+    const unsubscribe = useDesktopAppsStore.subscribe((state) => state.suspended && done())
+    function done(): void {
+      clearTimeout(timer)
+      unsubscribe()
+      resolve()
+    }
+  })
+  return () => changeOverlays(name, -1)
+}
+
+/**
  * Masque les fenêtres d'applications tant que `active` est vrai (dialogue ouvert…). `name` dit
  * ce qui passe par-dessus, dans le journal.
  */

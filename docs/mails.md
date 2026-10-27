@@ -2,6 +2,8 @@
 
 Le bloc **Mails** affiche la boîte de réception d'un compte : lecture, classement (lu / non lu, archiver, corbeille), écriture, réponse et transfert, et une notification à l'arrivée de chaque nouveau mail.
 
+**Plusieurs mails d'un coup** : la case à cocher qui apparaît au survol d'un mail le choisit (Maj + clic choisit tous ceux entre deux, Échap annule). La barre qui apparaît en haut de la liste les marque comme lus ou non lus, les archive ou les met à la corbeille. Les mails sont traités un par un ; si l'un échoue, la liste est rechargée pour montrer l'état réel du serveur.
+
 Les comptes s'ajoutent dans **Paramètres → Comptes** :
 
 | Fournisseur                                | Connexion                                      |

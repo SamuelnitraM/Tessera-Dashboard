@@ -49,7 +49,8 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 - **Ajouter un bloc** : widgets, applications et modules rangés par catégorie, avec une recherche.
 - **Clic droit** sur un bloc ou une page : réglages, retrait, renommage…
 - Une disposition **compacte** prend le relais automatiquement quand la fenêtre est étroite.
-- **Menu latéral** avec tes pages et tes applications, rabattable en onglets (Ctrl+B).
+- **Menu latéral** avec tes pages et tes applications, ou des onglets en haut de la fenêtre (Ctrl+B, par défaut).
+- **Recherche dans les paramètres** (Ctrl+F) : tape un mot, Tessera t'amène au réglage.
 
 ### Tes applications, dans Tessera
 
@@ -59,26 +60,26 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 
 ### Les blocs fournis avec Tessera
 
-| Bloc                                   | Ce qu'il fait                                                                                                               |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| **Mails**                              | Gmail et toute messagerie IMAP : dossiers et libellés, recherche, lecture sécurisée, écriture, réponse, notifications       |
-| **YouTube**                            | Tes abonnements, la recherche, tes playlists, une file « À suivre », plusieurs comptes ; la vidéo continue en mini-lecteur  |
-| **Twitch**                             | Tes chaînes suivies en direct, la recherche de chaînes, le chat, une notification à chaque début de direct                  |
-| **Vidéo locale**                       | Les vidéos et musiques de ton PC, avec reprise où tu t'étais arrêté et « Ouvrir dans VLC »                                  |
-| **Bloc-notes**                         | Notes en texte, Markdown ou texte riche, rangées dans tes Documents                                                         |
-| **Lanceur**                            | Lance tes programmes et scripts (`.exe`, `.bat`, raccourcis), avec leur état et leurs journaux                              |
-| **Page web**                           | N'importe quel site dans un bloc                                                                                            |
-| **Horloge**, **Titre**                 | L'heure, la date, le calendrier du mois et l'heure d'autres villes ; des titres pour organiser tes pages                    |
-| **Fichiers**, **Dossiers favoris**     | Un gestionnaire de fichiers complet ; un fichier s'ouvre dans son bloc si son application y est déjà, sinon hors de Tessera |
-| **Jeux**                               | Tes jeux Steam et Epic Games ; le bloc règle le volume du jeu en cours et peut afficher sa fenêtre                          |
-| **GitSpread**                          | GitSpread dans Tessera : projets, commits, branches, historique, pull/push, dépôts, pull requests, issues, GitHub Actions   |
-| **Terminal**                           | PowerShell, Invite de commandes, Git Bash ou WSL, en onglets                                                                |
-| **Tâches**                             | Tes listes Google Tasks et des listes locales, en liste ou en kanban                                                        |
-| **Actualités**                         | Tes flux RSS (une adresse de site suffit), lu / non lu, recherche, notifications                                            |
-| **Services locaux**                    | Les programmes qui écoutent sur un port, leur projet, les arrêter ; tes conteneurs Docker                                   |
-| **Surveillance de sites**              | Tes sites en ligne ou en panne, temps de réponse, certificat HTTPS, notification en cas de panne                            |
-| **Spotify**                            | Tes playlists, titres likés, écoutes récentes et la recherche (compte gratuit accepté) ; la lecture se fait dans Spotify    |
-| **DevLauncher**, **Prospect Solution** | Des blocs dédiés à ces applications : projets, services, prospection                                                        |
+| Bloc                                   | Ce qu'il fait                                                                                                                                            |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Mails**                              | Gmail et toute messagerie IMAP : dossiers et libellés, recherche, lecture sécurisée, écriture, réponse, plusieurs mails classés d'un coup, notifications |
+| **YouTube**                            | Tes abonnements, la recherche, tes playlists, une file « À suivre », plusieurs comptes ; la vidéo continue en mini-lecteur                               |
+| **Twitch**                             | Tes chaînes suivies en direct, la recherche de chaînes, le chat, une notification à chaque début de direct                                               |
+| **Vidéo locale**                       | Les vidéos et musiques de ton PC, avec reprise où tu t'étais arrêté et « Ouvrir dans VLC »                                                               |
+| **Bloc-notes**                         | Notes en texte, Markdown ou texte riche, rangées dans tes Documents                                                                                      |
+| **Lanceur**                            | Lance tes programmes et scripts (`.exe`, `.bat`, raccourcis), avec leur état et leurs journaux                                                           |
+| **Page web**                           | N'importe quel site dans un bloc                                                                                                                         |
+| **Horloge**, **Titre**                 | L'heure, la date, le calendrier du mois et l'heure d'autres villes ; des titres pour organiser tes pages                                                 |
+| **Fichiers**, **Dossiers favoris**     | Un gestionnaire de fichiers complet ; un fichier s'ouvre dans son bloc si son application y est déjà, sinon hors de Tessera                              |
+| **Jeux**                               | Tes jeux Steam et Epic Games ; le bloc règle le volume du jeu en cours et peut afficher sa fenêtre                                                       |
+| **GitSpread**                          | GitSpread dans Tessera : projets, commits, branches, historique, pull/push, dépôts, pull requests, issues, GitHub Actions                                |
+| **Terminal**                           | PowerShell, Invite de commandes, Git Bash ou WSL, en onglets                                                                                             |
+| **Tâches**                             | Tes listes Google Tasks et des listes locales, en liste ou en kanban                                                                                     |
+| **Actualités**                         | Tes flux RSS (une adresse de site suffit), lu / non lu, recherche, notifications                                                                         |
+| **Services locaux**                    | Les programmes qui écoutent sur un port, leur projet, les arrêter ; tes conteneurs Docker                                                                |
+| **Surveillance de sites**              | Tes sites en ligne ou en panne, temps de réponse, certificat HTTPS, notification en cas de panne                                                         |
+| **Spotify**                            | Tes playlists, titres likés, écoutes récentes et la recherche (compte gratuit accepté) ; la lecture se fait dans Spotify                                 |
+| **DevLauncher**, **Prospect Solution** | Des blocs dédiés à ces applications : projets, services, prospection                                                                                     |
 
 ### Des modules pour aller plus loin
 

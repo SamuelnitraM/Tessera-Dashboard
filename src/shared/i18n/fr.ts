@@ -804,6 +804,11 @@ export const fr = {
   },
   settings: {
     title: 'Paramètres',
+    search: {
+      placeholder: 'Rechercher un réglage',
+      results: 'Résultats : {{count}}',
+      none: 'Aucun réglage ne correspond à la recherche.'
+    },
     sections: {
       general: 'Général',
       extensions: 'Widgets et modules',

@@ -9,6 +9,7 @@ import { openContextMenu } from '../stores/contextMenu'
 import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
+import { setSidebarMode } from '../lib/layoutTransition'
 import { useSettingsStore } from '../stores/settings'
 import { useWebAppsStore } from '../stores/webApps'
 import { AppIcon } from './AppIcon'
@@ -24,7 +25,6 @@ export function Sidebar(): React.JSX.Element {
   const { t } = useTranslation()
   const pages = useDashboardStore((state) => state.dashboard.pages)
   const apps = useSettingsStore((state) => state.settings.apps.items)
-  const updateSettings = useSettingsStore((state) => state.update)
   const view = useNavigationStore((state) => state.view)
   const navigate = useNavigationStore((state) => state.navigate)
   const openedApps = useNavigationStore((state) => state.openedApps)
@@ -44,7 +44,7 @@ export function Sidebar(): React.JSX.Element {
           className={styles.groupAction}
           title={t('nav.collapse')}
           aria-label={t('nav.collapse')}
-          onClick={() => void updateSettings({ appearance: { sidebar: 'collapsed' } })}
+          onClick={() => setSidebarMode('collapsed')}
         >
           <PanelLeftClose size={16} aria-hidden />
         </button>

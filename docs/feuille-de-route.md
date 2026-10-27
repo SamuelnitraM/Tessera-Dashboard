@@ -149,11 +149,11 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Étirement momentané des quatre côtés et des quatre coins, poignées à l'extérieur du bloc entier (les barres de défilement restent utilisables) : repère discret au milieu de chaque côté, contour de la couleur d'accent autour de la fenêtre étirée.
   - [x] Mode édition : les blocs s'agrandissent et rétrécissent par les quatre côtés et les quatre coins (poignée sur toute la longueur de chaque bord).
   - [x] Petites fenêtres de Chromium (« Restaurer les pages ? », menus, autorisations…) décalées pour tenir dans leur bloc.
-- [ ] **Étape 24 : confort de l'interface.**
-  - [ ] Menu latéral replié par défaut à l'installation.
-  - [ ] Animations : passage du menu latéral déplié au menu replié, éléments révélés au survol, fermeture des menus et des petits messages.
-  - [ ] Recherche dans les paramètres.
-  - [ ] Mails : cases à cocher pour choisir plusieurs mails, puis supprimer, marquer comme lus / non lus ou archiver d'un coup.
+- [x] **Étape 24 : confort de l'interface.**
+  - [x] Menu latéral rabattu (onglets en haut) par défaut à l'installation ; le choix déjà fait reste le même.
+  - [x] Animations : passage du menu déplié aux onglets (le menu et la page glissent vers leur nouvelle place, applications remplacées par leur image le temps de l'animation), éléments révélés au survol en fondu, fermeture des menus du clic droit et des petits messages des blocs (Mails, YouTube).
+  - [x] Recherche dans les paramètres (Ctrl+F) : libellés et descriptions de tous les réglages, accents ignorés ; Entrée ou un clic ouvre la section et illumine le réglage.
+  - [x] Mails : cases à cocher (Maj + clic : tous les mails entre deux, Échap annule), barre de sélection pour marquer comme lus / non lus, archiver ou mettre à la corbeille d'un coup.
 - [ ] **Étape 25 : vidéos et molette.**
   - [ ] Vrai plein écran pour les vidéos des navigateurs insérés (aujourd'hui, il remplit seulement le bloc).
   - [ ] Molette au-dessus des lecteurs YouTube et Twitch et des vidéos des navigateurs : elle fait défiler la page, comme pour les autres blocs.

@@ -15,10 +15,22 @@
   animation: menu-in var(--motion-fast) var(--ease-out);
 }
 
+.menu[data-closing] {
+  pointer-events: none;
+  animation: menu-out var(--motion-exit) var(--ease-in) forwards;
+}
+
 @keyframes menu-in {
   from {
     opacity: 0;
     translate: 0 -4px;
+  }
+}
+
+@keyframes menu-out {
+  to {
+    opacity: 0;
+    translate: 0 -2px;
   }
 }
 

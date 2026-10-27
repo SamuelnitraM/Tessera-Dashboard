@@ -852,6 +852,7 @@
   flex-direction: column;
   padding: 0.125rem;
   opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
 
 .clipboardEntry:hover .clipboardActions,
@@ -1414,6 +1415,7 @@
   background: var(--color-surface);
   border-radius: var(--radius-sm);
   opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
 
 .shot:hover .shotActions,

@@ -19,6 +19,11 @@ export interface Inbox {
   loadMore: () => void
   /** Action sur un mail : appliquée tout de suite à la liste, annulée si elle échoue. */
   act: (id: string, action: MailAction) => Promise<void>
+  /**
+   * Même action sur plusieurs mails (sélection) : appliquée tout de suite à la liste, puis un
+   * mail après l'autre. Si une partie échoue, la liste est rechargée (état réel du serveur).
+   */
+  actMany: (ids: string[], action: MailAction) => Promise<void>
 }
 
 /**
@@ -77,27 +82,31 @@ export function useInbox(accountId: string, query: MailQuery, starredFolder: boo
     void fetchPage(page).finally(() => setBusy(false))
   }
 
-  const act = useCallback(
-    async (id: string, action: MailAction) => {
-      const before = messages
-      // Le mail quitte la liste s'il ne correspond plus à ce qu'elle montre
+  /** La liste après l'action sur ces mails (ceux qui ne correspondent plus la quittent). */
+  const applied = useCallback(
+    (list: MailSummary[], ids: Set<string>, action: MailAction): MailSummary[] => {
       const leaves =
         action === 'archive' ||
         action === 'trash' ||
         (action === 'read' && query.filter === 'unread') ||
         (action === 'unread' && query.filter === 'read') ||
         (action === 'unstar' && starredFolder)
-      setMessages((list) =>
-        leaves
-          ? list.filter((message) => message.id !== id)
-          : list.map((message) =>
-              message.id !== id
-                ? message
-                : action === 'star' || action === 'unstar'
-                  ? { ...message, starred: action === 'star' }
-                  : { ...message, unread: action === 'unread' }
-            )
+      if (leaves) return list.filter((message) => !ids.has(message.id))
+      return list.map((message) =>
+        !ids.has(message.id)
+          ? message
+          : action === 'star' || action === 'unstar'
+            ? { ...message, starred: action === 'star' }
+            : { ...message, unread: action === 'unread' }
       )
+    },
+    [query.filter, starredFolder]
+  )
+
+  const act = useCallback(
+    async (id: string, action: MailAction) => {
+      const before = messages
+      setMessages((list) => applied(list, new Set([id]), action))
       try {
         await mail.act(accountId, id, action)
       } catch (failure) {
@@ -105,7 +114,27 @@ export function useInbox(accountId: string, query: MailQuery, starredFolder: boo
         throw failure
       }
     },
-    [mail, accountId, messages, query.filter, starredFolder]
+    [mail, accountId, messages, applied]
+  )
+
+  const actMany = useCallback(
+    async (ids: string[], action: MailAction) => {
+      setMessages((list) => applied(list, new Set(ids), action))
+      let failure: unknown = null
+      // Un mail après l'autre : un serveur IMAP supporte mal les demandes en rafale
+      for (const id of ids) {
+        try {
+          await mail.act(accountId, id, action)
+        } catch (error) {
+          failure ??= error
+        }
+      }
+      if (failure) {
+        void fetchPage(null)
+        throw failure
+      }
+    },
+    [mail, accountId, applied, fetchPage]
   )
 
   return {
@@ -115,6 +144,7 @@ export function useInbox(accountId: string, query: MailQuery, starredFolder: boo
     hasMore: next !== null,
     reload: () => load(null),
     loadMore: () => next && load(next),
-    act
+    act,
+    actMany
   }
 }

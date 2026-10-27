@@ -29,6 +29,7 @@ import {
   useMedia,
   useMediaPlaying,
   useMediaQueue,
+  useLingering,
   useMediaReveal,
   usePluginTranslation,
   useYouTubeAccounts,
@@ -106,7 +107,8 @@ export function YouTubeWidget({
     at: number
   } | null>(null)
 
-  // Les messages passagers (« Ajoutée à la suite »…) disparaissent d'eux-mêmes
+  // Les messages passagers (« Ajoutée à la suite »…) disparaissent d'eux-mêmes, en s'animant
+  const toast = useLingering(notice)
   useEffect(() => {
     if (!notice) return
     const timer = setTimeout(() => setNotice(null), 5000)
@@ -315,19 +317,20 @@ export function YouTubeWidget({
         )}
       </header>
 
-      {notice && (
-        <p className={styles.toast}>
-          <span>{notice.text}</span>
-          {notice.action && (
+      {toast.shown && (
+        <p className={styles.toast} data-closing={toast.closing || undefined}>
+          <span>{toast.shown.text}</span>
+          {toast.shown.action && (
             <button
               type="button"
               className={styles.textButton}
+              disabled={toast.closing}
               onClick={() => {
-                notice.action?.run()
+                toast.shown?.action?.run()
                 setNotice(null)
               }}
             >
-              {notice.action.label}
+              {toast.shown.action.label}
             </button>
           )}
         </p>
