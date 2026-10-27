@@ -137,10 +137,51 @@ Avancement de Tessera Dashboard, étape par étape. Les fonctionnalités termin�
   - [x] Animations d'apparition et de disparition : fenêtres, menus, panneaux de la barre d'en-tête, centre de notifications, en-tête du mail, parties qui se déplient (collections de modules, « Avancé » des comptes, formulaires des blocs…). Coupées quand les animations sont réduites dans Windows.
   - [x] Paramètres plus larges : le nom des applications reste lisible dans « Notifications » (leurs réglages passent à la ligne si la place manque).
 
+## Prochaines étapes, par priorité
+
+D'abord ce qui gêne au quotidien (applications installées), avec les tests qui empêchent ces problèmes de revenir ; ensuite le confort de l'interface, puis les nouvelles fonctions des blocs, et enfin les gros chantiers.
+
+- [x] **Étape 23 : fiabilité des applications installées.**
+  - [x] Tests automatiques de l'insertion (`npm run test:docking`) : Tessera avec un profil jetable et une application de test qui imite une fenêtre de Chromium. Vérifiés : fenêtre dans son cadre, style activable, temps visible sur le bureau, bandes noires, bulle gardée dans le bloc, fenêtre active, fenêtre remplacée par le programme ; `-- --clavier` ajoute un vrai clic, seulement si personne n'utilise le PC.
+  - [x] Fenêtre d'une application qui se lance : insérée dès qu'elle s'affiche (suivi des fenêtres affichées par le programme), environ 60 ms sur le bureau au lieu de plus d'une seconde.
+  - [x] Chrome : la fenêtre du navigateur qui remplace celle du choix du compte est insérée à sa place (programme encore ouvert : sa nouvelle fenêtre est attendue 8 secondes).
+  - [x] Bords noirs (Discord, Brave, Chrome, Firefox) : la fenêtre est agrandie de la place de son bord redimensionnable, que le cadre cache.
+  - [x] Étirement momentané des quatre côtés et des quatre coins, poignées à l'extérieur du bloc entier (les barres de défilement restent utilisables) : repère discret au milieu de chaque côté, contour de la couleur d'accent autour de la fenêtre étirée.
+  - [x] Mode édition : les blocs s'agrandissent et rétrécissent par les quatre côtés et les quatre coins (poignée sur toute la longueur de chaque bord).
+  - [x] Petites fenêtres de Chromium (« Restaurer les pages ? », menus, autorisations…) décalées pour tenir dans leur bloc.
+- [ ] **Étape 24 : confort de l'interface.**
+  - [ ] Menu latéral replié par défaut à l'installation.
+  - [ ] Animations : passage du menu latéral déplié au menu replié, éléments révélés au survol, fermeture des menus et des petits messages.
+  - [ ] Recherche dans les paramètres.
+  - [ ] Mails : cases à cocher pour choisir plusieurs mails, puis supprimer, marquer comme lus / non lus ou archiver d'un coup.
+- [ ] **Étape 25 : vidéos et molette.**
+  - [ ] Vrai plein écran pour les vidéos des navigateurs insérés (aujourd'hui, il remplit seulement le bloc).
+  - [ ] Molette au-dessus des lecteurs YouTube et Twitch et des vidéos des navigateurs : elle fait défiler la page, comme pour les autres blocs.
+  - [ ] En plein écran, un interrupteur qui apparaît sur la fenêtre choisit qui reçoit la molette : Tessera (défilement de la page) ou la vidéo (YouTube s'en sert en plein écran).
+- [ ] **Étape 26 : mails.** Aperçu du texte en IMAP, boîte de réception commune à tous les comptes.
+- [ ] **Étape 27 : agenda, terminal et son.**
+  - [ ] Agenda : rappels, invités, événements qui se répètent.
+  - [ ] Terminal : fractionner un onglet ; retrouver ses onglets au redémarrage (dossier et shell, relancés à l'ouverture : rien ne tourne pendant que Tessera est fermé).
+  - [ ] Son : volume par application, seulement pour celles qui jouent du son.
+- [ ] **Étape 28 : widgets de la barre fournis par les modules.** Les modules peuvent ajouter des widgets à la barre des pages ; widgets proposés : Mails (mails non lus), Tâches (tâches du jour), Spotify (lecture en cours et commandes), Surveillance de sites (état des sites).
+- [ ] **Étape 29 : sans PowerShell en arrière-plan.** Média en cours, Son et débit réseau par des appels directs à Windows (environ 50 Mo de mémoire en moins, plus de délai au premier affichage).
+- [ ] **Étape 30 : plusieurs fenêtres Tessera.** Un onglet de page glissé hors de la fenêtre ouvre une deuxième fenêtre ; glissé sur une autre fenêtre, il la rejoint, et les fenêtres fusionnent quand la dernière page est déplacée (comme les onglets d'un navigateur).
+
+## Mise en ligne (en attente)
+
+À faire avant de distribuer Tessera à d'autres personnes, gratuitement ou non.
+
+- [ ] Certificat de signature de code : plus d'avertissement SmartScreen ni de faux positifs des antivirus à l'installation. Puis vérification de la signature des mises à jour (`publisherName`) et de l'intégrité de l'archive de l'application.
+- [ ] Validation de l'application par Google : plus d'écran « application non validée », plus de limite de 100 comptes ; audit de sécurité exigé pour Gmail.
+- [ ] Quota de l'API YouTube augmenté (recherches partagées par tous les utilisateurs).
+
 ## Plus tard
 
-- [ ] Certificat de signature de code, puis vérification de la signature des mises à jour (`publisherName`) et de l'intégrité de l'archive de l'application.
 - [ ] Messages des validateurs de modules (`src/shared/modules.ts`, `plugins.ts`) traduits en anglais.
+- [ ] Application Android compagnon (SMS et notifications), si elle trouve sa place malgré la petite taille de l'écran.
 
-- [ ] Application Android compagnon (SMS et notifications).
-- [ ] Intégration expérimentale de fenêtres externes.
+## Écarté
+
+- Export et import de la configuration : inutile pour l'instant.
+- Minuteur et chronomètre qui continuent après la fermeture : Tessera fermé ne fait plus rien tourner.
+- Intégration expérimentale de fenêtres externes (idée du tout premier plan) : réalisée par les applications installées (étape 8), qui affichent dans un bloc la fenêtre d'un programme lancé par Tessera.

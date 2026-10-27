@@ -54,7 +54,31 @@ interface Edge extends Size {
   y: number
 }
 
-type StretchAxis = 'x' | 'y' | 'xy'
+/** Poignée d'étirement : côté ou coin du bloc. */
+type StretchSide = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw'
+const STRETCH_SIDES: StretchSide[] = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']
+/** Épaisseur des poignées (px CSS) : la moitié de l'espace entre deux blocs. */
+const HANDLE = 6
+
+/** Débordement de la fenêtre étirée au-delà de chaque côté de son bloc (px CSS). */
+interface Stretch {
+  left: number
+  top: number
+  right: number
+  bottom: number
+}
+
+/** Emplacement d'une poignée, à l'extérieur du contour `edge`. */
+function handleBox(side: StretchSide, edge: Edge): React.CSSProperties {
+  const vertical = side === 'e' || side === 'w'
+  const horizontal = side === 'n' || side === 's'
+  return {
+    left: side.includes('w') ? edge.x - HANDLE : side.includes('e') ? edge.x + edge.width : edge.x,
+    top: side.includes('n') ? edge.y - HANDLE : side.includes('s') ? edge.y + edge.height : edge.y,
+    width: horizontal ? edge.width : HANDLE,
+    height: vertical ? edge.height : HANDLE
+  }
+}
 /** Barres de défilement : le choix est enregistré après ce délai sans défilement. */
 const SCROLL_COMMIT_MS = 400
 
@@ -84,9 +108,10 @@ function withoutScrollbars(rect: HostRect, scroller: HTMLElement | null): HostRe
  * choisir la partie affichée : barres de défilement, glisser la barre du bloc (ou, en mode
  * édition, son image), ou clic gauche + droit sur la fenêtre (détecté par l'hébergeur des cadres).
  *
- * Étirement momentané : les poignées posées juste à droite et sous le bloc (dans l'espace entre
- * les blocs) agrandissent la fenêtre par-dessus ses voisins. Elle reprend la taille de son bloc
- * à la moindre autre action dans Tessera, ou au double-clic sur la barre du bloc.
+ * Étirement momentané : les poignées posées tout autour du bloc (côtés et coins, dans l'espace
+ * entre les blocs) agrandissent la fenêtre par-dessus ses voisins, d'un contour de la couleur
+ * d'accent. Elle reprend la taille de son bloc à la moindre autre action dans Tessera, ou au
+ * double-clic sur la barre du bloc.
  */
 export function DesktopAppHost({
   app,
@@ -107,8 +132,8 @@ export function DesktopAppHost({
   const [size, setSize] = useState({ width: 0, height: 0 })
   /** Décalage en cours de glisser (enregistré au relâchement). */
   const [dragOffset, setDragOffset] = useState<PanOffset | null>(null)
-  /** Taille de la fenêtre étirée au-delà du bloc (px CSS), ou `null`. */
-  const [stretch, setStretch] = useState<Size | null>(null)
+  /** Débordement de la fenêtre étirée au-delà du bloc (px CSS), ou `null`. */
+  const [stretch, setStretch] = useState<Stretch | null>(null)
   /** Contour affiché (bloc ou fenêtre étirée), pour placer les poignées. */
   const [edge, setEdge] = useState<Edge | null>(null)
 
@@ -133,8 +158,8 @@ export function DesktopAppHost({
     stretch,
     /** Taille minimale de la fenêtre (px CSS). */
     min: { width: app.minWidth, height: app.minHeight } as Size,
-    /** Taille du bloc (sans ses barres de défilement). */
-    block: { width: 0, height: 0 } as Size,
+    /** Bloc entier à l'écran (barres de défilement comprises). */
+    outer: null as Edge | null,
     report: () => {}
   })
   useLayoutEffect(() => {
@@ -185,19 +210,30 @@ export function DesktopAppHost({
         )
         const measured = measure(element)
         const inBlock = measured && withoutScrollbars(measured, scroller)
-        if (inBlock) live.current.block = { width: inBlock.width, height: inBlock.height }
+        live.current.outer = measured && {
+          x: measured.x,
+          y: measured.y,
+          width: measured.width,
+          height: measured.height
+        }
         const stretched = live.current.stretch
         let rect: HostRect | null = null
         if (measured && stretched) {
-          // Étirée : la fenêtre déborde du bloc, par-dessus les autres
+          // Étirée : la fenêtre déborde du bloc, par-dessus les autres. Le contenu reste à sa
+          // place à l'écran (étirée vers la gauche ou le haut, elle montre ce qui était caché).
           const { current: from, min } = live.current
+          const width = measured.width + stretched.left + stretched.right
+          const height = measured.height + stretched.top + stretched.bottom
+          const within = (value: number, max: number): number =>
+            Math.min(Math.max(0, value), Math.max(0, max))
           rect = {
-            x: measured.x,
-            y: measured.y,
-            ...stretched,
+            x: measured.x - stretched.left,
+            y: measured.y - stretched.top,
+            width,
+            height,
             offset: {
-              x: Math.min(from.x, Math.max(0, min.width - stretched.width)),
-              y: Math.min(from.y, Math.max(0, min.height - stretched.height))
+              x: within(from.x - stretched.left, min.width - width),
+              y: within(from.y - stretched.top, min.height - height)
             },
             raised: true
           }
@@ -208,10 +244,13 @@ export function DesktopAppHost({
         if (rect && blockIdOf(element) && useActiveBlockStore.getState().pageScrolls) {
           rect.pageWheel = true
         }
-        // Poignées d'étirement : seulement autour d'un bloc entièrement visible
+        // Poignées d'étirement : seulement autour d'un bloc entièrement visible, à l'extérieur
+        // du bloc entier (barres de défilement comprises : elles restent utilisables), ou de
+        // la fenêtre étirée
+        const outline = stretched ? rect : measured
         const shown =
-          rect && !rect.clip
-            ? { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+          outline && !outline.clip
+            ? { x: outline.x, y: outline.y, width: outline.width, height: outline.height }
             : null
         setEdge((previous) =>
           JSON.stringify(previous) === JSON.stringify(shown) ? previous : shown
@@ -290,23 +329,36 @@ export function DesktopAppHost({
     if (!canStretch) setStretch(null)
   }
 
-  /** Tire une poignée : la fenêtre s'agrandit par-dessus les blocs voisins (jamais plus petite que le bloc). */
+  /**
+   * Tire une poignée : la fenêtre s'agrandit de ce côté par-dessus les blocs voisins, jamais plus
+   * petite que le bloc ni au-delà de la fenêtre de Tessera.
+   */
   const startStretch =
-    (axis: StretchAxis) =>
+    (side: StretchSide) =>
     (event: React.PointerEvent<HTMLElement>): void => {
-      if (event.button !== 0 || !edge) return
+      const outer = live.current.outer
+      if (event.button !== 0 || !outer) return
       event.preventDefault()
       const target = event.currentTarget
       target.setPointerCapture(event.pointerId)
       const start = { x: event.clientX, y: event.clientY }
-      const base = { width: edge.width, height: edge.height }
-      const { block } = live.current
+      const base = stretch ?? { left: 0, top: 0, right: 0, bottom: 0 }
+      const room = {
+        left: outer.x,
+        top: outer.y,
+        right: window.innerWidth - outer.x - outer.width,
+        bottom: window.innerHeight - outer.y - outer.height
+      }
+      const grow = (key: keyof Stretch, by: number): number =>
+        Math.round(Math.min(Math.max(0, base[key] + by), Math.max(0, room[key])))
       const onMove = (move: PointerEvent): void => {
-        const width = axis === 'y' ? base.width : base.width + move.clientX - start.x
-        const height = axis === 'x' ? base.height : base.height + move.clientY - start.y
+        const dx = move.clientX - start.x
+        const dy = move.clientY - start.y
         setStretch({
-          width: Math.round(Math.min(Math.max(block.width, width), window.innerWidth - edge.x)),
-          height: Math.round(Math.min(Math.max(block.height, height), window.innerHeight - edge.y))
+          left: side.includes('w') ? grow('left', -dx) : base.left,
+          right: side.includes('e') ? grow('right', dx) : base.right,
+          top: side.includes('n') ? grow('top', -dy) : base.top,
+          bottom: side.includes('s') ? grow('bottom', dy) : base.bottom
         })
       }
       const onUp = (): void => {
@@ -571,27 +623,29 @@ export function DesktopAppHost({
         edge &&
         createPortal(
           <>
-            <div
-              className={styles.stretchX}
-              data-stretch-handle
-              title={t('desktopApps.stretchHint')}
-              style={{ left: edge.x + edge.width, top: edge.y, height: edge.height }}
-              onPointerDown={startStretch('x')}
-            />
-            <div
-              className={styles.stretchY}
-              data-stretch-handle
-              title={t('desktopApps.stretchHint')}
-              style={{ left: edge.x, top: edge.y + edge.height, width: edge.width }}
-              onPointerDown={startStretch('y')}
-            />
-            <div
-              className={styles.stretchXY}
-              data-stretch-handle
-              title={t('desktopApps.stretchHint')}
-              style={{ left: edge.x + edge.width, top: edge.y + edge.height }}
-              onPointerDown={startStretch('xy')}
-            />
+            {stretch && (
+              <div
+                className={styles.stretchOutline}
+                aria-hidden
+                style={{
+                  left: edge.x - 2,
+                  top: edge.y - 2,
+                  width: edge.width + 4,
+                  height: edge.height + 4
+                }}
+              />
+            )}
+            {STRETCH_SIDES.map((side) => (
+              <div
+                key={side}
+                className={styles.stretchHandle}
+                data-side={side}
+                data-stretch-handle
+                title={t('desktopApps.stretchHint')}
+                style={handleBox(side, edge)}
+                onPointerDown={startStretch(side)}
+              />
+            ))}
           </>,
           document.body
         )}

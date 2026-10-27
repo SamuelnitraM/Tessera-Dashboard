@@ -196,7 +196,8 @@ export const WinEvent = {
   OBJECT_DESTROY: 0x8001,
   OBJECT_SHOW: 0x8002,
   OBJECT_HIDE: 0x8003,
-  OBJECT_LOCATIONCHANGE: 0x800b
+  OBJECT_LOCATIONCHANGE: 0x800b,
+  OBJECT_NAMECHANGE: 0x800c
 } as const
 
 const DWMWA_EXTENDED_FRAME_BOUNDS = 9
@@ -289,6 +290,29 @@ export function clientOrigin(hwnd: Hwnd): { x: number; y: number } {
   return point
 }
 
+/**
+ * Marges entre le bord de la fenêtre et sa zone cliente (px physiques), chacune entre 0 et 16.
+ * Une fenêtre de Chromium ou de Firefox sans bordure garde à gauche, à droite et en bas la place
+ * de son bord redimensionnable : une bande noire.
+ */
+export function clientInsets(hwnd: Hwnd): {
+  left: number
+  top: number
+  right: number
+  bottom: number
+} {
+  const rect = getWindowRect(hwnd)
+  const origin = clientOrigin(hwnd)
+  const client = getClientSize(hwnd)
+  const clamp = (value: number): number => Math.min(16, Math.max(0, value))
+  return {
+    left: clamp(origin.x - rect.left),
+    top: clamp(origin.y - rect.top),
+    right: clamp(rect.right - origin.x - client.width),
+    bottom: clamp(rect.bottom - origin.y - client.height)
+  }
+}
+
 export function getPlacement(hwnd: Hwnd): WindowPlacement {
   const placement = { length: 44 } as WindowPlacement
   api.GetWindowPlacement(hwnd, placement)
@@ -322,6 +346,9 @@ export const isEnabled = (hwnd: Hwnd): boolean => api.IsWindowEnabled(hwnd)
  * Fenêtres visibles et actives dont `owner` est le propriétaire : la boîte de dialogue qui a
  * désactivé une fenêtre (une application désactive sa fenêtre tant qu'elle est ouverte).
  */
+/** Fenêtre propriétaire (0 si aucune). */
+export const getOwner = (hwnd: Hwnd): Hwnd => Number(api.GetWindow(hwnd, GW_OWNER))
+
 export function ownedPopups(owner: Hwnd): Hwnd[] {
   const found: Hwnd[] = []
   api.EnumWindows((hwnd: Hwnd) => {
@@ -454,6 +481,25 @@ export type WinEventListener = (event: number, hwnd: Hwnd) => void
  * Les événements arrivent dans la boucle de messages du processus principal, sans attente
  * active. Renvoie la fonction qui arrête l'écoute.
  */
+/**
+ * Fenêtres de premier niveau affichées ou renommées, dans tous les programmes sauf Tessera
+ * (attente de la fenêtre d'une application qui se lance).
+ */
+export function watchShownWindows(listener: (hwnd: Hwnd) => void): () => void {
+  const callback = koffi.register((_hook: number, _event: number, hwnd: Hwnd, idObject: number) => {
+    if (idObject === 0 && Number(api.GetAncestor(hwnd, 2 /* GA_ROOT */)) === Number(hwnd)) {
+      listener(Number(hwnd))
+    }
+  }, koffi.pointer(WinEventProc))
+  const hooks = [WinEvent.OBJECT_SHOW, WinEvent.OBJECT_NAMECHANGE].map((event) =>
+    api.SetWinEventHook(event, event, 0, callback, 0, 0, 0x2 /* WINEVENT_SKIPOWNPROCESS */)
+  )
+  return () => {
+    for (const hook of hooks) if (hook) api.UnhookWinEvent(hook)
+    koffi.unregister(callback)
+  }
+}
+
 export function watchProcessWindows(pid: number, listener: WinEventListener): () => void {
   const callback = koffi.register((_hook: number, event: number, hwnd: Hwnd, idObject: number) => {
     if (idObject === 0) listener(event, hwnd) // OBJID_WINDOW : la fenêtre elle-même

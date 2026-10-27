@@ -29,7 +29,8 @@
     "dist:dir": "npm run build && electron-builder --win --dir --publish never",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test:docking": "electron-vite build && node tests/docking/run.mjs"
   },
   "devDependencies": {
     "@codemirror/commands": "^6.11.1",

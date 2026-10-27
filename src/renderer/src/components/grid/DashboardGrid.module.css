@@ -35,6 +35,67 @@
   opacity: 1;
 }
 
+/* Côtés : poignée sur toute la longueur du bord (à cheval sur l'espace entre les blocs), avec un
+   repère au milieu */
+.grid :global(.react-grid-item > .react-resizable-handle-n),
+.grid :global(.react-grid-item > .react-resizable-handle-s) {
+  left: 16px;
+  width: auto;
+  right: 16px;
+  height: 10px;
+  margin-left: 0;
+  transform: none;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-n) {
+  top: -5px;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-s) {
+  bottom: -5px;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-e),
+.grid :global(.react-grid-item > .react-resizable-handle-w) {
+  top: 16px;
+  bottom: 16px;
+  width: 10px;
+  height: auto;
+  margin-top: 0;
+  transform: none;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-e) {
+  right: -5px;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-w) {
+  left: -5px;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-n::after),
+.grid :global(.react-grid-item > .react-resizable-handle-s::after),
+.grid :global(.react-grid-item > .react-resizable-handle-e::after),
+.grid :global(.react-grid-item > .react-resizable-handle-w::after) {
+  inset: 50% auto auto 50%;
+  width: 36px;
+  height: 4px;
+  border: none;
+  border-radius: 2px;
+  background: var(--color-accent);
+  translate: -50% -50%;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle-e::after),
+.grid :global(.react-grid-item > .react-resizable-handle-w::after) {
+  width: 4px;
+  height: 36px;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle) {
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
 .grid[data-editing='true'] :global(.react-grid-item) {
   cursor: grab;
 }

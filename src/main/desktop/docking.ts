@@ -79,6 +79,11 @@ interface DockedWindow {
   fixedSize: boolean
   /** Fenêtre de Chromium : elle peut devenir la fenêtre active (voir `childStyle`). */
   activatable: boolean
+  /**
+   * Fenêtre de Chromium ou de Firefox : sans bordure Windows, elle garde à gauche, à droite et en
+   * bas la place de son bord redimensionnable (bande noire), cachée par le cadre.
+   */
+  borderBand: boolean
   /** Dernier état noté dans le journal (affichée, ou raison du masquage), et dernière anomalie. */
   logged: string
   problem: string
@@ -116,6 +121,8 @@ const MIN_MAIN_WINDOW = { width: 400, height: 300 }
 const MIN_FRAMED_WINDOW = { width: 240, height: 160 }
 /** Après ce délai, une fenêtre sans barre de titre ni bord est prise pour la fenêtre principale. */
 const UNFRAMED_AFTER_MS = 12_000
+/** Fenêtre détruite, programme encore ouvert : délai d'attente de la fenêtre qui la remplace. */
+const REPLACE_TIMEOUT_MS = 8000
 
 let hostWindow: BrowserWindow | null = null
 let hostHwnd: w.Hwnd = 0
@@ -307,7 +314,18 @@ function place(docked: DockedWindow): void {
     docked.target = null
   }
 
-  const { frame, window } = layout
+  const { frame } = layout
+  // Fenêtre de Chromium ou de Firefox : agrandie de la place de son bord redimensionnable
+  // (bande noire), que le cadre cache. Sa zone utile remplit le bloc.
+  const insets = docked.borderBand ? w.clientInsets(docked.hwnd) : null
+  const window = insets
+    ? {
+        x: layout.window.x - insets.left,
+        y: layout.window.y - insets.top,
+        width: layout.window.width + insets.left + insets.right,
+        height: layout.window.height + insets.top + insets.bottom
+      }
+    : layout.window
   if (docked.pannable !== layout.cropped) {
     docked.pannable = layout.cropped
     setFramePannable(docked.frame, layout.cropped)
@@ -319,7 +337,7 @@ function place(docked: DockedWindow): void {
   // Cadre masqué sans nous (fenêtre de Tessera réduite puis rendue…) : il sera réaffiché
   if (docked.shown && !w.isVisible(docked.frame) && hostIsVisible()) docked.shown = false
 
-  const key = JSON.stringify(layout)
+  const key = JSON.stringify({ layout, insets })
   const current = w.getWindowRect(docked.hwnd)
   if (docked.shown && key === docked.target && sameRect(docked.placed, current)) return
 
@@ -471,12 +489,14 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       pageWheel: false,
       fixedSize,
       activatable,
+      borderBand: activatable || w.getClassName(hwnd) === 'MozillaWindowClass',
       logged: '',
       problem: '',
       unwatch: () => {}
     }
     docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
       if (target === hwnd) onWindowEvent(docked, event)
+      else if (activatable) keepPopupInBlock(docked, target, event)
     })
     windows.set(appId, docked)
     startWatch()
@@ -494,11 +514,24 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
   if (windows.get(docked.appId) !== docked) return
   const visible = (w.getStyle(docked.hwnd) & w.WS.VISIBLE) !== 0
   switch (event) {
-    case w.WinEvent.OBJECT_DESTROY:
+    case w.WinEvent.OBJECT_DESTROY: {
       logDocking(`${docked.appId} : fenêtre détruite par l'application`)
       forget(docked)
+      // Programme toujours ouvert : il remplace peut-être sa fenêtre par une autre (Chrome :
+      // choix du compte, puis la fenêtre du navigateur), insérée dès qu'elle s'affiche
+      const desktopApp = findApp(docked.appId)
+      const alive = (): boolean => processAlive(docked.pid)
+      if (desktopApp && activeHosts.has(docked.appId) && alive()) {
+        setState(docked.appId, { status: 'starting', error: null })
+        void waitForWindow(desktopApp, REPLACE_TIMEOUT_MS, alive).then((found) => {
+          if (found) return logDocking(`${docked.appId} : fenêtre remplacée, insérée à sa place`)
+          if (!windows.has(docked.appId)) setState(docked.appId, { status: 'closed' })
+        })
+        return
+      }
       setState(docked.appId, { status: 'closed' })
       return
+    }
 
     case w.WinEvent.OBJECT_HIDE:
       // Déjà réaffichée, ou masquée par Tessera avec son cadre (le masquage, demandé sans
@@ -561,6 +594,26 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
   }
 }
 
+/**
+ * Petite fenêtre de Chromium appartenant à la fenêtre insérée (bulle « Restaurer les pages ? »,
+ * autorisation, menu…) : Chromium la place d'après l'écran, elle peut déborder du bloc. Elle est
+ * décalée pour y tenir (coin haut gauche du bloc si elle est plus grande que lui).
+ */
+function keepPopupInBlock(docked: DockedWindow, popup: w.Hwnd, event: number): void {
+  if (event !== w.WinEvent.OBJECT_SHOW && event !== w.WinEvent.OBJECT_LOCATIONCHANGE) return
+  if (!docked.shown || w.getOwner(popup) !== docked.hwnd || !w.isVisible(popup)) return
+  if (!isChromium(popup)) return
+  const block = w.getWindowRect(docked.frame)
+  const rect = w.getWindowRect(popup)
+  const width = rect.right - rect.left
+  const height = rect.bottom - rect.top
+  const x = Math.max(block.left, Math.min(rect.left, block.right - width))
+  const y = Math.max(block.top, Math.min(rect.top, block.bottom - height))
+  if (x === rect.left && y === rect.top) return
+  const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
+  w.setWindowPos(popup, x, y, 0, 0, quiet | w.SWP.NOSIZE)
+}
+
 // ---------------------------------------------------------------------------
 // Lancement
 // ---------------------------------------------------------------------------
@@ -590,6 +643,64 @@ function findMainWindow(desktopApp: DesktopApp, allowUnframed = true): w.TopWind
   return (
     candidates.find((candidate) => candidate.framed) ?? (allowUnframed ? candidates[0] : undefined)
   )
+}
+
+/** Le processus existe encore. */
+function processAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM'
+  }
+}
+
+/**
+ * Attend la fenêtre principale de l'application et l'insère. Chaque fenêtre affichée par le
+ * programme déclenche la recherche (en plus d'une vérification régulière) : la fenêtre est
+ * masquée et insérée aussitôt, sans rester visible sur le bureau. Seul un écran de démarrage
+ * possible (fenêtre sans barre de titre) laisse un instant pour se fermer.
+ * Renvoie `true` si la fenêtre est insérée (ou en cours d'insertion).
+ */
+async function waitForWindow(
+  desktopApp: DesktopApp,
+  timeoutMs: number,
+  keepWaiting: () => boolean = () => true
+): Promise<boolean> {
+  const appId = desktopApp.id
+  const name = `\\${desktopApp.processName.toLowerCase()}`
+  const folder = `${dirname(desktopApp.path).toLowerCase()}\\`
+  let wake: (() => void) | null = null
+  const unwatch = w.watchShownWindows((hwnd) => {
+    if (!wake) return
+    const path = w.getProcessPath(w.getProcessId(hwnd)).toLowerCase()
+    if (path.endsWith(name) || path.startsWith(folder)) wake()
+  })
+  const start = Date.now()
+  try {
+    while (Date.now() - start < timeoutMs && keepWaiting()) {
+      const current = windows.get(appId)
+      // Déjà insérée (une application masquée, comme Discord, se réaffiche : OBJECT_SHOW)
+      if ((current && !current.hiddenByApp) || docking.has(appId)) return true
+      const allowUnframed = Date.now() - start > UNFRAMED_AFTER_MS
+      const found = current ? undefined : findMainWindow(desktopApp, allowUnframed)
+      if (found) {
+        if (!found.framed) await sleep(800)
+        if (connect(desktopApp, allowUnframed)) return true
+      }
+      await new Promise<void>((resolve) => {
+        const timer = setTimeout(resolve, 400)
+        wake = () => {
+          clearTimeout(timer)
+          resolve()
+        }
+      })
+      wake = null
+    }
+    return windows.has(appId) || docking.has(appId)
+  } finally {
+    unwatch()
+  }
 }
 
 /** Insère la fenêtre de l'application si elle est déjà ouverte. */
@@ -624,22 +735,9 @@ export async function launchApp(appId: string): Promise<void> {
     return
   }
 
-  // Une application déjà insérée mais masquée (Discord) se réaffiche : géré par OBJECT_SHOW
-  const start = Date.now()
-  while (Date.now() - start < LAUNCH_TIMEOUT_MS) {
-    await sleep(400)
-    const current = windows.get(appId)
-    if (current && !current.hiddenByApp) return
-    // Écran de démarrage sans barre de titre : accepté seulement après quelques secondes
-    const allowUnframed = Date.now() - start > UNFRAMED_AFTER_MS
-    if (!current && !docking.has(appId) && findMainWindow(desktopApp, allowUnframed)) {
-      // Laisse le temps à un éventuel écran de démarrage de se fermer
-      await sleep(800)
-      if (connect(desktopApp, allowUnframed)) return
-    }
-    if (docking.has(appId)) return
+  if (!(await waitForWindow(desktopApp, LAUNCH_TIMEOUT_MS))) {
+    setState(appId, { status: 'error', error: 'timeout' })
   }
-  setState(appId, { status: 'error', error: 'timeout' })
 }
 
 // ---------------------------------------------------------------------------

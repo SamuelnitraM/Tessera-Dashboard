@@ -261,7 +261,7 @@ export function DashboardGrid({
           maxRows: Infinity
         }}
         dragConfig={{ enabled: editing, cancel: '.no-drag' }}
-        resizeConfig={{ enabled: editing, handles: ['se', 'e', 's'] }}
+        resizeConfig={{ enabled: editing, handles: ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'] }}
         compactor={FREE_COMPACTOR}
         onDrag={(_layout, _old, item) => preview(item)}
         onResize={(_layout, _old, item) => preview(item)}

@@ -97,35 +97,83 @@
 }
 
 /* Poignées d'étirement momentané : dans l'espace entre les blocs, à droite et sous la fenêtre */
-.stretchX,
-.stretchY,
-.stretchXY {
+/* ---------- Étirement momentané : poignées tout autour du bloc, dans l'espace entre les blocs ---------- */
+
+.stretchHandle {
   position: fixed;
   z-index: 35;
-  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  transition: background-color var(--motion-fast) var(--ease-out);
 }
 
-.stretchX {
-  width: 8px;
-  cursor: ew-resize;
+/* Repère au milieu de chaque côté : discret, il s'allume au survol */
+.stretchHandle::after {
+  content: '';
+  width: 3px;
+  height: min(40px, 40%);
+  border-radius: 2px;
+  background: var(--color-accent);
+  opacity: 0.35;
+  transition: opacity var(--motion-fast) var(--ease-out);
 }
 
-.stretchY {
-  height: 8px;
+.stretchHandle[data-side='n']::after,
+.stretchHandle[data-side='s']::after {
+  width: min(40px, 40%);
+  height: 3px;
+}
+
+/* Coins : pas de repère, seulement la surbrillance */
+.stretchHandle[data-side='ne']::after,
+.stretchHandle[data-side='nw']::after,
+.stretchHandle[data-side='se']::after,
+.stretchHandle[data-side='sw']::after {
+  display: none;
+}
+
+.stretchHandle[data-side='n'],
+.stretchHandle[data-side='s'] {
   cursor: ns-resize;
 }
 
-.stretchXY {
-  width: 12px;
-  height: 12px;
+.stretchHandle[data-side='e'],
+.stretchHandle[data-side='w'] {
+  cursor: ew-resize;
+}
+
+.stretchHandle[data-side='ne'],
+.stretchHandle[data-side='sw'] {
+  cursor: nesw-resize;
+}
+
+.stretchHandle[data-side='nw'],
+.stretchHandle[data-side='se'] {
   cursor: nwse-resize;
 }
 
-.stretchX:hover,
-.stretchY:hover,
-.stretchXY:hover,
-.stretchX:active,
-.stretchY:active,
-.stretchXY:active {
+.stretchHandle:hover,
+.stretchHandle:active {
   background: color-mix(in srgb, var(--color-accent) 45%, transparent);
+}
+
+.stretchHandle:hover::after,
+.stretchHandle:active::after {
+  opacity: 1;
+}
+
+/* Fenêtre étirée : contour de la couleur d'accent autour d'elle */
+.stretchOutline {
+  position: fixed;
+  z-index: 34;
+  border: 2px solid var(--color-accent);
+  border-radius: 6px;
+  box-shadow: 0 0 0 4px var(--color-accent-soft);
+  pointer-events: none;
+  transition: opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
 }

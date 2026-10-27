@@ -32,7 +32,7 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 ## Applications installées
 
 - **Plein écran** (vidéo dans Brave…) : il remplit le bloc, pas l'écran. Pour voir une vidéo en grand, agrandis le bloc ou sors la fenêtre de Tessera.
-- **Étirement momentané** : seulement vers la droite et le bas (poignées dans l'espace entre les blocs), et jamais au-delà de la fenêtre de Tessera.
+- **Étirement momentané** : jamais au-delà de la fenêtre de Tessera, ni plus petit que le bloc ; seulement pour un bloc entièrement visible (pas pendant que la page le cache en partie).
 - **Applications du Microsoft Store** (applications UWP) : absentes de la liste, leur fenêtre ne peut pas être affichée dans un bloc.
 - **Applications lancées en administrateur** : Windows interdit à Tessera de déplacer leur fenêtre (sauf si Tessera est lui aussi lancé en administrateur).
 - La **barre de titre dessinée par l'application** (Discord, Obsidian, GitSpread…) reste visible : elle fait partie de l'application. Seule une barre de titre Windows classique est retirée.
