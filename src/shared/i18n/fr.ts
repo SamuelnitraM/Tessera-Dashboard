@@ -112,6 +112,12 @@ export const fr = {
     crashTitle: '{{name}} s’est arrêté',
     crashBody: 'Le programme s’est terminé avec une erreur (code {{code}}).'
   },
+  /** Interrupteur de la molette d'une vidéo en plein écran (processus principal). */
+  videoStage: {
+    wheel: 'Molette',
+    page: 'Page',
+    video: 'Vidéo'
+  },
   /** Erreurs du processus principal montrées à l'utilisateur. */
   errors: {
     common: {
@@ -327,6 +333,10 @@ export const fr = {
   },
   pages: {
     defaultName: 'Page {{n}}',
+    screenUp: 'Écran précédent',
+    screenDown: 'Écran suivant',
+    screenLine: 'Écran {{n}}',
+    screenLineCut: 'Écran {{n}} : coupé par un bloc',
     untitled: 'Page sans titre',
     name: 'Nom de la page',
     edit: 'Modifier',
@@ -703,6 +713,7 @@ export const fr = {
     close: 'Fermer'
   },
   blocks: {
+    fillScreen: 'Taille : écran entier',
     picker: {
       title: 'Ajouter un bloc',
       widgets: 'Widgets',
@@ -842,6 +853,13 @@ export const fr = {
         label: 'Garder en arrière-plan à la fermeture',
         description:
           'Fermer la fenêtre la masque dans la zone de notification au lieu de quitter l’app.'
+      },
+      videoWheel: {
+        label: 'Molette sur une vidéo en plein écran',
+        description:
+          '« Page » : la vidéo glisse vers le haut et montre la page de Tessera dessous ; « Vidéo » : la molette va à la vidéo. Aussi réglable par l’interrupteur qui apparaît en haut de l’écran.',
+        page: 'Page',
+        video: 'Vidéo'
       }
     },
     theme: {
@@ -871,6 +889,25 @@ export const fr = {
       end: 'À droite (avant « Modifier »)',
       'space-between': 'Répartis (bords collés)',
       'space-around': 'Répartis (espaces égaux)'
+    },
+    screenButtons: {
+      label: 'Boutons d’écran',
+      description:
+        'Écran précédent et suivant d’une page qui défile (un écran : 12 lignes de la grille, la hauteur de la zone visible).',
+      toolbar: 'Dans la barre de la page',
+      'top-center': 'En haut, au centre',
+      'bottom-center': 'En bas, au centre',
+      'middle-left': 'À gauche, au milieu',
+      'middle-right': 'À droite, au milieu',
+      'bottom-right': 'En bas à droite',
+      'bottom-left': 'En bas à gauche',
+      hidden: 'Masqués'
+    },
+    screenRows: {
+      label: 'Taille d’un écran entier',
+      description:
+        'Lignes de la grille qui remplissent la zone visible d’une page : moins de lignes, des blocs plus hauts. Les limites d’écran et la taille « écran entier » la suivent.',
+      value: '{{count}} lignes'
     },
     sidebar: {
       label: 'Menu latéral',

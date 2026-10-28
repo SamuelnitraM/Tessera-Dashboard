@@ -1,5 +1,6 @@
 import { Monitor, Moon, PanelLeft, PanelTop, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { SCREEN_BUTTONS, SCREEN_ROWS_RANGE } from '@shared/settings'
 import { HEADER_ALIGNS } from '@shared/header-bar'
 import { SegmentedControl } from '../../../components/ui/SegmentedControl'
 import { Select } from '../../../components/ui/Select'
@@ -72,6 +73,43 @@ export function AppearanceSection(): React.JSX.Element {
               { value: 'expanded', label: t('settings.sidebar.expanded'), icon: PanelLeft },
               { value: 'collapsed', label: t('settings.sidebar.collapsed'), icon: PanelTop }
             ]}
+          />
+        )}
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.screenButtons.label')}
+        description={t('settings.screenButtons.description')}
+      >
+        {({ labelId }) => (
+          <Select
+            aria-labelledby={labelId}
+            value={appearance.screenButtons}
+            onChange={(screenButtons) => void update({ appearance: { screenButtons } })}
+            options={SCREEN_BUTTONS.map((place) => ({
+              value: place,
+              label: t(`settings.screenButtons.${place}`)
+            }))}
+          />
+        )}
+      </SettingRow>
+
+      <SettingRow
+        label={t('settings.screenRows.label')}
+        description={t('settings.screenRows.description')}
+      >
+        {({ labelId }) => (
+          <Select
+            aria-labelledby={labelId}
+            value={String(appearance.screenRows)}
+            onChange={(rows) => void update({ appearance: { screenRows: Number(rows) } })}
+            options={Array.from(
+              { length: SCREEN_ROWS_RANGE.max - SCREEN_ROWS_RANGE.min + 1 },
+              (_value, index) => {
+                const count = SCREEN_ROWS_RANGE.min + index
+                return { value: String(count), label: t('settings.screenRows.value', { count }) }
+              }
+            )}
           />
         )}
       </SettingRow>

@@ -3,6 +3,7 @@ import {
   Bug,
   CircleAlert,
   GripVertical,
+  Maximize,
   PlugZap,
   RotateCw,
   Settings2,
@@ -13,6 +14,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import type { WidgetInstance } from '@shared/dashboard'
 import { localize, resolveWidgetConfig } from '@shared/plugins'
+import { BlockSettingsContext } from '../../plugin-sdk/blockSettingsContext'
 import { PluginContext } from '../../plugin-sdk/context'
 import { getWidget } from '../../plugins/registry'
 import { openContextMenu, type MenuItem } from '../../stores/contextMenu'
@@ -29,13 +31,20 @@ interface WidgetFrameProps {
   pageId: string
   widget: WidgetInstance
   editing: boolean
+  /** Taille « écran entier » (disposition large) : toute la largeur, 12 lignes. */
+  onFillScreen?: () => void
 }
 
 /**
  * Cadre commun à tous les widgets : fond, bordure, barre d'outils en mode édition.
  * Il fait le lien entre la page et le composant fourni par l'extension.
  */
-export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): React.JSX.Element {
+export function WidgetFrame({
+  pageId,
+  widget,
+  editing,
+  onFillScreen
+}: WidgetFrameProps): React.JSX.Element {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
@@ -46,6 +55,18 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
   const updateWidgetConfig = useDashboardStore((state) => state.updateWidgetConfig)
   const setEditing = useNavigationStore((state) => state.setEditing)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  /** Le widget affiche le bouton des réglages dans sa propre barre (BlockSettingsButton). */
+  const [claims, setClaims] = useState(0)
+  const blockSettings = useMemo(
+    () => ({
+      open: () => setSettingsOpen(true),
+      claim: () => {
+        setClaims((count) => count + 1)
+        return () => setClaims((count) => count - 1)
+      }
+    }),
+    []
+  )
   // Bloc qui a le focus (dernier cliqué) : bordure et barre du haut colorées
   const focused = useActiveBlockStore((state) => !editing && state.focusedId === widget.id)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -91,6 +112,9 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
     ...(hasSettings
       ? [{ label: t('blocks.settings'), icon: Settings2, onSelect: () => setSettingsOpen(true) }]
       : []),
+    ...(onFillScreen
+      ? [{ label: t('blocks.fillScreen'), icon: Maximize, onSelect: onFillScreen }]
+      : []),
     { label: t('nav.pageMenu.edit'), icon: SquarePen, onSelect: () => setEditing(true) },
     // Mode développeur : outils pour les blocs des modules tiers
     ...(developerMode && registered && !registered.builtIn
@@ -129,6 +153,17 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
         <header className={styles.toolbar}>
           <GripVertical size={14} aria-hidden />
           <span className={styles.toolbarName}>{name}</span>
+          {onFillScreen && (
+            <button
+              type="button"
+              className={`${styles.toolbarButton} no-drag`}
+              title={t('blocks.fillScreen')}
+              aria-label={t('blocks.fillScreen')}
+              onClick={onFillScreen}
+            >
+              <Maximize size={14} aria-hidden />
+            </button>
+          )}
           {hasSettings && (
             <button
               type="button"
@@ -166,16 +201,31 @@ export function WidgetFrame({ pageId, widget, editing }: WidgetFrameProps): Reac
           // Une erreur dans le widget n'affecte ni la page ni les autres widgets
           <WidgetErrorBoundary>
             <PluginContext.Provider value={registered.context}>
-              <Component
-                instanceId={widget.id}
-                config={config}
-                setConfig={setConfig}
-                editing={editing}
-              />
+              <BlockSettingsContext.Provider value={hasSettings ? blockSettings : null}>
+                <Component
+                  instanceId={widget.id}
+                  config={config}
+                  setConfig={setConfig}
+                  editing={editing}
+                />
+              </BlockSettingsContext.Provider>
             </PluginContext.Provider>
           </WidgetErrorBoundary>
         )}
       </div>
+
+      {/* Hors mode édition, sans barre propre au widget : réglages au survol, en haut à droite */}
+      {hasSettings && !editing && claims === 0 && (
+        <button
+          type="button"
+          className={`${styles.hoverSettings} no-drag`}
+          title={t('blocks.settings')}
+          aria-label={t('blocks.settingsOf', { name })}
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings2 size={14} aria-hidden />
+        </button>
+      )}
 
       {hasSettings && registered && (
         <WidgetSettingsDialog

@@ -1,4 +1,5 @@
 import { useContext, useLayoutEffect, useRef } from 'react'
+import type { FullScreenMode } from '@shared/desktop-apps'
 import { isLocalMediaUrl } from '@shared/local-media'
 import { useMediaStore } from '../stores/media'
 import { PluginContext } from './context'
@@ -17,6 +18,8 @@ export interface MediaViewProps {
   referrer?: string
   /** Lien de la vidéo (retrouvé par `useMediaQueue` quand la file avance). */
   link?: string
+  /** Plein écran de la vidéo : tout l'écran (par défaut) ou seulement le bloc. */
+  fullScreen?: FullScreenMode
   className?: string
 }
 
@@ -30,6 +33,7 @@ export function MediaView({
   title,
   referrer,
   link,
+  fullScreen = 'screen',
   className
 }: MediaViewProps): React.JSX.Element {
   const plugin = useContext(PluginContext)
@@ -40,8 +44,8 @@ export function MediaView({
   const allowed = !!plugin?.permissions.includes(permission) && (local || /^https:\/\//.test(src))
 
   useLayoutEffect(() => {
-    if (allowed) register(id, { src, title, referrer, link })
-  }, [allowed, id, src, title, referrer, link, register])
+    if (allowed) register(id, { src, title, referrer, link, fullScreen })
+  }, [allowed, id, src, title, referrer, link, fullScreen, register])
 
   useLayoutEffect(() => {
     const element = slot.current

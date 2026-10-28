@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { AppWindow, ExternalLink, Globe, Pencil, Plus, RotateCw } from 'lucide-react'
 import {
+  BlockSettingsButton,
   addInstalledApp,
   Button,
   EDIT_ACTIVE,
@@ -26,6 +27,8 @@ interface DesktopConfig {
   offset?: PanOffset
   /** Navigateurs mis de côté par « Changer de navigateur » : restent ouverts, cachés. */
   parked?: string[]
+  /** Plein écran de l'application (vidéo d'un navigateur…) : tout l'écran, ou le bloc. */
+  fullScreen?: string
 }
 
 export function DesktopWidget({
@@ -151,12 +154,14 @@ export function DesktopWidget({
           >
             <Pencil size={14} aria-hidden />
           </button>
+          <BlockSettingsButton className={styles.iconButton} size={14} />
         </div>
       )}
       <div className={styles.window}>
         {app ? (
           <InstalledAppView
             appId={app.id}
+            fullScreen={config.fullScreen === 'block' ? 'block' : 'screen'}
             hostId={instanceId}
             offset={config.offset}
             onOffsetChange={(offset) => setConfig({ offset })}

@@ -4,8 +4,12 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 
 ## Grille
 
-- Dans les lecteurs YouTube et Twitch (et le mini-lecteur), la molette reste au lecteur : elle ne fait pas défiler la page.
+- Dans le mini-lecteur, la molette reste au lecteur : elle ne fait pas défiler la page.
+- **Plein écran « dans le bloc »** : le lecteur YouTube ou Twitch ignore alors la demande de plein écran (sa vidéo remplit déjà le bloc) ; un navigateur inséré passe dans son mode plein écran (sans barres d'outils) à la taille du bloc.
+- **Réglages d'un bloc hors mode édition** : un bloc Application installée sans barre (réglage « Afficher la barre du bloc » décoché) n'a pas de bouton de réglages, la fenêtre de l'application couvrant tout le bloc ; ils restent accessibles en mode édition.
+- **Vidéo en plein écran** : seuls les lecteurs (YouTube, Twitch) et les navigateurs insérés glissent pour montrer la page. Le plein écran d'un bloc Page web ou d'une vidéo locale reste un plein écran classique. Pendant que la vidéo d'un lecteur glisse, sa page n'est plus en vrai plein écran (ses commandes reprennent leur aspect habituel) ; elle le reprend une fois revenue tout en haut.
 - Une page qui ne défile pas (tous ses blocs tiennent dans la fenêtre) laisse la molette aux blocs, sans clic préalable.
+- **Écrans de la page** : seulement en disposition large (la disposition compacte n'a pas d'écrans). L'aimantation ne suit que la molette (pas la barre de défilement). Les boutons d'écran posés dans un coin de la page sont recouverts par la fenêtre d'une application insérée dans ce coin : mieux vaut alors les mettre dans la barre de la page.
 
 ## Barre des pages
 
@@ -31,7 +35,7 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 
 ## Applications installées
 
-- **Plein écran** (vidéo dans Brave…) : il remplit le bloc, pas l'écran. Pour voir une vidéo en grand, agrandis le bloc ou sors la fenêtre de Tessera.
+- **Plein écran d'un navigateur inséré** : Échap tapé dans Tessera ramène la vidéo tout en haut et donne le clavier au navigateur ; un second Échap, reçu par le navigateur, quitte le plein écran (Tessera ne simule pas de touche).
 - **Étirement momentané** : jamais au-delà de la fenêtre de Tessera, ni plus petit que le bloc ; seulement pour un bloc entièrement visible (pas pendant que la page le cache en partie).
 - **Applications du Microsoft Store** (applications UWP) : absentes de la liste, leur fenêtre ne peut pas être affichée dans un bloc.
 - **Applications lancées en administrateur** : Windows interdit à Tessera de déplacer leur fenêtre (sauf si Tessera est lui aussi lancé en administrateur).

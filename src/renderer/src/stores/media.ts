@@ -1,3 +1,4 @@
+import type { FullScreenMode } from '@shared/desktop-apps'
 import { create } from 'zustand'
 import { parseMediaLink, playerUrl, type QueueItem } from '@shared/media'
 
@@ -28,6 +29,8 @@ export interface MediaSession {
   touchedAt: number
   /** Fichier du PC illisible (code `MediaError`), ou `null`. */
   error: number | null
+  /** Plein écran de la vidéo : tout l'écran, ou seulement le bloc (réglage du bloc). */
+  fullScreen: FullScreenMode
 }
 
 interface MediaStore {
@@ -38,7 +41,13 @@ interface MediaStore {
   /** Ouvre ou met à jour un lecteur (adresse, titre, lien de la vidéo). */
   register: (
     id: string,
-    props: { src: string; title: string; referrer?: string; link?: string | null }
+    props: {
+      src: string
+      title: string
+      referrer?: string
+      link?: string | null
+      fullScreen?: FullScreenMode
+    }
   ) => void
   attach: (id: string, slot: HTMLElement) => void
   /** Le bloc n'est plus affiché : mini-lecteur s'il joue, sinon fermé. */
@@ -106,6 +115,11 @@ export const useMediaStore = create<MediaStore>()((set, get) => {
     register: (id, props) =>
       set((state) => {
         const current = state.sessions[id]
+        const fullScreen = props.fullScreen ?? 'screen'
+        // Réglage du plein écran changé
+        if (current && current.fullScreen !== fullScreen) {
+          return { sessions: { ...state.sessions, [id]: { ...current, fullScreen } } }
+        }
         // Rien de nouveau demandé par le bloc (la file a pu avancer : on n'y touche pas)
         if (current && sameMedia(current.requested, props.src)) return state
         // Le bloc rattrape la vidéo en cours (après une avance de la file)
@@ -126,7 +140,8 @@ export const useMediaStore = create<MediaStore>()((set, get) => {
               playing: false,
               queue: current?.queue ?? [],
               touchedAt: Date.now(),
-              error: null
+              error: null,
+              fullScreen
             }
           }
         }

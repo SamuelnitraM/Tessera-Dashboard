@@ -337,6 +337,7 @@ function run(command: FrameCommand): boolean {
       return true
     case 'pannable':
     case 'wheel':
+    case 'middle':
       // Relèvent du fil de la souris (index.ts ne les envoie pas ici)
       return true
     case 'restoreAll': {

@@ -64,6 +64,12 @@ export const IpcChannels = {
   desktopAppsUnstretch: 'desktop-apps:unstretch',
   desktopAppsWheel: 'desktop-apps:wheel',
   desktopAppsActivate: 'desktop-apps:activate',
+  /**
+   * Événement main -> renderer : une application insérée passe en plein écran (vidéo dans un
+   * navigateur…) ou en sort (`{ appId, value }`).
+   */
+  desktopAppsFullScreen: 'desktop-apps:full-screen',
+  desktopAppsFocus: 'desktop-apps:focus',
   notificationsList: 'notifications:list',
   notificationsMarkRead: 'notifications:mark-read',
   notificationsRemove: 'notifications:remove',
@@ -187,6 +193,12 @@ export const IpcChannels = {
   calendarDeleteEvent: 'calendar:delete-event',
   windowIsFullScreen: 'window:is-full-screen',
   windowToggleFullScreen: 'window:toggle-full-screen',
+  /** Vidéo en plein écran : Tessera reste en plein écran (booléen), puis revient à son état. */
+  windowHoldFullScreen: 'window:hold-full-screen',
+  /** Vidéo en plein écran : interrupteur de la molette affiché ou retiré (booléen). */
+  videoStageSet: 'video-stage:set',
+  /** Clic molette sur une vidéo en plein écran : la molette bascule entre la page et la vidéo. */
+  videoStageToggleWheel: 'video-stage:toggle-wheel',
   /** Événement main -> renderer : la fenêtre entre en plein écran ou en sort (booléen). */
   windowFullScreenChanged: 'window:full-screen-changed',
   systemGetPreferences: 'system:get-preferences',

@@ -14,7 +14,8 @@ import {
 import { registerHeaderBarHandlers } from './headerbar/ipc'
 import { errorText } from './i18n'
 import { registerModuleHandlers } from './modules'
-import { isFullScreen, toggleFullScreen } from './window'
+import { holdFullScreen, isFullScreen, toggleFullScreen } from './window'
+import { setVideoStage, toggleVideoWheel } from './video-stage'
 import { getDashboard, saveDashboard } from './dashboard-store'
 import {
   attachHost,
@@ -26,7 +27,8 @@ import {
   moveHost,
   refreshApp,
   setSuspended,
-  takeOutApp
+  takeOutApp,
+  focusApp
 } from './desktop/docking'
 import { logDocking, openLogsFolder, readLog } from './log'
 import { addProgram, listPrograms, pickProgram, protectDesktopApps } from './desktop/programs'
@@ -268,6 +270,7 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsClose, (_event, appId: string) => closeApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsTakeOut, (_event, appId: string) => takeOutApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsRefresh, (_event, appId: string) => refreshApp(appId))
+  ipcMain.handle(IpcChannels.desktopAppsFocus, (_event, appId: string) => focusApp(String(appId)))
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
   ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean, reasons: unknown) =>
     setSuspended(value === true, typeof reasons === 'string' ? reasons.slice(0, 300) : '')
@@ -482,6 +485,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.systemGetPreferences, () => getSystemPreferences())
   ipcMain.handle(IpcChannels.windowIsFullScreen, () => isFullScreen())
   ipcMain.handle(IpcChannels.windowToggleFullScreen, () => toggleFullScreen())
+  ipcMain.handle(IpcChannels.windowHoldFullScreen, (_event, value: boolean) =>
+    holdFullScreen(value === true)
+  )
+  ipcMain.handle(IpcChannels.videoStageSet, (_event, active: boolean) =>
+    setVideoStage(active === true)
+  )
+  ipcMain.handle(IpcChannels.videoStageToggleWheel, () => toggleVideoWheel())
 
   // Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`)
   registerIntegrationHandlers()

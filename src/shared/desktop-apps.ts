@@ -81,7 +81,22 @@ export interface HostRect {
    * défiler la page, sauf après un clic dans l'application.
    */
   pageWheel?: boolean
+  /**
+   * Vidéo en plein écran, molette réglée sur « Page » : la molette va à Tessera même après un
+   * clic dans l'application.
+   */
+  wheelAlways?: boolean
+  /**
+   * L'application passe en plein écran (vidéo…) : sur tout l'écran (`screen`, par défaut) ou
+   * seulement dans son bloc (`block`, réglage du bloc).
+   */
+  fullScreen?: FullScreenMode
+  /** Vidéo en plein écran : le clic molette bascule la molette entre la page et la vidéo. */
+  stage?: boolean
 }
+
+/** Plein écran d'une vidéo : tout l'écran, ou seulement le bloc (réglage du bloc). */
+export type FullScreenMode = 'screen' | 'block'
 
 /**
  * Clic gauche + droit sur une fenêtre rognée : déplacement de la souris (px CSS) depuis le début

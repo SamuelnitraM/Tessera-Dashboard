@@ -11,6 +11,7 @@ import {
   X
 } from 'lucide-react'
 import {
+  BlockSettingsButton,
   AccountRequired,
   Button,
   closeMediaView,
@@ -39,6 +40,8 @@ interface TwitchConfig {
   /** Le direct est affiché dans le bloc (sinon : page d'accueil). */
   watching?: boolean
   showChat: boolean
+  /** Plein écran du direct : tout l'écran, ou seulement le bloc (réglage du bloc). */
+  fullScreen?: string
 }
 
 const dark = (): boolean => window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -203,6 +206,7 @@ export function TwitchWidget({
             {t('signIn')}
           </button>
         )}
+        <BlockSettingsButton className={styles.iconButton} size={14} />
       </header>
 
       <div className={styles.content}>
@@ -214,6 +218,7 @@ export function TwitchWidget({
                 src={playerUrl(target, autoplay)}
                 title={login ?? 'Twitch'}
                 link={config.channel}
+                fullScreen={config.fullScreen === 'block' ? 'block' : 'screen'}
               />
             </div>
             {login && config.showChat && (

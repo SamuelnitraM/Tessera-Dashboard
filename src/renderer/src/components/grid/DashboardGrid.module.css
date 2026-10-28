@@ -2,6 +2,48 @@
   position: relative;
 }
 
+/* Limite d'écran (mode édition) : la hauteur de la zone visible de la page, 12 lignes */
+.screenLine {
+  position: absolute;
+  right: 0;
+  left: 0;
+  z-index: 3;
+  height: 0;
+  border-top: 2px dashed var(--color-accent);
+  pointer-events: none;
+}
+
+.screenLine span {
+  position: absolute;
+  top: -0.625rem;
+  right: 0.5rem;
+  padding: 0 0.375rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+}
+
+/* Coupée par un bloc : elle clignote (la page ne s'y calera pas) */
+.screenLine[data-cut='true'] {
+  animation: screen-line-cut 1.2s ease-in-out infinite;
+}
+
+@keyframes screen-line-cut {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screenLine[data-cut='true'] {
+    animation: none;
+    border-top-style: dotted;
+  }
+}
+
 /* Cases de la grille, visibles en mode édition */
 .background {
   position: absolute;

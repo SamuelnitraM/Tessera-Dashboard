@@ -1,7 +1,7 @@
 import { parentPort, receiveMessageOnPort } from 'node:worker_threads'
 import koffi from 'koffi'
 import * as w from '../desktop/win32'
-import type { FrameActive, FramePan, FrameWheel, MouseCommand } from './protocol'
+import type { FrameActive, FrameMiddle, FramePan, FrameWheel, MouseCommand } from './protocol'
 
 /**
  * Fil de la souris de l'hébergeur, par une écoute de la souris de Windows, active seulement
@@ -100,6 +100,7 @@ const WM_LBUTTONUP = 0x0202
 const WM_RBUTTONDOWN = 0x0204
 const WM_RBUTTONUP = 0x0205
 const WM_MBUTTONDOWN = 0x0207
+const WM_MBUTTONUP = 0x0208
 const WM_MOUSEWHEEL = 0x020a
 const WM_TIMER = 0x0113
 const WM_CANCELMODE = 0x001f
@@ -119,13 +120,20 @@ const REPLAY_MS = 10
 const MOVE_EVERY_MS = 8
 
 const instance = api.GetModuleHandleW(null)
-const reply = (message: FramePan | FrameWheel | FrameActive | { wake: number }): void =>
-  port.postMessage(message)
+const reply = (
+  message: FramePan | FrameWheel | FrameActive | FrameMiddle | { wake: number }
+): void => port.postMessage(message)
 
 /** Cadres dont la fenêtre est rognée. */
 const pannable = new Set<number>()
 /** Cadres dont la molette fait défiler la page de Tessera (blocs d'une page qui défile). */
 const wheelFrames = new Set<number>()
+/** Parmi eux, ceux dont la molette va à Tessera même après un clic (vidéo en plein écran). */
+const alwaysFrames = new Set<number>()
+/** Cadres d'une vidéo en plein écran : le clic molette bascule la molette page / vidéo. */
+const middleFrames = new Set<number>()
+/** Clic molette retenu : son relâchement l'est aussi. */
+let middleHeld = false
 /** Cadre où l'utilisateur a cliqué : la molette reste à son application, jusqu'à la sortie. */
 let activeFrame = 0
 let hook = 0
@@ -215,16 +223,29 @@ function onMouse(message: number, x: number, y: number, mouseData: number): bool
     case WM_MOUSEWHEEL: {
       // Au-dessus du cadre d'un bloc (pas le bloc actif) : la page de Tessera défile
       const root = wheelFrames.size > 0 ? rootAt(x, y) : 0
-      if (!wheelFrames.has(root) || root === activeFrame) return false
+      if (!wheelFrames.has(root) || (root === activeFrame && !alwaysFrames.has(root))) return false
       // Mot haut signé : crans de Windows (120 par cran, positif vers le haut)
       const delta = mouseData >> 16
       reply({ wheel: root, delta })
       return true
     }
 
-    case WM_MBUTTONDOWN:
+    case WM_MBUTTONDOWN: {
+      // Vidéo en plein écran : bascule page / vidéo, rien n'atteint l'application
+      const root = middleFrames.size > 0 ? rootAt(x, y) : 0
+      if (middleFrames.has(root)) {
+        middleHeld = true
+        reply({ middle: root })
+        return true
+      }
       activateAt(x, y)
       return false
+    }
+
+    case WM_MBUTTONUP:
+      if (!middleHeld) return false
+      middleHeld = false
+      return true
 
     case WM_MOUSEMOVE:
       // Souris sortie du bloc actif : la molette revient à la page
@@ -314,7 +335,7 @@ const mouseProc = koffi.register((code: number, message: number, info: unknown):
 
 /** L'écoute de la souris n'est active que tant qu'elle sert (fenêtre rognée, molette). */
 function updateHook(): void {
-  const needed = pannable.size > 0 || wheelFrames.size > 0
+  const needed = pannable.size > 0 || wheelFrames.size > 0 || middleFrames.size > 0
   if (needed && !hook) {
     hook = Number(api.SetWindowsHookExW(WH_MOUSE_LL, mouseProc, instance, 0))
   } else if (!needed && hook) {
@@ -340,12 +361,24 @@ function run(command: MouseCommand): boolean {
   if (command.cmd === 'stop') {
     pannable.clear()
     wheelFrames.clear()
+    alwaysFrames.clear()
+    middleFrames.clear()
     updateHook()
     return false
+  }
+  if (command.cmd === 'middle') {
+    if (command.value) middleFrames.add(command.frame)
+    else middleFrames.delete(command.frame)
+    updateHook()
+    return true
   }
   const set = command.cmd === 'wheel' ? wheelFrames : pannable
   if (command.value) set.add(command.frame)
   else set.delete(command.frame)
+  if (command.cmd === 'wheel') {
+    if (command.value && command.always) alwaysFrames.add(command.frame)
+    else alwaysFrames.delete(command.frame)
+  }
   if (!wheelFrames.has(activeFrame)) activeFrame = 0
   updateHook()
   return true

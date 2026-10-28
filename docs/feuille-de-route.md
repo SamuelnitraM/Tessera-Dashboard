@@ -154,10 +154,14 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Animations : passage du menu déplié aux onglets (le menu et la page glissent vers leur nouvelle place, applications remplacées par leur image le temps de l'animation), éléments révélés au survol en fondu, fermeture des menus du clic droit et des petits messages des blocs (Mails, YouTube).
   - [x] Recherche dans les paramètres (Ctrl+F) : libellés et descriptions de tous les réglages, accents ignorés ; Entrée ou un clic ouvre la section et illumine le réglage.
   - [x] Mails : cases à cocher (Maj + clic : tous les mails entre deux, Échap annule), barre de sélection pour marquer comme lus / non lus, archiver ou mettre à la corbeille d'un coup.
-- [ ] **Étape 25 : vidéos et molette.**
-  - [ ] Vrai plein écran pour les vidéos des navigateurs insérés (aujourd'hui, il remplit seulement le bloc).
-  - [ ] Molette au-dessus des lecteurs YouTube et Twitch et des vidéos des navigateurs : elle fait défiler la page, comme pour les autres blocs.
-  - [ ] En plein écran, un interrupteur qui apparaît sur la fenêtre choisit qui reçoit la molette : Tessera (défilement de la page) ou la vidéo (YouTube s'en sert en plein écran).
+- [x] **Étape 25 : vidéos et molette.**
+  - [x] Vrai plein écran pour les vidéos des navigateurs insérés (Brave, Chrome…) : leur fenêtre couvre tout l'écran, Tessera passe en plein écran avec elle.
+  - [x] Molette au-dessus des lecteurs YouTube, Twitch et des vidéos locales : elle fait défiler la page tant que l'on n'a pas cliqué dans le bloc, comme pour les autres blocs (le mini-lecteur garde sa molette).
+  - [x] Vidéo en plein écran (lecteurs et navigateurs insérés) : avec la molette sur « Page », la vidéo glisse vers le haut et la page de Tessera remonte dessous ; tout en haut, la vidéo est de nouveau en plein écran. Un interrupteur Page / Vidéo (icône de souris au milieu, molette en couleur d'accent) apparaît en haut de l'écran quand la souris bouge et disparaît après 1,5 seconde (aussi dans Paramètres → Général). Un clic molette sur la vidéo ou la page bascule entre « Page » et « Vidéo ».
+  - [x] Réglage des blocs YouTube, Twitch et Application installée : plein écran sur tout l'écran, ou dans le bloc (la vidéo remplit seulement son bloc).
+  - [x] Réglages des blocs accessibles hors du mode édition : bouton dans la barre du bloc (applications installées, Mails, YouTube, Twitch, Page web), sinon au survol du bloc, en haut à droite.
+  - [x] Découpage de la page en écrans (un écran : 12 lignes, la hauteur de la zone visible) : limites en pointillés de la couleur d'accent en mode édition, qui clignotent quand un bloc les coupe ; aimantation légère de la molette (à moins de 2 lignes) sur les limites qui ne sont pas coupées ; boutons écran précédent / suivant (dans la barre de la page, en haut ou en bas au centre, à gauche ou à droite au milieu, en bas à gauche ou à droite, ou masqués : Paramètres → Apparence) ; taille de bloc « écran entier » (clic droit ou barre du bloc en mode édition) ; taille d'un écran réglable (6 à 24 lignes, Paramètres → Apparence).
+  - [x] Vidéo plein écran d'un bloc écran entier : la page qui remonte sous la vidéo commence à l'écran suivant (le bloc de la vidéo n'y est pas montré).
 - [ ] **Étape 26 : mails.** Aperçu du texte en IMAP, boîte de réception commune à tous les comptes.
 - [ ] **Étape 27 : agenda, terminal et son.**
   - [ ] Agenda : rappels, invités, événements qui se répètent.

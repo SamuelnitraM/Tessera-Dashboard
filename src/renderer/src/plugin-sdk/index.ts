@@ -76,6 +76,9 @@ export function useLatest<T>(value: T): RefObject<T> {
  */
 export { useLingering, usePresence } from '../hooks/usePresence'
 
+/** Bouton des réglages du bloc, à poser dans la barre du widget (réglages hors mode édition). */
+export { BlockSettingsButton } from './BlockSettingsButton'
+
 /** Langue actuelle de l'interface, pour formater dates et nombres (`Intl`). */
 export function useLanguage(): Language {
   const { i18n } = useTranslation()

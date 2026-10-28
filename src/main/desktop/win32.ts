@@ -115,6 +115,7 @@ const api = {
     user32,
     'bool __stdcall PostMessageW(intptr_t hwnd, uint32_t msg, uintptr_t wParam, intptr_t lParam)'
   ),
+  SetForegroundWindow: fn(user32, 'bool __stdcall SetForegroundWindow(intptr_t hwnd)'),
   SetWinEventHook: fn(
     user32,
     'intptr_t __stdcall SetWinEventHook(uint32_t min, uint32_t max, intptr_t mod, WinEventProc *cb, uint32_t pid, uint32_t tid, uint32_t flags)'
@@ -180,6 +181,8 @@ export const SWP = {
   NOACTIVATE: 0x10,
   FRAMECHANGED: 0x20,
   NOOWNERZORDER: 0x200,
+  /** Sans WM_WINDOWPOSCHANGING : la fenêtre ne peut pas refuser sa nouvelle taille. */
+  NOSENDCHANGING: 0x400,
   /** Ne pas attendre la fenêtre d'un autre fil : la demande lui est postée. */
   ASYNCWINDOWPOS: 0x4000
 } as const
@@ -237,6 +240,8 @@ export function getClassName(hwnd: Hwnd): string {
 }
 export const postMessage = (hwnd: Hwnd, message: number): void =>
   void api.PostMessageW(hwnd, message, 0, 0)
+/** Fenêtre passée au premier plan (elle reçoit le clavier). */
+export const bringToFront = (hwnd: Hwnd): void => void api.SetForegroundWindow(hwnd)
 export const WM_CLOSE = 0x0010
 /** Interrompt un déplacement ou un redimensionnement en cours (fenêtre tirée par l'utilisateur). */
 export const WM_CANCELMODE = 0x001f

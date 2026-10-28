@@ -184,3 +184,29 @@ window.addEventListener('pointerdown', () => ipcRenderer.sendToHost(WebviewChann
 // Souris sortie de la page : seule la page le sait (pour Tessera, elle « quitte » l'élément
 // dès qu'elle entre dans la page web)
 document.addEventListener('mouseleave', () => ipcRenderer.sendToHost(WebviewChannels.pointerLeave))
+// Vidéo en plein écran : le clic molette ne va pas à la page (lien ouvert, défilement
+// automatique), il bascule la molette de Tessera entre la page et la vidéo
+let stage = false
+ipcRenderer.on(WebviewChannels.stageMode, (_event, value: boolean) => {
+  stage = value === true
+})
+for (const type of ['mousedown', 'mouseup', 'auxclick'] as const) {
+  window.addEventListener(
+    type,
+    (event) => {
+      if (!stage || event.button !== 1) return
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (type === 'mousedown') ipcRenderer.sendToHost(WebviewChannels.middleClick)
+    },
+    { capture: true }
+  )
+}
+// Échap : une vidéo plein écran qui a glissé (la page n'est plus en vrai plein écran) en sort
+window.addEventListener(
+  'keydown',
+  (event) => {
+    if (event.key === 'Escape') ipcRenderer.sendToHost(WebviewChannels.escape)
+  },
+  { capture: true }
+)

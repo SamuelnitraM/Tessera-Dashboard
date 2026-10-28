@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react'
 import {
+  BlockSettingsButton,
   AccountRequired,
   Button,
   closeMediaView,
@@ -57,6 +58,8 @@ interface YouTubeConfig {
   tab?: Tab
   /** File « À suivre » refermée par l'utilisateur. */
   queueHidden?: boolean
+  /** Plein écran de la vidéo : tout l'écran, ou seulement le bloc (réglage du bloc). */
+  fullScreen?: string
 }
 
 /** Bloc assez large : la file « À suivre » à côté du lecteur (sinon dessous). */
@@ -315,6 +318,7 @@ export function YouTubeWidget({
             {t('signIn')}
           </button>
         )}
+        <BlockSettingsButton className={styles.iconButton} />
       </header>
 
       {toast.shown && (
@@ -346,6 +350,7 @@ export function YouTubeWidget({
                 title={config.title ?? 'YouTube'}
                 referrer={MEDIA_REFERRER}
                 link={config.link}
+                fullScreen={config.fullScreen === 'block' ? 'block' : 'screen'}
               />
             </div>
             {queue.queue.length > 0 && !config.queueHidden && (

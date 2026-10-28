@@ -5,6 +5,7 @@ import type {
   DesktopAppPan,
   DesktopAppSnapshot,
   DesktopAppState,
+  FullScreenMode,
   HostRect,
   QuitMode
 } from '@shared/desktop-apps'
@@ -16,6 +17,8 @@ import {
   releaseFrame,
   setFrameHostLostListener,
   setFrameFocusListener,
+  setFrameMiddle,
+  setFrameMiddleListener,
   setFramePanListener,
   setFramePannable,
   setFrameWheel,
@@ -87,8 +90,16 @@ interface DockedWindow {
   /** Dernier état noté dans le journal (affichée, ou raison du masquage), et dernière anomalie. */
   logged: string
   problem: string
-  /** Sa molette fait défiler la page (l'hébergeur le sait). */
+  /** Sa molette fait défiler la page (l'hébergeur le sait), même après un clic (`always`). */
   pageWheel: boolean
+  wheelAlways: boolean
+  /** Vidéo en plein écran : l'hébergeur retient son clic molette. */
+  stage: boolean
+  /**
+   * L'application s'est mise en plein écran (vidéo dans un navigateur…) : sa fenêtre a pris la
+   * taille de l'écran. L'interface en fait une vidéo plein écran (sans la remettre dans son bloc).
+   */
+  fullScreen: boolean
   unwatch: () => void
 }
 
@@ -109,6 +120,10 @@ interface DockingListeners {
   wheel: (hostId: string, deltaY: number) => void
   /** Clic dans l'application d'un bloc : il devient actif (`null` : souris sortie). */
   activate: (hostId: string | null) => void
+  /** L'application passe en plein écran (vidéo…) ou en sort. */
+  fullScreen: (appId: string, value: boolean) => void
+  /** Clic molette sur une vidéo en plein écran : la molette bascule entre la page et la vidéo. */
+  middleClick: () => void
 }
 
 /** Masquage signalé moins de 2 s après celui de Tessera : c'est le sien, pas celui de l'application. */
@@ -132,7 +147,9 @@ let listeners: DockingListeners = {
   pan: () => {},
   moved: () => {},
   wheel: () => {},
-  activate: () => {}
+  activate: () => {},
+  fullScreen: () => {},
+  middleClick: () => {}
 }
 /** Fenêtre de Tessera recouverte par son interface (fenêtre de dialogue, mode édition…). */
 let suspended = false
@@ -200,6 +217,11 @@ interface Layout {
   raised: boolean
   /** La molette fait défiler la page. */
   pageWheel: boolean
+  wheelAlways: boolean
+  /** Plein écran de l'application : tout l'écran, ou gardé dans le bloc. */
+  fullScreen: FullScreenMode
+  /** Vidéo en plein écran (clic molette : page / vidéo). */
+  stage: boolean
 }
 
 /** Pourquoi la fenêtre n'est pas affichée en ce moment (journal), ou `null` si elle doit l'être. */
@@ -252,7 +274,10 @@ function layoutFor(docked: DockedWindow): Layout | null {
     window: { x: -clip.x - offsetX, y: -clip.y - offsetY, width, height },
     cropped: width > block.width || height > block.height,
     raised: rect.raised === true,
-    pageWheel: rect.pageWheel === true
+    pageWheel: rect.pageWheel === true,
+    wheelAlways: rect.wheelAlways === true,
+    fullScreen: rect.fullScreen ?? 'screen',
+    stage: rect.stage === true
   }
 }
 
@@ -330,9 +355,14 @@ function place(docked: DockedWindow): void {
     docked.pannable = layout.cropped
     setFramePannable(docked.frame, layout.cropped)
   }
-  if (docked.pageWheel !== layout.pageWheel) {
+  if (docked.pageWheel !== layout.pageWheel || docked.wheelAlways !== layout.wheelAlways) {
     docked.pageWheel = layout.pageWheel
-    setFrameWheel(docked.frame, layout.pageWheel)
+    docked.wheelAlways = layout.wheelAlways
+    setFrameWheel(docked.frame, layout.pageWheel, layout.wheelAlways)
+  }
+  if (docked.stage !== layout.stage) {
+    docked.stage = layout.stage
+    setFrameMiddle(docked.frame, layout.stage)
   }
   // Cadre masqué sans nous (fenêtre de Tessera réduite puis rendue…) : il sera réaffiché
   if (docked.shown && !w.isVisible(docked.frame) && hostIsVisible()) docked.shown = false
@@ -346,7 +376,10 @@ function place(docked: DockedWindow): void {
   // Tessera. La position visée est retenue, la fenêtre y sera dans un instant.
   const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
   w.setWindowPos(docked.frame, frame.x, frame.y, frame.width, frame.height, quiet)
-  w.setWindowPos(docked.hwnd, window.x, window.y, window.width, window.height, quiet)
+  // Plein écran gardé dans le bloc : Chromium refuse toute autre taille que celle de l'écran
+  // pendant son plein écran, la demande lui est imposée
+  const forced = docked.fullScreen && layout.fullScreen === 'block' ? w.SWP.NOSENDCHANGING : 0
+  w.setWindowPos(docked.hwnd, window.x, window.y, window.width, window.height, quiet | forced)
   docked.placed = {
     left: frame.x + window.x,
     top: frame.y + window.y,
@@ -487,6 +520,9 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       corrections: { count: 0, since: 0 },
       raised: false,
       pageWheel: false,
+      wheelAlways: false,
+      stage: false,
+      fullScreen: false,
       fixedSize,
       activatable,
       borderBand: activatable || w.getClassName(hwnd) === 'MozillaWindowClass',
@@ -580,6 +616,7 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       // Déplacée, agrandie ou redimensionnée par l'application : remise en place
       // (20 fois par seconde au plus, contre les boucles)
       if (!docked.shown || sameRect(docked.placed, w.getWindowRect(docked.hwnd))) return
+      if (followFullScreen(docked)) return
       const now = Date.now()
       if (now - docked.corrections.since > 1000) docked.corrections = { count: 0, since: now }
       if (++docked.corrections.count > 20) {
@@ -592,6 +629,46 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       place(docked)
     }
   }
+}
+
+/** Taille de l'écran de Tessera (px physiques). */
+function monitorSize(): { width: number; height: number } | null {
+  if (!hostWindow) return null
+  const display = screen.getDisplayMatching(hostWindow.getBounds())
+  return {
+    width: Math.round(display.bounds.width * display.scaleFactor),
+    height: Math.round(display.bounds.height * display.scaleFactor)
+  }
+}
+
+/**
+ * L'application a changé la taille de sa fenêtre : elle passe en plein écran (taille de l'écran,
+ * vidéo dans un navigateur…) ou en sort (une autre taille, pendant son plein écran). L'interface
+ * est prévenue et la fenêtre n'est pas remise dans son bloc : elle devient la vidéo plein écran
+ * (ou retrouve son bloc quand l'interface le demande). `true` : rien d'autre à faire.
+ */
+function followFullScreen(docked: DockedWindow): boolean {
+  if (docked.fixedSize) return false
+  const monitor = monitorSize()
+  if (!monitor) return false
+  const rect = w.getWindowRect(docked.hwnd)
+  const full =
+    Math.abs(rect.right - rect.left - monitor.width) <= 2 &&
+    Math.abs(rect.bottom - rect.top - monitor.height) <= 2
+  // Réglage du bloc « Dans le bloc » : la fenêtre est remise dans son bloc comme pour tout autre
+  // changement de taille (elle le remplit, sans ses barres d'outils)
+  const hostId = activeHosts.get(docked.appId)
+  const inBlock = (hostId && hosts.get(hostId)?.rect?.fullScreen) === 'block'
+  if (full === docked.fullScreen) return docked.fullScreen && !inBlock
+  docked.fullScreen = full
+  logDocking(
+    `${docked.appId} : ${full ? 'passe en plein écran' : 'sort du plein écran'}${inBlock ? ' (dans le bloc)' : ''}`
+  )
+  docked.target = null
+  if (inBlock) return false
+  listeners.fullScreen(docked.appId, full)
+  if (!full) place(docked)
+  return full
 }
 
 /**
@@ -809,6 +886,17 @@ export function closeApp(appId: string): void {
   if (docked) undock(docked, docked.fixedSize ? 'restore' : 'close')
   states.delete(appId)
   listeners.changed(appId, getAppState(appId))
+}
+
+/**
+ * Échap dans Tessera pendant le plein écran d'une application (navigateur…) : elle passe au
+ * premier plan, avec le clavier. Le prochain Échap lui arrive et elle quitte son plein écran
+ * elle-même (une touche simulée n'est pas fiable, et Tessera n'en envoie pas).
+ */
+export function focusApp(appId: string): void {
+  const docked = windows.get(appId)
+  if (!docked || !w.isWindow(docked.hwnd)) return
+  w.bringToFront(docked.hwnd)
 }
 
 /** « Sortir la fenêtre de Tessera » : l'application retrouve sa fenêtre sur le bureau. */
@@ -1061,6 +1149,8 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
       if (docked) place(docked)
     }
   })
+
+  setFrameMiddleListener(() => listeners.middleClick())
 
   // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement).
   // Une fenêtre étirée reprend alors la taille de son bloc.

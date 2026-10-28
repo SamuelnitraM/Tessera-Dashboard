@@ -1,12 +1,27 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CornerUpLeft, SkipForward, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { isLocalMediaUrl } from '@shared/local-media'
 import { SHARED_WEB_PARTITION } from '@shared/web-apps'
 import { measure } from '../../lib/visibleRect'
+import {
+  blockIdOf,
+  leaveBlock,
+  scrollPage,
+  setActiveBlock,
+  useActiveBlockStore
+} from '../../stores/activeBlock'
 import { useDashboardStore } from '../../stores/dashboard'
 import { useMediaStore, type MediaSession } from '../../stores/media'
 import { useNavigationStore } from '../../stores/navigation'
+import {
+  enterStage,
+  isStaged,
+  leaveStage,
+  useStageWheelToPage,
+  useVideoStageStore,
+  type StageSource
+} from '../../stores/videoStage'
 import { WebFrame, type WebFrameHandle } from '../web/WebFrame'
 import { LocalVideo, type LocalVideoHandle } from './LocalVideo'
 import styles from './MediaLayer.module.css'
@@ -80,6 +95,67 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
   // Sans bloc : mini-lecteur s'il joue ; sinon caché, le temps de vérifier
   const mini = session.slot === null && session.playing
   const pending = session.slot === null && !session.playing
+  /** Bloc sous le lecteur : la molette suit sa règle (défile la page tant qu'il n'est pas actif). */
+  const blockId = session.slot ? blockIdOf(session.slot) : null
+
+  // Vidéo en plein écran (stores/videoStage) : le lecteur couvre l'écran et glisse vers le haut
+  // pour montrer la page ; sa page quitte son vrai plein écran le temps du glissement
+  const source = useMemo<StageSource>(
+    () => ({ kind: 'player', sessionId: session.id }),
+    [session.id]
+  )
+  const staged = useVideoStageStore(
+    (state) => state.source?.kind === 'player' && state.source.sessionId === session.id
+  )
+  const wheelToPage = useStageWheelToPage()
+  /** Sortie du vrai plein écran demandée par Tessera (glissement) : la vidéo reste plein écran. */
+  const ownExit = useRef(false)
+  const onFullScreen = (entered: boolean): void => {
+    if (entered) {
+      enterStage(
+        source,
+        {
+          exitReal: () => {
+            ownExit.current = true
+            frame.current?.exitFullScreen()
+          },
+          enterReal: () => frame.current?.enterFullScreen(),
+          exit: () => frame.current?.exitFullScreen()
+        },
+        blockId
+      )
+    } else if (ownExit.current) {
+      ownExit.current = false
+    } else {
+      leaveStage(source, true)
+    }
+  }
+  // Lecteur fermé pendant son plein écran
+  useEffect(() => () => leaveStage(source, true), [source])
+
+  // Vidéo locale (dans cette page, pas une page web à part) : même règle de molette, et un clic
+  // rend le bloc actif
+  const isLocal = isLocalMediaUrl(session.src)
+  useEffect(() => {
+    const element = wrapper.current
+    if (!element || !blockId || !isLocal) return
+    const onWheel = (event: WheelEvent): void => {
+      const { activeId, pageScrolls } = useActiveBlockStore.getState()
+      if (!pageScrolls || activeId === blockId || useNavigationStore.getState().editing) return
+      event.preventDefault()
+      scrollPage(event.deltaY * (event.deltaMode === 1 ? 40 : 1))
+    }
+    const onPointerDown = (): void => setActiveBlock(blockId)
+    const onLeave = (): void => leaveBlock(blockId)
+    element.addEventListener('wheel', onWheel, { passive: false })
+    element.addEventListener('pointerdown', onPointerDown, true)
+    element.addEventListener('mouseleave', onLeave)
+    return () => {
+      element.removeEventListener('wheel', onWheel)
+      element.removeEventListener('pointerdown', onPointerDown, true)
+      element.removeEventListener('mouseleave', onLeave)
+    }
+  }, [blockId, isLocal])
 
   // Bloc quitté : le lecteur reste en mini-lecteur s'il joue (vérifié dans la page elle-même),
   // sinon il est fermé
@@ -114,6 +190,15 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
     let until = 0
     let last = ''
     const place = (): void => {
+      // Vidéo plein écran : tout l'écran, décalé vers le haut quand elle glisse
+      if (staged) {
+        const style = `left:0;top:${-Math.round(useVideoStageStore.getState().offset)}px;width:100vw;height:100vh;`
+        if (style !== last) {
+          last = style
+          element.setAttribute('style', style)
+        }
+        return
+      }
       const rect = measure(slot)
       const style = rect
         ? `left:${rect.x}px;top:${rect.y}px;width:${rect.width}px;height:${rect.height}px;` +
@@ -153,9 +238,11 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
     window.addEventListener('scroll', follow, true)
     document.addEventListener('transitionrun', onTransition, true)
     document.addEventListener('transitionend', onTransition, true)
+    const stopStage = staged ? useVideoStageStore.subscribe(place) : () => {}
     place()
     follow()
     return () => {
+      stopStage()
       cancelAnimationFrame(frame)
       resizeObserver.disconnect()
       mutationObserver.disconnect()
@@ -164,7 +251,7 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
       document.removeEventListener('transitionrun', onTransition, true)
       document.removeEventListener('transitionend', onTransition, true)
     }
-  }, [session.slot])
+  }, [session.slot, staged])
 
   /** Retour à la page du bloc. */
   const goBack = (): void => {
@@ -178,7 +265,13 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
   }
 
   return (
-    <div ref={wrapper} className={styles.player} data-mini={mini} data-pending={pending}>
+    <div
+      ref={wrapper}
+      className={styles.player}
+      data-mini={mini}
+      data-pending={pending}
+      data-stage={staged || undefined}
+    >
       {mini && (
         <header className={styles.miniHeader}>
           <span className={styles.miniTitle} title={session.title}>
@@ -216,7 +309,7 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
         </header>
       )}
       <div className={styles.screen}>
-        {isLocalMediaUrl(session.src) ? (
+        {isLocal ? (
           <LocalVideo
             ref={local}
             id={session.id}
@@ -231,6 +324,13 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
             src={session.src}
             partition={SHARED_WEB_PARTITION}
             referrer={session.referrer}
+            blockId={blockId}
+            forceWheel={staged ? wheelToPage : undefined}
+            fullScreenInBlock={session.fullScreen === 'block'}
+            stage={staged}
+            onMiddleClick={() => void window.tessera.videoStage.toggleWheel()}
+            onFullScreen={onFullScreen}
+            onEscape={() => isStaged(source) && leaveStage(source)}
             onMedia={(playing) => setPlaying(session.id, playing)}
             onTitle={(title) => useMediaStore.getState().setPageTitle(session.id, title)}
             // Fin de la vidéo : la suivante de la file « À suivre » démarre

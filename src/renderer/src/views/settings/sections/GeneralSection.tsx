@@ -77,6 +77,23 @@ export function GeneralSection(): React.JSX.Element {
             />
           )}
         </SettingRow>
+
+        <SettingRow
+          label={t('settings.window.videoWheel.label')}
+          description={t('settings.window.videoWheel.description')}
+        >
+          {({ labelId }) => (
+            <SegmentedControl
+              aria-labelledby={labelId}
+              value={settings.window.videoWheel}
+              onChange={(videoWheel) => void update({ window: { videoWheel } })}
+              options={[
+                { value: 'page', label: t('settings.window.videoWheel.page') },
+                { value: 'video', label: t('settings.window.videoWheel.video') }
+              ]}
+            />
+          )}
+        </SettingRow>
       </SettingsCard>
     </>
   )

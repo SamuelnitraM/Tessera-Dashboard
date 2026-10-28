@@ -51,6 +51,8 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 - Une disposition **compacte** prend le relais automatiquement quand la fenêtre est étroite.
 - **Menu latéral** avec tes pages et tes applications, ou des onglets en haut de la fenêtre (Ctrl+B, par défaut).
 - **Recherche dans les paramètres** (Ctrl+F) : tape un mot, Tessera t'amène au réglage.
+- **Écrans** : une page longue se découpe en écrans de la hauteur de la fenêtre ; la molette s'y cale doucement, des boutons passent d'un écran à l'autre, et un bloc peut prendre un écran entier.
+- **Vidéo en plein écran** (YouTube, Twitch, navigateur inséré) : la molette la fait glisser vers le haut pour montrer ta page, et la ramène tout en haut ; un clic molette (ou l'interrupteur en haut de l'écran) choisit si la molette va à la page ou à la vidéo.
 
 ### Tes applications, dans Tessera
 

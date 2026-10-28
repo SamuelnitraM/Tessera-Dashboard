@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, nativeTheme, screen, shell } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { getAppIcons } from './app-icon'
@@ -104,23 +104,34 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
   // Plein écran d'une vidéo (YouTube…) pendant le plein écran de Tessera : à sa sortie,
   // Electron rend à la fenêtre sa taille d'avant la vidéo et la barre des tâches de Windows
   // repasse devant. Le plein écran de Tessera est alors rétabli.
-  let htmlFullScreen = false
-  let wantedFullScreen = false
+  // Lu un instant après : le plein écran d'une page (vidéo) est signalé après celui de la
+  // fenêtre, et ce n'est pas un choix de l'utilisateur
   const remember = (): void => {
-    if (!htmlFullScreen && mainWindow) wantedFullScreen = mainWindow.isFullScreen()
+    setTimeout(() => {
+      if (!htmlFullScreen && !held && mainWindow) wantedFullScreen = mainWindow.isFullScreen()
+    }, 0)
   }
   mainWindow.on('enter-full-screen', remember)
   mainWindow.on('leave-full-screen', remember)
   mainWindow.on('enter-html-full-screen', () => {
     htmlFullScreen = true
   })
+  // L'état voulu est rétabli un instant après, décidé à ce moment-là : plein écran choisi par
+  // l'utilisateur (F11), ou vidéo plein écran qui glisse pour montrer la page (`held`)
   mainWindow.on('leave-html-full-screen', () => {
     htmlFullScreen = false
-    if (!wantedFullScreen) return
     setTimeout(() => {
       const window = mainWindow
-      if (!window || window.isDestroyed()) return
+      if (!window || window.isDestroyed() || htmlFullScreen) return
+      if (!held && !wantedFullScreen) {
+        if (window.isFullScreen()) window.setFullScreen(false)
+        return
+      }
       // Toujours marquée plein écran mais à la taille d'avant : sortie puis retour
+      const screenBounds = screen.getDisplayMatching(window.getBounds()).bounds
+      const bounds = window.getBounds()
+      const fills = bounds.width >= screenBounds.width && bounds.height >= screenBounds.height
+      if (window.isFullScreen() && fills) return
       if (window.isFullScreen()) window.setFullScreen(false)
       window.setFullScreen(true)
     }, 100)
@@ -142,6 +153,32 @@ export function createMainWindow({ hidden = false }: { hidden?: boolean } = {}):
 /** Plein écran (comme F11), ou retour à la fenêtre. */
 export function toggleFullScreen(): void {
   mainWindow?.setFullScreen(!mainWindow.isFullScreen())
+}
+
+/** Plein écran choisi par l'utilisateur (F11), hors vidéo en plein écran. */
+let wantedFullScreen = false
+/** Vidéo en plein écran (stores/videoStage) : Tessera reste en plein écran tant qu'elle dure. */
+let held = false
+/** Une page (vidéo) est en vrai plein écran dans la fenêtre. */
+let htmlFullScreen = false
+
+/**
+ * Vidéo en plein écran : Tessera passe (et reste) en plein écran, la page peut glisser sous la
+ * vidéo. À la fin, il retrouve l'état choisi par l'utilisateur (plein écran F11 ou non).
+ */
+export function holdFullScreen(value: boolean): void {
+  const window = mainWindow
+  if (!window || held === value) return
+  if (value) {
+    held = true
+    if (!window.isFullScreen()) window.setFullScreen(true)
+  } else {
+    held = false
+    // Page encore en vrai plein écran : l'état est rétabli quand elle le quitte
+    if (!htmlFullScreen && window.isFullScreen() !== wantedFullScreen) {
+      window.setFullScreen(wantedFullScreen)
+    }
+  }
 }
 
 export const isFullScreen = (): boolean => mainWindow?.isFullScreen() ?? false

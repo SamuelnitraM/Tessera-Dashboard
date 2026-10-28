@@ -1,4 +1,5 @@
 import { useContext } from 'react'
+import type { FullScreenMode } from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
 import { DesktopAppHost, type PanOffset } from '../components/desktop/DesktopAppHost'
 import { useSettingsStore } from '../stores/settings'
@@ -20,6 +21,8 @@ export interface InstalledAppViewProps {
   onOffsetChange?: (offset: PanOffset) => void
   /** Élément à glisser pour choisir la partie affichée (ex. la barre du widget). */
   panHandle?: React.RefObject<HTMLElement | null>
+  /** Plein écran de l'application (vidéo d'un navigateur…) : tout l'écran, ou le bloc. */
+  fullScreen?: FullScreenMode
 }
 
 /**

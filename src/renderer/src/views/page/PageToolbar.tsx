@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Check, LayoutDashboard, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { MAIN_PAGE_ID, type DashboardPage, type LayoutMode } from '@shared/dashboard'
@@ -20,6 +20,8 @@ interface PageToolbarProps {
   /** Disposition affichée (« Ajuster » range celle-ci). */
   mode: LayoutMode
   onAddWidget: () => void
+  /** Boutons écran précédent / suivant, s'ils vont dans la barre. */
+  screenButtons?: ReactNode
 }
 
 /** En-tête d'une page : titre et bouton « Modifier », ou outils du mode édition. */
@@ -27,7 +29,8 @@ export function PageToolbar({
   page,
   editing,
   mode,
-  onAddWidget
+  onAddWidget,
+  screenButtons
 }: PageToolbarProps): React.JSX.Element {
   const { t } = useTranslation()
   const name = usePageName(page)
@@ -50,6 +53,7 @@ export function PageToolbar({
     return (
       <PageHeader title={name}>
         <HeaderBar editing={false} />
+        {screenButtons}
         <Button icon={Pencil} onClick={() => setEditing(true)}>
           {t('pages.edit')}
         </Button>

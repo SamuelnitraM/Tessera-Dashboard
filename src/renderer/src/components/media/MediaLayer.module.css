@@ -28,6 +28,11 @@
   visibility: hidden;
 }
 
+/* Vidéo en plein écran (elle couvre l'écran, au-dessus des autres lecteurs) */
+.player[data-stage] {
+  z-index: 1;
+}
+
 .player[data-mini='true'] {
   right: 1rem;
   bottom: 1rem;

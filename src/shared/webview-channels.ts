@@ -18,5 +18,11 @@ export const WebviewChannels = {
   /** Page -> interface : clic dans la page (son bloc devient actif). */
   pointerDown: 'webview:pointer-down',
   /** Page -> interface : la souris est sortie de la page (son bloc n'est plus actif). */
-  pointerLeave: 'webview:pointer-leave'
+  pointerLeave: 'webview:pointer-leave',
+  /** Page -> interface : touche Échap (sortie d'une vidéo plein écran qui a glissé). */
+  escape: 'webview:escape',
+  /** Interface -> page : la page est une vidéo en plein écran (booléen). */
+  stageMode: 'webview:stage-mode',
+  /** Page -> interface : clic molette pendant la vidéo plein écran (bascule page / vidéo). */
+  middleClick: 'webview:middle-click'
 } as const

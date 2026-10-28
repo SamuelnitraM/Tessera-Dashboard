@@ -16,6 +16,8 @@ const SECTION_OF: Record<string, SettingsSection> = {
   accentIcon: 'appearance',
   headerAlign: 'appearance',
   sidebar: 'appearance',
+  screenButtons: 'appearance',
+  screenRows: 'appearance',
   notifications: 'notifications',
   applications: 'applications',
   accounts: 'accounts',

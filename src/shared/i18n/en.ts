@@ -109,6 +109,11 @@ export const en: Translation = {
     crashTitle: '{{name}} stopped',
     crashBody: 'The program ended with an error (code {{code}}).'
   },
+  videoStage: {
+    wheel: 'Wheel',
+    page: 'Page',
+    video: 'Video'
+  },
   errors: {
     common: {
       unknownAction: 'Unknown action.',
@@ -319,6 +324,10 @@ export const en: Translation = {
     }
   },
   pages: {
+    screenUp: 'Previous screen',
+    screenDown: 'Next screen',
+    screenLine: 'Screen {{n}}',
+    screenLineCut: 'Screen {{n}}: cut by a block',
     defaultName: 'Page {{n}}',
     untitled: 'Untitled page',
     name: 'Page name',
@@ -695,6 +704,7 @@ export const en: Translation = {
     close: 'Close'
   },
   blocks: {
+    fillScreen: 'Size: full screen',
     picker: {
       title: 'Add a block',
       widgets: 'Widgets',
@@ -832,6 +842,13 @@ export const en: Translation = {
       closeToTray: {
         label: 'Keep running in the background when closed',
         description: 'Closing the window hides it in the notification area instead of quitting.'
+      },
+      videoWheel: {
+        label: 'Mouse wheel on a full-screen video',
+        description:
+          '“Page”: the video slides up and shows the Tessera page below; “Video”: the wheel goes to the video. Also set by the switch that appears at the top of the screen.',
+        page: 'Page',
+        video: 'Video'
       }
     },
     theme: {
@@ -861,6 +878,25 @@ export const en: Translation = {
       end: 'Right (before “Edit”)',
       'space-between': 'Spread (touching the edges)',
       'space-around': 'Spread (even spacing)'
+    },
+    screenButtons: {
+      label: 'Screen buttons',
+      description:
+        'Previous and next screen of a scrolling page (one screen: 12 grid rows, the height of the visible area).',
+      toolbar: 'In the page bar',
+      'top-center': 'Top center',
+      'bottom-center': 'Bottom center',
+      'middle-left': 'Middle left',
+      'middle-right': 'Middle right',
+      'bottom-right': 'Bottom right',
+      'bottom-left': 'Bottom left',
+      hidden: 'Hidden'
+    },
+    screenRows: {
+      label: 'Full screen size',
+      description:
+        'Grid rows that fill the visible area of a page: fewer rows, taller blocks. Screen limits and the “full screen” block size follow it.',
+      value: '{{count}} rows'
     },
     sidebar: {
       label: 'Side menu',

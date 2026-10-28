@@ -9,6 +9,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import {
+  BlockSettingsButton,
   EDIT_ACTIVE,
   Button,
   normalizeWebUrl,
@@ -104,6 +105,7 @@ export function WebWidget({
             label={t('openInBrowser')}
             onClick={() => window.open(frameRef.current?.getURL() || startUrl, '_blank')}
           />
+          <BlockSettingsButton className={styles.iconButton} />
         </div>
       )}
       {error && <p className={styles.error}>{t('loadError', { error })}</p>}

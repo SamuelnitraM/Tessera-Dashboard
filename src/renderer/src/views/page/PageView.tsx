@@ -10,7 +10,11 @@ import { PAGE_WHEEL_EVENT, setActiveBlock, useActiveBlockStore } from '../../sto
 import { useDashboardStore } from '../../stores/dashboard'
 import { useCoverDesktopApps } from '../../stores/desktopApps'
 import { useNavigationStore } from '../../stores/navigation'
+import { stageWheel } from '../../stores/videoStage'
+import { screenStops, SNAP_ROWS, usePageScreensStore } from '../../stores/pageScreens'
+import { useSettingsStore } from '../../stores/settings'
 import { PageToolbar } from './PageToolbar'
+import { ScreenButtons } from './ScreenButtons'
 import styles from './PageView.module.css'
 
 interface PageViewProps {
@@ -18,6 +22,11 @@ interface PageViewProps {
 }
 
 /** Une page du tableau de bord : en-tête, puis grille de widgets. */
+/** Défilement venu de la molette : dans ce délai après elle (ms). */
+const WHEEL_SCROLL_MS = 250
+/** La page se cale après ce délai sans défilement (ms). */
+const SNAP_AFTER_MS = 160
+
 export function PageView({ pageId }: PageViewProps): React.JSX.Element {
   const { t } = useTranslation()
   // Page introuvable (ex. supprimée) : on affiche la page principale
@@ -33,10 +42,13 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
 
   const [gridRef, size] = useElementSize<HTMLDivElement>()
   const scroller = useRef<HTMLDivElement | null>(null)
+  const [area, setArea] = useState<HTMLDivElement | null>(null)
   const setGridArea = (element: HTMLDivElement | null): void => {
     scroller.current = element
+    setArea(element)
     gridRef(element)
   }
+  const screenButtons = useSettingsStore((state) => state.settings.appearance.screenButtons)
   const mode = size ? getLayoutMode(size.width) : 'wide'
   // Autre page : elle s'ouvre en haut (la zone de la grille reste la même d'une page à l'autre)
   useLayoutEffect(() => {
@@ -76,18 +88,48 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
       area.scrollTop += event.deltaY * unit
     }
     const onPageWheel = (event: Event): void => {
-      area.scrollTop += (event as CustomEvent<number>).detail
+      const deltaY = (event as CustomEvent<number>).detail
+      if (stageWheel(deltaY, area)) return
+      area.scrollTop += deltaY
     }
     // Clic hors de tout bloc : plus aucun bloc actif
     const onPointerDown = (event: PointerEvent): void => {
       if (!(event.target as HTMLElement).closest('[data-block-id]')) setActiveBlock(null)
     }
+    // Aimantation légère, à la molette seulement : la page arrêtée à moins de 2 lignes d'une
+    // limite d'écran s'y cale doucement
+    let lastWheel = 0
+    let snapTimer = 0
+    const onAnyWheel = (): void => {
+      lastWheel = performance.now()
+    }
+    const snap = (): void => {
+      const top = area.scrollTop
+      const reach = SNAP_ROWS * usePageScreensStore.getState().rowStep
+      const stop = screenStops().find((value) => {
+        const distance = Math.abs(value - top)
+        return distance >= 1 && distance < reach
+      })
+      if (stop !== undefined) area.scrollTo({ top: stop, behavior: 'smooth' })
+    }
+    const onScroll = (): void => {
+      if (performance.now() - lastWheel > WHEEL_SCROLL_MS) return
+      window.clearTimeout(snapTimer)
+      snapTimer = window.setTimeout(snap, SNAP_AFTER_MS)
+    }
     area.addEventListener('wheel', onWheel, { passive: false, capture: true })
+    area.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('wheel', onAnyWheel, { passive: true, capture: true })
+    window.addEventListener(PAGE_WHEEL_EVENT, onAnyWheel)
     window.addEventListener(PAGE_WHEEL_EVENT, onPageWheel)
     window.addEventListener('pointerdown', onPointerDown, true)
     return () => {
       observer.disconnect()
+      window.clearTimeout(snapTimer)
       area.removeEventListener('wheel', onWheel, { capture: true })
+      area.removeEventListener('scroll', onScroll)
+      window.removeEventListener('wheel', onAnyWheel, { capture: true })
+      window.removeEventListener(PAGE_WHEEL_EVENT, onAnyWheel)
       window.removeEventListener(PAGE_WHEEL_EVENT, onPageWheel)
       window.removeEventListener('pointerdown', onPointerDown, true)
     }
@@ -106,7 +148,13 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
 
   return (
     <div className={styles.page}>
-      <PageToolbar page={page} editing={editing} mode={mode} onAddWidget={openPicker} />
+      <PageToolbar
+        page={page}
+        editing={editing}
+        mode={mode}
+        onAddWidget={openPicker}
+        screenButtons={screenButtons === 'toolbar' ? <ScreenButtons area={area} /> : null}
+      />
 
       {editing && mode === 'compact' && (
         <div className={styles.notice}>
@@ -120,26 +168,32 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
         </div>
       )}
 
-      <div ref={setGridArea} className={styles.gridArea}>
-        {isEmpty ? (
-          <div className={styles.empty}>
-            <LayoutGrid className={styles.emptyIcon} size={40} strokeWidth={1.5} aria-hidden />
-            <h2 className={styles.emptyTitle}>{t('pages.emptyTitle')}</h2>
-            <p className={styles.emptyText}>{t('pages.emptyText')}</p>
-            <Button variant="primary" icon={Plus} onClick={openPicker}>
-              {t('pages.addBlock')}
-            </Button>
-          </div>
-        ) : (
-          size && (
-            <DashboardGrid
-              page={page}
-              editing={editing}
-              mode={mode}
-              width={size.width}
-              height={size.height}
-            />
-          )
+      {/* Zone de la grille, et boutons d'écran posés dessus (ils ne défilent pas avec elle) */}
+      <div className={styles.gridFrame}>
+        <div ref={setGridArea} className={styles.gridArea} data-page-scroller>
+          {isEmpty ? (
+            <div className={styles.empty}>
+              <LayoutGrid className={styles.emptyIcon} size={40} strokeWidth={1.5} aria-hidden />
+              <h2 className={styles.emptyTitle}>{t('pages.emptyTitle')}</h2>
+              <p className={styles.emptyText}>{t('pages.emptyText')}</p>
+              <Button variant="primary" icon={Plus} onClick={openPicker}>
+                {t('pages.addBlock')}
+              </Button>
+            </div>
+          ) : (
+            size && (
+              <DashboardGrid
+                page={page}
+                editing={editing}
+                mode={mode}
+                width={size.width}
+                height={size.height}
+              />
+            )
+          )}
+        </div>
+        {screenButtons !== 'toolbar' && screenButtons !== 'hidden' && (
+          <ScreenButtons area={area} floating={screenButtons} />
         )}
       </div>
 

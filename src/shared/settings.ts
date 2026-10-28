@@ -35,8 +35,28 @@ export type AccentSetting = 'system' | HexColor
 export const SIDEBAR_MODES = ['expanded', 'collapsed'] as const
 export type SidebarMode = (typeof SIDEBAR_MODES)[number]
 
+/** Boutons « écran précédent / suivant » d'une page : où ils s'affichent, ou masqués. */
+export const SCREEN_BUTTONS = [
+  'toolbar',
+  'top-center',
+  'bottom-center',
+  'middle-left',
+  'middle-right',
+  'bottom-left',
+  'bottom-right',
+  'hidden'
+] as const
+export type ScreenButtonsPlace = (typeof SCREEN_BUTTONS)[number]
+
+/** Lignes de la grille qui remplissent la zone visible d'une page : la taille d'un écran. */
+export const SCREEN_ROWS_RANGE = { min: 6, max: 24, default: 12 } as const
+
 export const STARTUP_MODES = ['maximized', 'last'] as const
 export type StartupMode = (typeof STARTUP_MODES)[number]
+
+/** Molette au-dessus d'une vidéo en plein écran : elle montre la page de Tessera, ou va à la vidéo. */
+export const VIDEO_WHEEL_MODES = ['page', 'video'] as const
+export type VideoWheelMode = (typeof VIDEO_WHEEL_MODES)[number]
 
 export interface Settings {
   schemaVersion: 1
@@ -50,6 +70,14 @@ export interface Settings {
     accentIcon: boolean
     /** Menu latéral déplié, ou rabattu (onglets en haut de la fenêtre). */
     sidebar: SidebarMode
+    /** Boutons « écran précédent / suivant » des pages qui défilent. */
+    screenButtons: ScreenButtonsPlace
+    /**
+     * Taille d'un écran entier (lignes de la grille dans la zone visible de la page, disposition
+     * large) : la hauteur des lignes en découle, comme les limites d'écran et la taille de bloc
+     * « écran entier ».
+     */
+    screenRows: number
   }
   window: {
     /** `maximized` : toujours agrandie au lancement. `last` : reprend la dernière taille. */
@@ -58,6 +86,11 @@ export interface Settings {
     closeToTray: boolean
     /** Lancer Tessera (réduite dans la zone de notification) à l'ouverture de la session Windows. */
     launchAtStartup: boolean
+    /**
+     * Vidéo en plein écran : `page`, la molette fait glisser la vidéo et montre la page de
+     * Tessera dessous ; `video`, elle va à la vidéo (YouTube s'en sert en plein écran).
+     */
+    videoWheel: VideoWheelMode
   }
   plugins: {
     /** Identifiants des extensions désactivées par l'utilisateur. */
@@ -116,12 +149,15 @@ export const DEFAULT_SETTINGS: Settings = {
     accentColor: 'system',
     accentIcon: true,
     // Menu rabattu (barre d'onglets en haut) à l'installation : toute la largeur pour les pages
-    sidebar: 'collapsed'
+    sidebar: 'collapsed',
+    screenButtons: 'toolbar',
+    screenRows: SCREEN_ROWS_RANGE.default
   },
   window: {
     startupMode: 'maximized',
     closeToTray: true,
-    launchAtStartup: true
+    launchAtStartup: true,
+    videoWheel: 'page'
   },
   plugins: {
     disabled: [],
@@ -179,7 +215,16 @@ export function sanitizeSettings(input: unknown): Settings {
         typeof appearance.accentIcon === 'boolean'
           ? appearance.accentIcon
           : defaults.appearance.accentIcon,
-      sidebar: pick(appearance.sidebar, SIDEBAR_MODES, defaults.appearance.sidebar)
+      sidebar: pick(appearance.sidebar, SIDEBAR_MODES, defaults.appearance.sidebar),
+      screenButtons: pick(
+        appearance.screenButtons,
+        SCREEN_BUTTONS,
+        defaults.appearance.screenButtons
+      ),
+      screenRows:
+        typeof appearance.screenRows === 'number' && Number.isInteger(appearance.screenRows)
+          ? Math.min(SCREEN_ROWS_RANGE.max, Math.max(SCREEN_ROWS_RANGE.min, appearance.screenRows))
+          : defaults.appearance.screenRows
     },
     window: {
       startupMode: pick(window.startupMode, STARTUP_MODES, defaults.window.startupMode),
@@ -188,7 +233,8 @@ export function sanitizeSettings(input: unknown): Settings {
       launchAtStartup:
         typeof window.launchAtStartup === 'boolean'
           ? window.launchAtStartup
-          : defaults.window.launchAtStartup
+          : defaults.window.launchAtStartup,
+      videoWheel: pick(window.videoWheel, VIDEO_WHEEL_MODES, defaults.window.videoWheel)
     },
     plugins: {
       disabled: Array.isArray(plugins.disabled)

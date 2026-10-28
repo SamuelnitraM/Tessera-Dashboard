@@ -21,7 +21,7 @@ interface WebviewElement extends HTMLElement {
   loadURL: (url: string) => Promise<void>
   getURL: () => string
   setZoomFactor: (factor: number) => void
-  executeJavaScript: (code: string) => Promise<unknown>
+  executeJavaScript: (code: string, userGesture?: boolean) => Promise<unknown>
   send: (channel: string, ...args: unknown[]) => void
 }
 
@@ -37,6 +37,10 @@ export interface WebFrameHandle {
   getURL: () => string
   /** Une vidéo ou un son de la page est-il en cours de lecture ? */
   isPlaying: () => Promise<boolean>
+  /** La page quitte son plein écran (vidéo plein écran qui glisse). */
+  exitFullScreen: () => void
+  /** La page reprend le plein écran de son dernier élément en plein écran (la vidéo). */
+  enterFullScreen: () => void
 }
 
 export interface WebFrameProps {
@@ -50,6 +54,23 @@ export interface WebFrameProps {
   inert?: boolean
   /** Site d'origine déclaré à la page (lecteur YouTube intégré). Fixé à la création. */
   referrer?: string
+  /**
+   * Bloc de la page, quand elle n'est pas affichée dans lui (lecteurs de la couche des médias,
+   * posés par-dessus leur bloc) : la molette suit alors la règle de ce bloc. `null` : aucun.
+   */
+  blockId?: string | null
+  /**
+   * Plein écran demandé par la page (vidéo) gardé dans son emplacement (réglage du bloc « Dans le
+   * bloc ») : la page ne passe pas en plein écran, sa vidéo remplit déjà le lecteur.
+   */
+  fullScreenInBlock?: boolean
+  /** La page est une vidéo en plein écran : son clic molette est signalé (`onMiddleClick`). */
+  stage?: boolean
+  /**
+   * Vidéo plein écran : la molette va toujours à Tessera (`true`, réglage « Page ») ou toujours à
+   * la page (`false`, réglage « Vidéo »). Absent : règle des blocs.
+   */
+  forceWheel?: boolean
   /** Lecture d'un son ou d'une vidéo dans la page commencée (`true`) ou arrêtée. */
   onMedia?: (playing: boolean) => void
   /** Une vidéo ou un son de la page est arrivé à la fin. */
@@ -59,6 +80,12 @@ export interface WebFrameProps {
   onNavigate?: (url: string, canGoBack: boolean, canGoForward: boolean) => void
   onLoading?: (loading: boolean) => void
   onError?: (description: string | null) => void
+  /** La page passe en plein écran (vidéo…) ou en sort. */
+  onFullScreen?: (entered: boolean) => void
+  /** Touche Échap dans la page. */
+  onEscape?: () => void
+  /** Clic molette dans la page pendant la vidéo plein écran. */
+  onMiddleClick?: () => void
 }
 
 /**
@@ -68,7 +95,18 @@ export interface WebFrameProps {
  * Le processus principal verrouille chaque <webview> (voir main/web.ts).
  */
 export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFrame(
-  { src, partition, zoom = 1, inert = false, referrer, ...events },
+  {
+    src,
+    partition,
+    zoom = 1,
+    inert = false,
+    referrer,
+    blockId,
+    forceWheel,
+    fullScreenInBlock = false,
+    stage = false,
+    ...events
+  },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -79,11 +117,23 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
   const loadedSrcRef = useRef(src)
   const eventsRef = useRef(events)
   const zoomRef = useRef(zoom)
+  const blockIdRef = useRef(blockId)
+  const forceWheelRef = useRef(forceWheel)
+  const inBlockRef = useRef(fullScreenInBlock)
+  const stageRef = useRef(stage)
+  const updateWheelRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     eventsRef.current = events
     zoomRef.current = zoom
   })
+
+  // Lecteur posé sur un autre bloc (ou devenu mini-lecteur) : la molette change de règle
+  useEffect(() => {
+    blockIdRef.current = blockId
+    forceWheelRef.current = forceWheel
+    updateWheelRef.current()
+  }, [blockId, forceWheel])
 
   // Création de la page (une fois par session)
   useEffect(() => {
@@ -105,17 +155,21 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     // Page web dans un bloc de la grille : la molette fait défiler la page de Tessera, sauf
     // quand le bloc est actif (clic dans la page, jusqu'à la sortie de la souris). Le bloc est
     // cherché à chaque fois : la page web peut être créée avant d'être placée dans la grille.
-    const block = (): string | null => blockIdOf(containerRef.current)
+    const block = (): string | null =>
+      blockIdRef.current !== undefined ? blockIdRef.current : blockIdOf(containerRef.current)
     let wheelToHost: boolean | null = null
     const updateWheel = (): void => {
+      if (!readyRef.current) return
       const blockId = block()
-      if (!blockId || !readyRef.current) return
       const { activeId, pageScrolls } = useActiveBlockStore.getState()
-      const next = pageScrolls && activeId !== blockId && !useNavigationStore.getState().editing
+      const next =
+        forceWheelRef.current ??
+        (!!blockId && pageScrolls && activeId !== blockId && !useNavigationStore.getState().editing)
       if (next === wheelToHost) return
       wheelToHost = next
       webview.send(WebviewChannels.wheelMode, next)
     }
+    updateWheelRef.current = updateWheel
     const unsubscribe = [
       useActiveBlockStore.subscribe(updateWheel),
       useNavigationStore.subscribe(updateWheel)
@@ -127,6 +181,8 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
         (e) => {
           const { channel, args } = e as Event & { channel: string; args: unknown[] }
           if (channel === WebviewChannels.wheel && typeof args[0] === 'number') scrollPage(args[0])
+          if (channel === WebviewChannels.escape) eventsRef.current.onEscape?.()
+          if (channel === WebviewChannels.middleClick) eventsRef.current.onMiddleClick?.()
           const blockId = block()
           if (!blockId) return
           if (channel === WebviewChannels.pointerDown) setActiveBlock(blockId)
@@ -144,7 +200,20 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
             webview.loadURL(srcRef.current).catch(() => {})
           }
           updateWheel()
+          webview.send(WebviewChannels.stageMode, stageRef.current)
           webview.setZoomFactor(zoomRef.current)
+          // Dernier élément mis en plein écran par la page (la vidéo) : il pourra y revenir.
+          // Plein écran « dans le bloc » : la demande de la page est ignorée.
+          void webview
+            .executeJavaScript(
+              `document.addEventListener('fullscreenchange', () => { if (document.fullscreenElement) window.__tesseraFullScreen = document.fullscreenElement });
+              for (const name of ['requestFullscreen', 'webkitRequestFullscreen']) {
+                const real = Element.prototype[name]
+                if (real) Element.prototype[name] = function (...args) { return window.__tesseraInBlock ? Promise.resolve() : real.apply(this, args) }
+              }
+              window.__tesseraInBlock = ${inBlockRef.current}`
+            )
+            .catch(() => {})
           // Fin d'une vidéo : la page le signale par un message de console (aucun accès à Tessera)
           if (eventsRef.current.onEnded) {
             void webview
@@ -172,6 +241,8 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
         (e) => eventsRef.current.onFavicons?.((e as Event & { favicons: string[] }).favicons)
       ],
       ['did-navigate', navigated],
+      ['enter-html-full-screen', () => eventsRef.current.onFullScreen?.(true)],
+      ['leave-html-full-screen', () => eventsRef.current.onFullScreen?.(false)],
       ['media-started-playing', () => eventsRef.current.onMedia?.(true)],
       ['media-paused', () => eventsRef.current.onMedia?.(false)],
       ['did-navigate-in-page', navigated],
@@ -224,6 +295,19 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
     if (readyRef.current) webviewRef.current?.setZoomFactor(zoom)
   }, [zoom])
 
+  useEffect(() => {
+    stageRef.current = stage
+    if (readyRef.current) webviewRef.current?.send(WebviewChannels.stageMode, stage)
+  }, [stage])
+
+  useEffect(() => {
+    inBlockRef.current = fullScreenInBlock
+    if (!readyRef.current) return
+    void webviewRef.current
+      ?.executeJavaScript(`window.__tesseraInBlock = ${fullScreenInBlock}`)
+      .catch(() => {})
+  }, [fullScreenInBlock])
+
   useImperativeHandle(ref, () => ({
     reload: () => webviewRef.current?.reload(),
     goBack: () => webviewRef.current?.goBack(),
@@ -241,7 +325,16 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
       } catch {
         return false
       }
-    }
+    },
+    exitFullScreen: () =>
+      void webviewRef.current
+        ?.executeJavaScript('document.fullscreenElement && document.exitFullscreen()')
+        .catch(() => {}),
+    // Geste de l'utilisateur simulé : une page ne peut demander le plein écran qu'après un clic
+    enterFullScreen: () =>
+      void webviewRef.current
+        ?.executeJavaScript('window.__tesseraFullScreen?.requestFullscreen()', true)
+        .catch(() => {})
   }))
 
   return <div ref={containerRef} className={styles.frame} data-inert={inert} />

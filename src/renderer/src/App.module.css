@@ -10,6 +10,13 @@
   grid-template-rows: auto 1fr;
 }
 
+/* Vidéo en plein écran (stores/videoStage.ts) : le menu et la page remontent sous la vidéo qui
+   glisse vers le haut */
+:global(:root[data-video-stage]) .shell > nav,
+:global(:root[data-video-stage]) .shell > main {
+  translate: 0 var(--stage-shift);
+}
+
 .content {
   view-transition-name: main-content;
   position: relative;

@@ -48,6 +48,7 @@ import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshAppIcons, refreshTrayMenu } from './tray'
 import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web'
 import { createMainWindow, getMainWindow, markAppAsQuitting, showMainWindow } from './window'
+import { toggleVideoWheel } from './video-stage'
 
 // Protocoles de l'app, à déclarer en une fois avant qu'elle soit prête : vidéos du PC
 // (tessera-file://) et code des modules tiers (tessera-module://)
@@ -144,7 +145,10 @@ if (!app.requestSingleInstanceLock()) {
       wheel: (hostId, deltaY) =>
         getMainWindow()?.webContents.send(IpcChannels.desktopAppsWheel, { hostId, deltaY }),
       activate: (hostId) =>
-        getMainWindow()?.webContents.send(IpcChannels.desktopAppsActivate, hostId)
+        getMainWindow()?.webContents.send(IpcChannels.desktopAppsActivate, hostId),
+      fullScreen: (appId, value) =>
+        getMainWindow()?.webContents.send(IpcChannels.desktopAppsFullScreen, { appId, value }),
+      middleClick: () => toggleVideoWheel()
     })
     createTray()
 

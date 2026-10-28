@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ReactGridLayout, { getCompactor, type Layout, type LayoutItem } from 'react-grid-layout'
 import { GridBackground } from 'react-grid-layout/extras'
 import 'react-grid-layout/css/styles.css'
@@ -21,6 +22,8 @@ import {
 } from '../../lib/grid'
 import { leaveBlock, setActiveBlock, useActiveBlockStore } from '../../stores/activeBlock'
 import { useDashboardStore } from '../../stores/dashboard'
+import { fillsScreen, screenLines, usePageScreensStore } from '../../stores/pageScreens'
+import { useSettingsStore } from '../../stores/settings'
 import { getDefaultSize, getMinSize } from '../../plugins/registry'
 import { getDraggedWidget } from '../headerbar/drag'
 import { WidgetFrame } from './WidgetFrame'
@@ -71,6 +74,9 @@ export function DashboardGrid({
   width,
   height
 }: DashboardGridProps): React.JSX.Element {
+  const { t } = useTranslation()
+  /** Taille d'un écran (lignes qui remplissent la zone visible, disposition large). */
+  const screenRows = useSettingsStore((state) => state.settings.appearance.screenRows)
   const setLayout = useDashboardStore((state) => state.setLayout)
   const addWidget = useDashboardStore((state) => state.addWidget)
   const activeId = useActiveBlockStore((state) => state.activeId)
@@ -88,7 +94,7 @@ export function DashboardGrid({
   // Arrondi vers le bas : les 12 premières lignes ne dépassent jamais la hauteur disponible
   const rowHeight = Math.max(
     MIN_ROW_HEIGHT,
-    Math.floor(mode === 'wide' ? (height - gap * (GRID.fitRows - 1)) / GRID.fitRows : colWidth)
+    Math.floor(mode === 'wide' ? (height - gap * (screenRows - 1)) / screenRows : colWidth)
   )
 
   const [moving, setMoving] = useState<Moving | null>(null)
@@ -112,8 +118,40 @@ export function DashboardGrid({
   )
 
   // Lignes affichées : au moins la hauteur de la zone, plus de la place libre en mode édition
-  const bottom = Math.max(mode === 'wide' ? GRID.fitRows : 0, layoutBottom(layout))
+  const bottom = Math.max(mode === 'wide' ? screenRows : 0, layoutBottom(layout))
   const rows = editing ? bottom + EXTRA_EDIT_ROWS : bottom
+
+  // Écrans de la page (disposition large) : 12 lignes chacun. Limites coupées par un bloc
+  // signalées en mode édition, sautées par la molette et les boutons d'écran.
+  const lines = useMemo(
+    () => (mode === 'wide' ? screenLines(layout, Math.max(rows, bottom + 1), screenRows) : []),
+    [layout, mode, rows, bottom, screenRows]
+  )
+  useEffect(() => {
+    if (mode !== 'wide') {
+      usePageScreensStore.setState({ rowStep: 0, rows: [], screenBlocks: {} })
+      return
+    }
+    const screenBlocks: Record<string, number> = {}
+    for (const item of layout) {
+      if (fillsScreen(item, cols, screenRows)) screenBlocks[item.i] = item.y + screenRows
+    }
+    usePageScreensStore.setState({
+      rowStep: rowHeight + gap,
+      rows: lines.filter((line) => !line.cut && line.row < bottom).map((line) => line.row),
+      screenBlocks
+    })
+  }, [mode, layout, lines, rowHeight, gap, cols, bottom, screenRows])
+
+  /** Taille « écran entier » : toute la largeur, 12 lignes, au début de son écran. */
+  const fillScreen = (id: string): void => {
+    const item = layout.find((entry) => entry.i === id)
+    if (!item || mode !== 'wide') return
+    const y = Math.floor(item.y / screenRows) * screenRows
+    const target: GridItem = { i: id, x: 0, y, w: cols, h: screenRows }
+    const next = normalizeLayout(planMove(layout, id, target, cols, page.autoArrange).layout)
+    if (!sameLayout(next, layout)) setLayout(page.id, mode, next)
+  }
 
   /** Case visée par le bloc tenu : plan au relâchement (recalculé seulement si elle change). */
   const preview = (item: LayoutItem | null): void => {
@@ -250,6 +288,23 @@ export function DashboardGrid({
           borderRadius={6}
         />
       )}
+      {/* Limites d'écran : la hauteur de la zone visible ; clignote si un bloc la coupe */}
+      {editing &&
+        lines.map((line) => (
+          <div
+            key={line.row}
+            className={styles.screenLine}
+            data-cut={line.cut}
+            style={{ top: line.row * (rowHeight + gap) - gap / 2 }}
+            aria-hidden
+          >
+            <span>
+              {line.cut
+                ? t('pages.screenLineCut', { n: line.row / screenRows + 1 })
+                : t('pages.screenLine', { n: line.row / screenRows + 1 })}
+            </span>
+          </div>
+        ))}
       <ReactGridLayout
         width={width}
         layout={gridLayout}
@@ -278,7 +333,12 @@ export function DashboardGrid({
             onPointerDownCapture={editing ? undefined : () => setActiveBlock(widget.id)}
             onMouseLeave={() => leaveBlock(widget.id)}
           >
-            <WidgetFrame pageId={page.id} widget={widget} editing={editing} />
+            <WidgetFrame
+              pageId={page.id}
+              widget={widget}
+              editing={editing}
+              onFillScreen={mode === 'wide' ? () => fillScreen(widget.id) : undefined}
+            />
           </div>
         ))}
       </ReactGridLayout>

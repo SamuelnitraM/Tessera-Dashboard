@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import type {
   FrameActive,
   FrameFocus,
+  FrameMiddle,
   FrameCommand,
   FramePan,
   FrameReply,
@@ -25,6 +26,12 @@ let onPan: (pan: FramePan) => void = () => {}
 let onWheel: (wheel: FrameWheel) => void = () => {}
 let onActive: (active: FrameActive) => void = () => {}
 let onFocus: (focus: FrameFocus) => void = () => {}
+let onMiddle: (middle: FrameMiddle) => void = () => {}
+
+/** Clic molette sur le cadre d'une vidéo en plein écran. */
+export function setFrameMiddleListener(listener: (middle: FrameMiddle) => void): void {
+  onMiddle = listener
+}
 
 /** Clavier refusé par une fenêtre insérée (journal). */
 export function setFrameFocusListener(listener: (focus: FrameFocus) => void): void {
@@ -82,6 +89,8 @@ function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
         onWheel(message)
       } else if ('active' in message) {
         onActive(message)
+      } else if ('middle' in message) {
+        onMiddle(message)
       } else if ('focus' in message) {
         onFocus(message)
       } else if ('id' in message) {
@@ -136,9 +145,17 @@ export function setFramePannable(frame: Hwnd, value: boolean): void {
   if (host) send({ cmd: 'pannable', frame, value })
 }
 
-/** Cadre d'un bloc d'une page qui défile : sa molette fait défiler la page. */
-export function setFrameWheel(frame: Hwnd, value: boolean): void {
-  if (host) send({ cmd: 'wheel', frame, value })
+/**
+ * Cadre d'un bloc d'une page qui défile : sa molette fait défiler la page (`always` : même après
+ * un clic dans l'application).
+ */
+export function setFrameWheel(frame: Hwnd, value: boolean, always = false): void {
+  if (host) send({ cmd: 'wheel', frame, value, always })
+}
+
+/** Cadre d'une vidéo en plein écran : son clic molette bascule la molette page / vidéo. */
+export function setFrameMiddle(frame: Hwnd, value: boolean): void {
+  if (host) send({ cmd: 'middle', frame, value })
 }
 
 /** Tessera a repris la fenêtre : le cadre est détruit (rien à faire si l'hébergeur est arrêté). */

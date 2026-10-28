@@ -10,7 +10,7 @@ import {
   TriangleAlert
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { DesktopApp, HostRect } from '@shared/desktop-apps'
+import type { DesktopApp, FullScreenMode, HostRect } from '@shared/desktop-apps'
 import {
   blockIdOf,
   leaveBlock,
@@ -20,6 +20,8 @@ import {
 } from '../../stores/activeBlock'
 import { logDesktopApps, useDesktopAppState, useDesktopAppsStore } from '../../stores/desktopApps'
 import { measure } from '../../lib/visibleRect'
+import { useSettingsStore } from '../../stores/settings'
+import { enterStage, leaveStage, useVideoStageStore } from '../../stores/videoStage'
 import { Button } from '../ui/Button'
 import styles from './DesktopAppHost.module.css'
 
@@ -40,6 +42,8 @@ interface DesktopAppHostProps {
   onOffsetChange?: (offset: PanOffset) => void
   /** Élément à glisser pour déplacer le contenu (barre du bloc ou de l'onglet). */
   panHandle?: React.RefObject<HTMLElement | null>
+  /** Plein écran de l'application : tout l'écran (par défaut), ou seulement le bloc. */
+  fullScreen?: FullScreenMode
 }
 
 const ORIGIN: PanOffset = { x: 0, y: 0 }
@@ -119,7 +123,8 @@ export function DesktopAppHost({
   active,
   offset = ORIGIN,
   onOffsetChange,
-  panHandle
+  panHandle,
+  fullScreen = 'screen'
 }: DesktopAppHostProps): React.JSX.Element {
   const { t } = useTranslation()
   const ref = useRef<HTMLDivElement>(null)
@@ -156,6 +161,7 @@ export function DesktopAppHost({
     clamp,
     onOffsetChange,
     stretch,
+    fullScreen,
     /** Taille minimale de la fenêtre (px CSS). */
     min: { width: app.minWidth, height: app.minHeight } as Size,
     /** Bloc entier à l'écran (barres de défilement comprises). */
@@ -170,6 +176,7 @@ export function DesktopAppHost({
       clamp,
       onOffsetChange,
       stretch,
+      fullScreen,
       min: { width: app.minWidth, height: app.minHeight }
     }
   })
@@ -217,8 +224,24 @@ export function DesktopAppHost({
           height: measured.height
         }
         const stretched = live.current.stretch
+        const stage = useVideoStageStore.getState()
+        const staged = stage.source?.kind === 'app' && stage.source.appId === app.id
         let rect: HostRect | null = null
-        if (measured && stretched) {
+        if (staged) {
+          // Vidéo en plein écran (stores/videoStage) : tout l'écran, décalé vers le haut quand
+          // elle glisse pour montrer la page ; la molette va à Tessera selon le réglage
+          const toPage = useSettingsStore.getState().settings.window.videoWheel === 'page'
+          rect = {
+            x: 0,
+            y: -Math.round(stage.offset),
+            width: window.innerWidth,
+            height: window.innerHeight,
+            raised: true,
+            pageWheel: toPage,
+            wheelAlways: toPage,
+            stage: true
+          }
+        } else if (measured && stretched) {
           // Étirée : la fenêtre déborde du bloc, par-dessus les autres. Le contenu reste à sa
           // place à l'écran (étirée vers la gauche ou le haut, elle montre ce qui était caché).
           const { current: from, min } = live.current
@@ -240,14 +263,17 @@ export function DesktopAppHost({
         } else if (inBlock) {
           rect = { ...inBlock, offset: live.current.current }
         }
+        // Plein écran de l'application : tout l'écran, ou seulement le bloc (le processus
+        // principal la garde alors dans son bloc)
+        if (rect) rect.fullScreen = live.current.fullScreen
         // Bloc d'une page qui défile : la molette au-dessus de la fenêtre fait défiler la page
-        if (rect && blockIdOf(element) && useActiveBlockStore.getState().pageScrolls) {
+        if (rect && !staged && blockIdOf(element) && useActiveBlockStore.getState().pageScrolls) {
           rect.pageWheel = true
         }
         // Poignées d'étirement : seulement autour d'un bloc entièrement visible, à l'extérieur
         // du bloc entier (barres de défilement comprises : elles restent utilisables), ou de
         // la fenêtre étirée
-        const outline = stretched ? rect : measured
+        const outline = staged ? null : stretched ? rect : measured
         const shown =
           outline && !outline.clip
             ? { x: outline.x, y: outline.y, width: outline.width, height: outline.height }
@@ -282,19 +308,26 @@ export function DesktopAppHost({
     const unsubscribe = useActiveBlockStore.subscribe((state, previous) => {
       if (state.pageScrolls !== previous.pageScrolls) report()
     })
+    // Vidéo plein écran qui glisse, réglage de la molette changé
+    const stopStage = useVideoStageStore.subscribe(report)
+    const stopSettings = useSettingsStore.subscribe((state, previous) => {
+      if (state.settings.window.videoWheel !== previous.settings.window.videoWheel) report()
+    })
     report()
     return () => {
       unsubscribe()
+      stopStage()
+      stopSettings()
       cancelAnimationFrame(frame)
       resizeObserver.disconnect()
       mutationObserver.disconnect()
       window.removeEventListener('resize', report)
       window.removeEventListener('scroll', report, true)
     }
-  }, [active, hostId, suspended, scrollable])
+  }, [active, hostId, suspended, scrollable, app.id])
 
-  // Nouvelle partie affichée, ou étirement : la fenêtre suit
-  useEffect(() => live.current.report(), [current.x, current.y, stretch])
+  // Nouvelle partie affichée, étirement, réglage du plein écran : la fenêtre suit
+  useEffect(() => live.current.report(), [current.x, current.y, stretch, fullScreen])
 
   // Étirée : la moindre autre action dans Tessera lui rend la taille de son bloc (clic ailleurs,
   // défilement, fenêtre déplacée ou redimensionnée, changement de page, mode édition…)
@@ -398,6 +431,33 @@ export function DesktopAppHost({
       setDragOffset(null)
     }, SCROLL_COMMIT_MS)
   }
+
+  // L'application passe en plein écran (vidéo dans un navigateur) : vidéo plein écran de Tessera
+  useEffect(() => {
+    if (!active || !attachedHere) return
+    const source = { kind: 'app', appId: app.id } as const
+    const stop = window.tessera.desktopApps.onFullScreen(({ appId, value }) => {
+      if (appId !== app.id) return
+      if (value) {
+        enterStage(
+          source,
+          {
+            exitReal: () => {},
+            enterReal: () => {},
+            exit: () => {},
+            focus: () => void window.tessera.desktopApps.focus(app.id)
+          },
+          blockIdOf(ref.current)
+        )
+      } else {
+        leaveStage(source, true)
+      }
+    })
+    return () => {
+      stop()
+      leaveStage(source, true)
+    }
+  }, [active, attachedHere, app.id])
 
   // Molette au-dessus de la fenêtre : la page défile. Clic dans l'application : bloc actif.
   useEffect(() => {

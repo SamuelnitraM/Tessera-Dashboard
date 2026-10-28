@@ -45,10 +45,13 @@ function toMouse(command: MouseCommand): void {
 
 function toWorker(command: FrameCommand): void {
   // Le clic gauche + droit relève du fil de la souris
-  if (command.cmd === 'pannable' || command.cmd === 'wheel') return toMouse(command)
+  if (command.cmd === 'pannable' || command.cmd === 'wheel' || command.cmd === 'middle') {
+    return toMouse(command)
+  }
   if (command.cmd === 'release') {
     toMouse({ cmd: 'pannable', frame: command.frame, value: false })
     toMouse({ cmd: 'wheel', frame: command.frame, value: false })
+    toMouse({ cmd: 'middle', frame: command.frame, value: false })
   }
   if (command.cmd === 'restoreAll') toMouse({ cmd: 'stop' })
   if (!wake) {

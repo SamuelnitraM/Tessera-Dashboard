@@ -209,7 +209,13 @@ const api = {
       subscribe(IpcChannels.desktopAppsWheel, callback),
     /** Clic dans l'application d'un bloc (`null` : la souris en est sortie). */
     onActivate: (callback: (hostId: string | null) => void) =>
-      subscribe(IpcChannels.desktopAppsActivate, callback)
+      subscribe(IpcChannels.desktopAppsActivate, callback),
+    /** Application insérée passée au premier plan (elle reçoit le clavier). */
+    focus: (appId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsFocus, appId),
+    /** Une application insérée passe en plein écran (vidéo…) ou en sort. */
+    onFullScreen: (callback: (event: { appId: string; value: boolean }) => void) =>
+      subscribe(IpcChannels.desktopAppsFullScreen, callback)
   },
   /** Notifications : centre, test, sons importés, envoi par les widgets et modules. */
   notifications: {
@@ -487,8 +493,18 @@ const api = {
   window: {
     isFullScreen: (): Promise<boolean> => ipcRenderer.invoke(IpcChannels.windowIsFullScreen),
     toggleFullScreen: (): Promise<void> => ipcRenderer.invoke(IpcChannels.windowToggleFullScreen),
+    /** Vidéo en plein écran : Tessera reste en plein écran, puis revient à son état d'avant. */
+    holdFullScreen: (value: boolean): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowHoldFullScreen, value === true),
     onFullScreenChange: (callback: (fullScreen: boolean) => void) =>
       subscribe(IpcChannels.windowFullScreenChanged, callback)
+  },
+  /** Vidéo en plein écran : interrupteur de la molette (Page / Vidéo) affiché par-dessus. */
+  videoStage: {
+    set: (active: boolean): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.videoStageSet, active === true),
+    /** Clic molette : la molette bascule entre la page et la vidéo. */
+    toggleWheel: (): Promise<void> => ipcRenderer.invoke(IpcChannels.videoStageToggleWheel)
   },
   calendar: {
     get: (force = false): Promise<CalendarState> =>

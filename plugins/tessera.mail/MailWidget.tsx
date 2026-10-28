@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, Menu, PenSquare, RefreshCw, Search, X } from 'lucide-react'
 import {
+  BlockSettingsButton,
   AccountRequired,
   Button,
   ConfirmDialog,
@@ -229,6 +230,7 @@ function AccountInbox({
         >
           <PenSquare size={15} aria-hidden />
         </button>
+        <BlockSettingsButton className={styles.iconButton} />
       </header>
 
       {state?.error &&

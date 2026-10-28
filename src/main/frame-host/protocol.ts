@@ -32,22 +32,34 @@ export type FrameCommand =
   | { cmd: 'pannable'; frame: number; value: boolean }
   /**
    * Cadre d'un bloc d'une page qui défile : la molette fait défiler la page, sauf après un clic
-   * dans l'application (jusqu'à la sortie de la souris).
+   * dans l'application (jusqu'à la sortie de la souris). `always` : même après un clic (vidéo en
+   * plein écran, molette sur « Page »).
    */
-  | { cmd: 'wheel'; frame: number; value: boolean }
+  | { cmd: 'wheel'; frame: number; value: boolean; always?: boolean }
+  /**
+   * Cadre d'une vidéo en plein écran : le clic molette ne va pas à l'application, il bascule la
+   * molette entre la page et la vidéo (réponse `FrameMiddle`).
+   */
+  | { cmd: 'middle'; frame: number; value: boolean }
   /** Tessera a disparu (interne à l'hébergeur). */
   | { cmd: 'restoreAll' }
 
 /** Commandes du fil de la souris (interne à l'hébergeur). */
 export type MouseCommand =
   | { cmd: 'pannable'; frame: number; value: boolean }
-  | { cmd: 'wheel'; frame: number; value: boolean }
+  | { cmd: 'wheel'; frame: number; value: boolean; always?: boolean }
+  | { cmd: 'middle'; frame: number; value: boolean }
   | { cmd: 'stop' }
 
 /** Molette retenue au-dessus d'un cadre (crans de Windows, 120 par cran, positif vers le haut). */
 export interface FrameWheel {
   wheel: number
   delta: number
+}
+
+/** Clic molette retenu sur le cadre d'une vidéo en plein écran. */
+export interface FrameMiddle {
+  middle: number
 }
 
 /** Clic dans l'application d'un cadre (`active`), ou souris sortie (`active: 0`). */
@@ -84,4 +96,5 @@ export type FrameReply =
   | FramePan
   | FrameWheel
   | FrameActive
+  | FrameMiddle
   | FrameFocus
