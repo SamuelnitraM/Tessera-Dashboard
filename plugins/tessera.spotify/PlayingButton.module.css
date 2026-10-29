@@ -1,0 +1,145 @@
+/* Barre des pages : lecture en cours sur Spotify */
+
+.playingIcon {
+  color: #1db954;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: 20rem;
+}
+
+.now {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.cover {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  font-size: 0.8125rem;
+}
+
+.text strong,
+.text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.control {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--color-surface-hover);
+  border: none;
+  border-radius: 50%;
+  color: var(--color-text);
+  transition: transform 120ms;
+}
+
+.control[data-main] {
+  width: 40px;
+  height: 40px;
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.control:active {
+  transform: scale(0.94);
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+
+.iconButton:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.muted {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+}
+
+/* En pause : le titre reste dans la barre, estompé */
+.paused {
+  display: contents;
+}
+
+.paused > * {
+  opacity: 0.6;
+}
+
+/* Volume de l'application Spotify */
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: #1db954;
+}
+
+.volumeValue {
+  min-width: 2.75rem;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.iconButton[data-active='true'] {
+  color: var(--color-danger);
+}

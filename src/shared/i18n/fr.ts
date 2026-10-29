@@ -175,7 +175,9 @@ export const fr = {
     spotify: {
       invalidClientId: 'Identifiant invalide (32 caractères).',
       invalidPlaylist: 'Playlist invalide.',
-      invalidUri: 'Adresse Spotify invalide.'
+      invalidUri: 'Adresse Spotify invalide.',
+      controlUnavailable:
+        'Commandes indisponibles : lance la lecture dans l’application Spotify de ce PC (ou avec un compte Premium).'
     },
     terminal: {
       tooMany: 'Trop de terminaux ouverts.',
@@ -819,6 +821,8 @@ export const fr = {
         'Cette API n’est pas activée dans le projet Google Cloud de Tessera (Google Tasks API, Google Calendar API…) : active-la, attends une minute, puis réessaie.',
       scope:
         'Tessera n’a pas reçu cette autorisation : reconnecte le compte en laissant toutes les cases cochées.',
+      premium:
+        'Spotify réserve désormais son API aux applications dont le propriétaire a un abonnement Premium : playlists, titres likés et recherche ne sont pas disponibles avec un compte gratuit. La lecture en cours de l’application Spotify et ses commandes marchent quand même, sans compte (widget Spotify de la barre, et ci-dessous).',
       unknown: 'Erreur inattendue.'
     }
   },

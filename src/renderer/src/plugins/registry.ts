@@ -5,11 +5,12 @@ import {
   parseManifest,
   widgetKey,
   type GridSizeSpec,
+  type HeaderWidgetManifest,
   type PluginCategory,
   type PluginManifest,
   type WidgetManifest
 } from '@shared/plugins'
-import type { PluginModule, WidgetComponent } from '@tessera/plugin-sdk'
+import type { HeaderWidgetComponent, PluginModule, WidgetComponent } from '@tessera/plugin-sdk'
 import type { PluginContextValue } from '../plugin-sdk/context'
 import { ModuleFrame } from '../components/grid/ModuleFrame'
 import { useModulesStore } from '../stores/modules'
@@ -52,6 +53,16 @@ export interface RegisteredWidget {
   category: PluginCategory
 }
 
+/** Widget de la barre des pages fourni par une extension intégrée. */
+export interface RegisteredHeaderWidget {
+  /** Clé enregistrée dans la barre (`headerBar.items`) : `<extension>/<type>`. */
+  key: string
+  pluginId: string
+  manifest: HeaderWidgetManifest
+  component: HeaderWidgetComponent
+  context: PluginContextValue
+}
+
 /** Bloc « application web » (extension intégrée tessera.web), configuré par `{ url, appId }`. */
 export const WEB_APP_WIDGET = 'tessera.web/web'
 
@@ -66,6 +77,7 @@ const codeFiles = import.meta.glob<PluginModule>('../../../../plugins/*/index.ts
 
 const plugins: LoadedPlugin[] = []
 const widgets = new Map<string, RegisteredWidget>()
+const headerWidgets = new Map<string, RegisteredHeaderWidget>()
 const modules = new Map<string, PluginModule>()
 
 for (const [path, rawManifest] of Object.entries(manifestFiles)) {
@@ -107,6 +119,12 @@ function loadPlugin(
     (widget) => typeof module.widgets[widget.type] !== 'function'
   )
   if (missing) return invalid(`Aucun composant fourni pour le widget « ${missing.type} ».`)
+  const missingHeader = manifest.headerWidgets.find(
+    (widget) => typeof module.headerWidgets?.[widget.type] !== 'function'
+  )
+  if (missingHeader) {
+    return invalid(`Aucun composant fourni pour le widget de la barre « ${missingHeader.type} ».`)
+  }
 
   modules.set(manifest.id, module)
   const context: PluginContextValue = { id: manifest.id, permissions: manifest.permissions }
@@ -120,6 +138,16 @@ function loadPlugin(
       context,
       builtIn: true,
       category: manifest.category
+    })
+  }
+  for (const widget of manifest.headerWidgets) {
+    const key = widgetKey(manifest.id, widget.type)
+    headerWidgets.set(key, {
+      key,
+      pluginId: manifest.id,
+      manifest: widget,
+      component: module.headerWidgets![widget.type],
+      context
     })
   }
   return { id: manifest.id, manifest, error: null, builtIn: true, module: null }
@@ -190,6 +218,22 @@ export function getPlugins(): readonly LoadedPlugin[] {
 
 export function getWidget(key: string): RegisteredWidget | undefined {
   return widgets.get(key) ?? getModuleRegistry().widgets.get(key)
+}
+
+/**
+ * Widgets de la barre des pages fournis par les extensions activées (ceux d'une extension
+ * désactivée ou absente ne s'affichent pas, et reviennent avec elle).
+ */
+export function getHeaderWidget(
+  key: string,
+  disabledPlugins: readonly string[]
+): RegisteredHeaderWidget | undefined {
+  const widget = headerWidgets.get(key)
+  return widget && !disabledPlugins.includes(widget.pluginId) ? widget : undefined
+}
+
+export function listHeaderWidgets(disabledPlugins: readonly string[]): RegisteredHeaderWidget[] {
+  return [...headerWidgets.values()].filter((widget) => !disabledPlugins.includes(widget.pluginId))
 }
 
 /** Widgets proposés à l'ajout : ceux des extensions activées. */

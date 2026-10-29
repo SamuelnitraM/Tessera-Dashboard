@@ -282,6 +282,7 @@ export interface ImapAccountInput {
  * - `quota` : limite quotidienne du fournisseur atteinte (recherche YouTube…)
  * - `api-disabled` : l'API n'est pas activée dans le projet Google Cloud (Tasks, Agenda…)
  * - `scope` : le compte n'a pas donné cette autorisation (case décochée à la connexion)
+ * - `premium` : Spotify n'ouvre son API qu'aux applications dont le propriétaire a Premium
  * - `unknown`
  */
 export const MAIL_ERROR_CODES = [
@@ -296,6 +297,7 @@ export const MAIL_ERROR_CODES = [
   'quota',
   'api-disabled',
   'scope',
+  'premium',
   'unknown'
 ] as const
 export type MailErrorCode = (typeof MAIL_ERROR_CODES)[number]

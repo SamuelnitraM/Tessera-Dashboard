@@ -27,7 +27,13 @@ import type {
 } from '@shared/git'
 import type { LocalServicesState, MonitoredSite, SiteStatus } from '@shared/devtools'
 import type { NewsState } from '@shared/news'
-import type { SpotifyItem, SpotifyKind, SpotifyState } from '@shared/spotify'
+import type {
+  SpotifyCommand,
+  SpotifyItem,
+  SpotifyKind,
+  SpotifyPlayback,
+  SpotifyState
+} from '@shared/spotify'
 import type { TaskInput, TasksState } from '@shared/tasks'
 import type { TerminalShell } from '@shared/terminal'
 
@@ -241,6 +247,20 @@ export const builtinsApi = {
     disconnect: (): Promise<SpotifyState> => ipcRenderer.invoke(C.spotifyDisconnect),
     data: (kind: SpotifyKind, value?: string): Promise<SpotifyItem[]> =>
       ipcRenderer.invoke(C.spotifyData, kind, value),
-    open: (uri: string): Promise<void> => ipcRenderer.invoke(C.spotifyOpen, uri)
+    open: (uri: string): Promise<void> => ipcRenderer.invoke(C.spotifyOpen, uri),
+    /** Lecture en cours sur le compte, ou `null`. */
+    playback: (): Promise<SpotifyPlayback | null> => ipcRenderer.invoke(C.spotifyPlayback),
+    control: (action: SpotifyCommand): Promise<void> =>
+      ipcRenderer.invoke(C.spotifyControl, action),
+    /** Volume de l'application Spotify de ce PC (`null` : pas de session audio). */
+    volume: (): Promise<{ volume: number; muted: boolean } | null> =>
+      ipcRenderer.invoke(C.spotifyVolume),
+    setVolume: (change: { volume?: number; muted?: boolean }): Promise<void> =>
+      ipcRenderer.invoke(C.spotifySetVolume, change),
+    /**
+     * Application installée de Tessera qui affiche Spotify (ajoutée au besoin), ou `null` si
+     * Spotify n'est pas installé sur ce PC.
+     */
+    app: (): Promise<string | null> => ipcRenderer.invoke(C.spotifyApp)
   }
 }

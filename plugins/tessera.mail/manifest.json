@@ -2,7 +2,10 @@
   "id": "tessera.mail",
   "version": "1.0.0",
   "apiVersion": 1,
-  "name": { "fr": "Mails", "en": "Email" },
+  "name": {
+    "fr": "Mails",
+    "en": "Email"
+  },
   "description": {
     "fr": "Ta boîte de réception Gmail ou IMAP : lire, classer, écrire et répondre.",
     "en": "Your Gmail or IMAP inbox: read, sort, write and reply."
@@ -13,14 +16,23 @@
   "widgets": [
     {
       "type": "inbox",
-      "name": { "fr": "Mails", "en": "Email" },
+      "name": {
+        "fr": "Mails",
+        "en": "Email"
+      },
       "description": {
         "fr": "La boîte de réception d’un compte, ou de tous les comptes, avec lecture et écriture des mails.",
         "en": "The inbox of one account, or of all accounts, to read and write emails."
       },
       "icon": "mail",
-      "defaultSize": { "w": 8, "h": 6 },
-      "minSize": { "w": 4, "h": 3 },
+      "defaultSize": {
+        "w": 8,
+        "h": 6
+      },
+      "minSize": {
+        "w": 4,
+        "h": 3
+      },
       "settings": [
         {
           "key": "remoteImages",
@@ -32,6 +44,21 @@
           "default": true
         }
       ]
+    }
+  ],
+  "headerWidgets": [
+    {
+      "type": "unread",
+      "name": {
+        "fr": "Mails non lus",
+        "en": "Unread emails"
+      },
+      "description": {
+        "fr": "Le nombre de mails non lus de tous les comptes, et les derniers arrivés.",
+        "en": "The number of unread emails across all accounts, and the latest ones."
+      },
+      "icon": "mail",
+      "block": "inbox"
     }
   ]
 }

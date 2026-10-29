@@ -1,12 +1,25 @@
-import { ipcMain, shell } from 'electron'
+import { existsSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { app, ipcMain, shell } from 'electron'
 import { BuiltinChannels as C } from '@shared/builtin-ipc'
 import { mailError } from '@shared/mail'
 import {
   SPOTIFY_REDIRECT_PORT,
+  type SpotifyCommand,
   type SpotifyItem,
   type SpotifyKind,
+  type SpotifyPlayback,
   type SpotifyState
 } from '@shared/spotify'
+import { isDesktopApp } from '@shared/user-apps'
+import {
+  getMediaSession,
+  getProgramVolume,
+  sendMediaCommand,
+  setProgramVolume
+} from '../headerbar/system'
+import { addApp, iconOf } from '../desktop/programs'
+import { getSettings } from '../settings-store'
 import { builtInSpotifyClientId } from '../auth/clients'
 import { apiFetch, createTokenSource, type TokenSource } from '../auth/http'
 import { authorize, type OAuthClient } from '../auth/oauth'
@@ -91,8 +104,17 @@ export function setClientId(id: unknown): SpotifyState {
   return spotifyState()
 }
 
+/** Refus de Spotify : le propriétaire de l'identifiant d'application n'a pas Premium. */
+const OWNER_PREMIUM = /premium subscription required/i
+
 async function get<T>(path: string): Promise<T | null> {
-  const response = await apiFetch(tokenSource(), `${API}${path}`)
+  let response: Response
+  try {
+    response = await apiFetch(tokenSource(), `${API}${path}`)
+  } catch (error) {
+    if (OWNER_PREMIUM.test(String(error))) throw mailError('premium')
+    throw error
+  }
   if (response.status === 204) return null
   return (await response.json()) as T
 }
@@ -258,18 +280,156 @@ export async function spotifyData(kind: SpotifyKind, value: unknown): Promise<Sp
   return []
 }
 
-/** Ouvre un titre, un album, un artiste ou une playlist dans l'application Spotify. */
+interface Episode {
+  name: string
+  uri: string
+  images?: { url: string }[]
+  show?: { name: string }
+}
+
+/**
+ * Lecture en cours : celle de l'application Spotify de ce PC d'après Windows (sans compte, gratuit
+ * compris), sinon celle du compte connecté sur un autre appareil (API, `null` si Spotify la refuse).
+ */
+export async function spotifyPlayback(): Promise<SpotifyPlayback | null> {
+  const local = await getMediaSession('Spotify').catch(() => null)
+  if (local) {
+    return {
+      playing: local.playing,
+      title: local.title,
+      artist: local.artist,
+      image: local.thumbnail,
+      uri: null
+    }
+  }
+  if (!store.get().user) return null
+  const data = await get<{ is_playing?: boolean; item?: Track | Episode | null }>(
+    '/me/player?additional_types=episode'
+  ).catch(() => null)
+  return data ? playbackOf(data) : null
+}
+
+function playbackOf(data: {
+  is_playing?: boolean
+  item?: Track | Episode | null
+}): SpotifyPlayback | null {
+  const item = data.item
+  if (!item) return null
+  const episode = 'show' in item
+  return {
+    playing: data.is_playing === true,
+    title: item.name,
+    artist: episode
+      ? (item.show?.name ?? '')
+      : ((item as Track).artists?.map((artist) => artist.name).join(', ') ?? ''),
+    image: episode ? image(item.images) : image((item as Track).album?.images),
+    uri: item.uri ?? null
+  }
+}
+
+const COMMANDS: SpotifyCommand[] = ['play-pause', 'next', 'previous']
+
+/**
+ * Lecture, pause, titre suivant ou précédent. L'application Spotify de ce PC est pilotée par les
+ * commandes multimédias de Windows (compte gratuit compris) ; un autre appareil, par l'API de
+ * Spotify (réservée aux comptes Premium).
+ */
+export async function spotifyControl(action: unknown): Promise<void> {
+  if (!COMMANDS.includes(action as SpotifyCommand)) return
+  const command = action as SpotifyCommand
+  const session = await getMediaSession('Spotify').catch(() => null)
+  if (session) return sendMediaCommand(command, 'Spotify')
+  try {
+    if (command === 'play-pause') {
+      const state = await get<{ is_playing?: boolean }>('/me/player')
+      await apiFetch(tokenSource(), `${API}/me/player/${state?.is_playing ? 'pause' : 'play'}`, {
+        method: 'PUT'
+      })
+    } else {
+      await apiFetch(tokenSource(), `${API}/me/player/${command}`, { method: 'POST' })
+    }
+  } catch (error) {
+    // Compte gratuit, ou aucun appareil en lecture
+    if (
+      /PREMIUM_REQUIRED|NO_ACTIVE_DEVICE|premium subscription|mail-error:(auth|not-found|premium)/i.test(
+        String(error)
+      )
+    ) {
+      throw new Error(errorText('spotify', 'controlUnavailable'), { cause: error })
+    }
+    throw error
+  }
+}
+
+/**
+ * Ouvre un titre, un album, un artiste ou une playlist dans l'application Spotify, ou sa
+ * recherche (`spotify:search:…`, sans compte).
+ */
 export async function openInSpotify(uri: unknown): Promise<void> {
   if (
     typeof uri !== 'string' ||
-    !/^spotify:(track|album|artist|playlist|show|episode):[A-Za-z0-9]+$/.test(uri)
+    !/^spotify:((track|album|artist|playlist|show|episode):[A-Za-z0-9]+|search:[^\s"<>]{1,600})$/.test(
+      uri
+    )
   ) {
     throw new Error(errorText('spotify', 'invalidUri'))
   }
   await shell.openExternal(uri)
 }
 
+/** Programme qui affiche la fenêtre de Spotify (les deux versions). */
+const SPOTIFY_PROCESS = 'Spotify.exe'
+
+/**
+ * Programme qui ouvre l'application Spotify : version du site (`%APPDATA%\Spotify`), ou du
+ * Microsoft Store, lancée par son identifiant comme depuis le menu Démarrer (son .exe, dans un
+ * dossier protégé de Windows, ne se lance pas directement). `null` : Spotify n'est pas installé.
+ */
+function findSpotify(): { path: string; args: string; iconPath: string } | null {
+  const classic = join(app.getPath('appData'), 'Spotify', SPOTIFY_PROCESS)
+  if (existsSync(classic)) return { path: classic, args: '', iconPath: classic }
+  const local = process.env.LOCALAPPDATA
+  if (!local) return null
+  let family: string | undefined
+  try {
+    family = readdirSync(join(local, 'Packages')).find((name) =>
+      /^SpotifyAB\.SpotifyMusic_[a-z0-9]+$/i.test(name)
+    )
+  } catch {
+    return null
+  }
+  if (!family) return null
+  return {
+    path: join(process.env.SystemRoot ?? 'C:\\Windows', 'explorer.exe'),
+    args: `shell:AppsFolder\\${family}!Spotify`,
+    // Alias d'exécution créé par le Store : il donne l'icône de Spotify
+    iconPath: join(local, 'Microsoft', 'WindowsApps', SPOTIFY_PROCESS)
+  }
+}
+
+/**
+ * Application installée de Tessera qui affiche Spotify dans son bloc, créée au besoin (celle que
+ * l'utilisateur a déjà ajoutée est reprise). Renvoie son identifiant, ou `null` si Spotify n'est
+ * pas installé sur ce PC.
+ */
+export async function spotifyApp(): Promise<string | null> {
+  const existing = getSettings().apps.items.find(
+    (item) => isDesktopApp(item) && item.processName.toLowerCase() === SPOTIFY_PROCESS.toLowerCase()
+  )
+  if (existing) return existing.id
+  const found = findSpotify()
+  if (!found) return null
+  return addApp({
+    name: 'Spotify',
+    path: found.path,
+    args: found.args,
+    processName: SPOTIFY_PROCESS,
+    icon: await iconOf(found.iconPath)
+  }).id
+}
+
 export function registerSpotifyHandlers(): void {
+  ipcMain.handle(C.spotifyApp, () => spotifyApp())
   ipcMain.handle(C.spotifyState, () => spotifyState())
   ipcMain.handle(C.spotifySetClientId, (_event, id: unknown) => setClientId(id))
   ipcMain.handle(C.spotifyConnect, () => connectSpotify())
@@ -278,4 +438,14 @@ export function registerSpotifyHandlers(): void {
     spotifyData(kind, value)
   )
   ipcMain.handle(C.spotifyOpen, (_event, uri: unknown) => openInSpotify(uri))
+  ipcMain.handle(C.spotifyPlayback, () => spotifyPlayback())
+  ipcMain.handle(C.spotifyControl, (_event, action: unknown) => spotifyControl(action))
+  // Volume de l'application Spotify de ce PC (sa session audio, comme dans le widget Son)
+  ipcMain.handle(C.spotifyVolume, () => getProgramVolume('spotify.exe'))
+  ipcMain.handle(C.spotifySetVolume, (_event, change: { volume?: unknown; muted?: unknown }) =>
+    setProgramVolume('spotify.exe', {
+      volume: typeof change?.volume === 'number' ? change.volume : undefined,
+      muted: typeof change?.muted === 'boolean' ? change.muted : undefined
+    })
+  )
 }

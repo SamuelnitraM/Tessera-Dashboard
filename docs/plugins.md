@@ -67,6 +67,7 @@ Tout dossier contenant un `manifest.json` et un `index.tsx` est **découvert aut
 | `permissions`                   | Accès supplémentaires (facultatif) : `["files"]`, voir [Permissions](#permissions)                                                |
 | `files`                         | `{ "folder": "Notes" }` : dossier de fichiers de l'extension, obligatoire avec la permission `files`                              |
 | `integrations`                  | `["devlauncher"]` : applications pilotées par l'extension, obligatoire avec la permission `integrations`                          |
+| `headerWidgets`                 | Widgets de la barre des pages (facultatif), voir [Widgets de la barre](#widgets-de-la-barre-des-pages)                            |
 
 Un manifeste invalide n'empêche pas l'app de démarrer : l'extension apparaît dans **Paramètres → Widgets et modules** avec le champ fautif (ex. `widgets[0].minSize : ne peut pas dépasser defaultSize`).
 
@@ -145,6 +146,48 @@ export function CounterWidget({ config, setConfig }: WidgetProps<CounterConfig>)
   )
 }
 ```
+
+### Widgets de la barre des pages
+
+Une extension peut ajouter de petits widgets à la barre des pages (entre le titre et « Modifier ») : un bouton qui déplie un panneau, proposé dans le menu d'ajout de la barre en mode édition.
+
+```json
+"headerWidgets": [
+  {
+    "type": "unread",
+    "name": { "fr": "Mails non lus", "en": "Unread emails" },
+    "description": { "fr": "Le nombre de mails non lus.", "en": "The number of unread emails." },
+    "icon": "mail",
+    "block": "inbox"
+  }
+]
+```
+
+`block` (facultatif) : le widget de l'extension créé quand on glisse celui de la barre sur une page. Le composant est fourni par `definePlugin({ headerWidgets: { unread: UnreadButton } })` ; il n'a pas de réglages et s'appuie sur les pièces de la barre :
+
+```tsx
+import { Mail } from 'lucide-react'
+import { HeaderButtonText, HeaderPanelTitle, HeaderWidgetButton } from '@tessera/plugin-sdk'
+
+export function UnreadButton() {
+  const count = 3
+  return (
+    <HeaderWidgetButton
+      label={`Mails : ${count} non lus`}
+      button={
+        <>
+          <Mail size={16} aria-hidden />
+          {count > 0 && <HeaderButtonText>{count}</HeaderButtonText>}
+        </>
+      }
+    >
+      {(close) => <HeaderPanelTitle title="Mails non lus" />}
+    </HeaderWidgetButton>
+  )
+}
+```
+
+Seules les extensions intégrées peuvent en fournir pour l'instant (pas les modules tiers).
 
 ### API du SDK (`@tessera/plugin-sdk`)
 
@@ -313,6 +356,7 @@ await mail.send(accountId, {
 | `pickUploads()`                                                       | Fichiers à joindre, choisis par l'utilisateur                                                                                               |
 | `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                                                                  |
 | `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                                                            |
+| `openMail(accountId, messageId)`                                      | Ouvre un mail dans un bloc Mails (celui du compte, sinon un autre), comme une notification cliquée                                          |
 | `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée (un compte ou plusieurs ; `onOpen` reçoit le mail et son compte) |
 | `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                                                             |
 

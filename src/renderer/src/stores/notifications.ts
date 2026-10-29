@@ -162,30 +162,35 @@ export function openNotificationSource(notification: TesseraNotification): void 
     return
   }
 
-  if (kind === 'mail') {
-    // Bloc Mails du compte (sinon un autre bloc Mails), puis le mail lui-même
-    const openMail = (): void => {
-      if (notification.target) useMailStore.getState().requestOpen(id, notification.target)
-    }
-    const block = findBlock(
-      (widget) => widget.type === MAIL_WIDGET_TYPE,
-      (widget) => widget.config.accountId === id
-    )
-    if (block) {
-      goToBlock(block)
-      openMail()
-      return
-    }
-    const mail = getPlugins().find((candidate) => candidate.id === MAIL_WIDGET_TYPE.split('/')[0])
-    useBlockProposalStore.setState({
-      proposal: {
-        name: mail?.manifest ? localize(mail.manifest.name, language()) : 'Mails',
-        type: MAIL_WIDGET_TYPE,
-        config: { accountId: id },
-        onAdded: openMail
-      }
-    })
+  if (kind === 'mail') openMailMessage(id, notification.target)
+}
+
+/**
+ * Ouvre un mail dans un bloc Mails : celui du compte (sinon un autre bloc Mails, la boîte
+ * commune comprise), dont la page s'ouvre. Sans bloc Mails, propose d'en ajouter un.
+ */
+export function openMailMessage(accountId: string, messageId: string | null): void {
+  const openMail = (): void => {
+    if (messageId) useMailStore.getState().requestOpen(accountId, messageId)
   }
+  const block = findBlock(
+    (widget) => widget.type === MAIL_WIDGET_TYPE,
+    (widget) => widget.config.accountId === accountId
+  )
+  if (block) {
+    goToBlock(block)
+    openMail()
+    return
+  }
+  const mail = getPlugins().find((candidate) => candidate.id === MAIL_WIDGET_TYPE.split('/')[0])
+  useBlockProposalStore.setState({
+    proposal: {
+      name: mail?.manifest ? localize(mail.manifest.name, language()) : 'Mails',
+      type: MAIL_WIDGET_TYPE,
+      config: { accountId },
+      onAdded: openMail
+    }
+  })
 }
 
 export async function initNotificationsStore(): Promise<void> {

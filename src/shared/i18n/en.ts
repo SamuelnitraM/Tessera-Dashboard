@@ -170,7 +170,9 @@ export const en: Translation = {
     spotify: {
       invalidClientId: 'Invalid ID (32 characters).',
       invalidPlaylist: 'Invalid playlist.',
-      invalidUri: 'Invalid Spotify address.'
+      invalidUri: 'Invalid Spotify address.',
+      controlUnavailable:
+        'Controls unavailable: start playback in the Spotify app on this PC (or with a Premium account).'
     },
     terminal: {
       tooMany: 'Too many terminals open.',
@@ -810,6 +812,8 @@ export const en: Translation = {
         'This API isn’t enabled in Tessera’s Google Cloud project (Google Tasks API, Google Calendar API…): enable it, wait a minute, then try again.',
       scope:
         'Tessera didn’t get this permission: reconnect the account and leave every box ticked.',
+      premium:
+        'Spotify now only opens its API to apps whose owner has a Premium subscription: playlists, liked songs and search aren’t available with a free account. What the Spotify app is playing, and its controls, still work without an account (Spotify widget of the page bar, and below).',
       unknown: 'Unexpected error.'
     }
   },

@@ -1,12 +1,23 @@
 import { definePlugin } from '@tessera/plugin-sdk'
 import { MonitorWidget } from './MonitorWidget'
+import { StatusButton } from './StatusButton'
 
 export default definePlugin({
   widgets: {
     monitor: MonitorWidget
   },
+  headerWidgets: {
+    status: StatusButton
+  },
   translations: {
     fr: {
+      header: {
+        name: 'État des sites',
+        allUp: 'État des sites : tous en ligne',
+        down: 'État des sites : {{count}} hors ligne',
+        offline: 'Hors ligne',
+        empty: 'Aucun site surveillé (ajoute-les dans le bloc Surveillance de sites).'
+      },
       title: 'Sites surveillés',
       add: 'Surveiller un site',
       url: 'Adresse (ex. monsite.fr ou https://api.monsite.fr/sante)',
@@ -34,6 +45,13 @@ export default definePlugin({
       checking: 'Vérification…'
     },
     en: {
+      header: {
+        name: 'Site status',
+        allUp: 'Site status: all up',
+        down: 'Site status: {{count}} down',
+        offline: 'Down',
+        empty: 'No monitored site (add them in the Site monitoring block).'
+      },
       title: 'Watched sites',
       add: 'Watch a site',
       url: 'Address (e.g. mysite.com or https://api.mysite.com/health)',

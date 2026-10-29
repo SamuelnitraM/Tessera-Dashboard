@@ -31,8 +31,9 @@ interface RawMedia {
   hasThumb: boolean
 }
 
-let thumbnailKey = ''
-let thumbnail: string | null = null
+/** Pochettes lues (par morceau) : la session en avant et celle de Spotify sont lues tour à tour. */
+const thumbnails = new Map<string, string | null>()
+const MAX_THUMBNAILS = 4
 
 /** Nom lisible de l'application (`Spotify.exe`, `SpotifyAB.SpotifyMusic_…!Spotify` -> Spotify). */
 function appName(id: string): string {
@@ -44,17 +45,22 @@ function appName(id: string): string {
   return name.charAt(0).toUpperCase() + name.slice(1)
 }
 
-export async function getMediaSession(): Promise<MediaSession | null> {
-  const raw = await helperRequest<RawMedia | null>('media.get')
+/**
+ * Lecture en cours d'après Windows : la session qu'il met en avant, ou celle d'une application
+ * (`app` : « Spotify »…), même si une autre est en avant.
+ */
+export async function getMediaSession(app = ''): Promise<MediaSession | null> {
+  const raw = await helperRequest<RawMedia | null>('media.get', { app })
   if (!raw || (!raw.title && !raw.artist)) return null
   // Pochette lue seulement quand le morceau change
   const key = `${raw.app}\n${raw.title}\n${raw.artist}\n${raw.album}`
-  if (key !== thumbnailKey) {
-    thumbnailKey = key
-    thumbnail = null
+  if (!thumbnails.has(key)) {
+    let thumbnail: string | null = null
     if (raw.hasThumb) {
       try {
-        const image = await helperRequest<{ type: string; data: string } | null>('media.thumb')
+        const image = await helperRequest<{ type: string; data: string } | null>('media.thumb', {
+          app
+        })
         const type = /^image\/(png|jpeg|gif|webp|bmp)$/.test(image?.type ?? '')
           ? image?.type
           : 'image/png'
@@ -63,7 +69,10 @@ export async function getMediaSession(): Promise<MediaSession | null> {
         // Sans pochette
       }
     }
+    thumbnails.set(key, thumbnail)
+    for (const old of [...thumbnails.keys()].slice(0, -MAX_THUMBNAILS)) thumbnails.delete(old)
   }
+  const thumbnail = thumbnails.get(key) ?? null
   return {
     app: appName(raw.app),
     title: raw.title,
@@ -78,9 +87,10 @@ export async function getMediaSession(): Promise<MediaSession | null> {
 
 const MEDIA_COMMANDS: MediaCommand[] = ['play-pause', 'next', 'previous']
 
-export async function sendMediaCommand(action: MediaCommand): Promise<void> {
+/** Commande à la session en avant, ou à celle d'une application (`app`). */
+export async function sendMediaCommand(action: MediaCommand, app = ''): Promise<void> {
   if (!MEDIA_COMMANDS.includes(action)) return
-  await helperRequest('media.command', { action })
+  await helperRequest('media.command', { action, app })
 }
 
 /* ---------- Son ---------- */
@@ -178,6 +188,54 @@ export async function getAppAudio(): Promise<AppAudio[]> {
   }
   appPids = pids
   return list.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Sessions audio d'un programme d'après son exécutable (`spotify.exe`), qu'il joue ou non. */
+async function programSessions(exe: string): Promise<AudibleSession[]> {
+  const sessions =
+    (await helperRequest<{ items: AudibleSession[] | null }>('sessions.audible')).items ?? []
+  return sessions.filter((session) => session.path && basename(session.path).toLowerCase() === exe)
+}
+
+/**
+ * Volume d'un programme (bloc et widget Spotify), même en pause ; `null` s'il n'a pas de session
+ * audio. La sourdine est celle du widget Son (même programme, même état).
+ */
+export async function getProgramVolume(
+  exe: string
+): Promise<{ volume: number; muted: boolean } | null> {
+  const list = await programSessions(exe)
+  if (list.length === 0) return null
+  const id = list[0].path!.toLowerCase()
+  const muted = mutedApps.has(id)
+  return {
+    volume: muted ? (mutedApps.get(id) ?? 100) : Math.max(...list.map((session) => session.volume)),
+    muted
+  }
+}
+
+export async function setProgramVolume(
+  exe: string,
+  change: { volume?: number; muted?: boolean }
+): Promise<void> {
+  const list = await programSessions(exe)
+  if (list.length === 0) return
+  const id = list[0].path!.toLowerCase()
+  const pids = list.map((session) => session.pid)
+  if (change.muted === true) {
+    if (!mutedApps.has(id)) mutedApps.set(id, Math.max(...list.map((session) => session.volume)))
+    await helperRequest('sessions.set', { pids, volume: 0 })
+    return
+  }
+  const volume =
+    typeof change.volume === 'number' && Number.isFinite(change.volume)
+      ? change.volume
+      : (mutedApps.get(id) ?? 100)
+  mutedApps.delete(id)
+  await helperRequest('sessions.set', {
+    pids,
+    volume: Math.round(Math.max(0, Math.min(100, volume)))
+  })
 }
 
 /** Volume (0 à 100) ou sourdine d'un programme de la liste. */

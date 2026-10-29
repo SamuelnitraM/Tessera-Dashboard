@@ -1,12 +1,25 @@
 import { definePlugin } from '@tessera/plugin-sdk'
 import { TasksWidget } from './TasksWidget'
+import { TodayButton } from './TodayButton'
 
 export default definePlugin({
   widgets: {
     tasks: TasksWidget
   },
+  headerWidgets: {
+    today: TodayButton
+  },
   translations: {
     fr: {
+      header: {
+        name: 'Tâches du jour',
+        label: 'Tâches du jour : {{count}}',
+        loading: 'Chargement…',
+        empty: 'Rien à faire aujourd’hui.',
+        late: 'En retard',
+        untitled: '(sans titre)',
+        complete: 'Marquer « {{title}} » comme faite'
+      },
       listView: 'Vue en liste',
       kanbanView: 'Vue kanban (une colonne par liste)',
       list: 'Liste affichée',
@@ -34,6 +47,15 @@ export default definePlugin({
       accountError: '{{email}} : {{message}}'
     },
     en: {
+      header: {
+        name: 'Today’s tasks',
+        label: 'Today’s tasks: {{count}}',
+        loading: 'Loading…',
+        empty: 'Nothing to do today.',
+        late: 'Overdue',
+        untitled: '(untitled)',
+        complete: 'Mark “{{title}}” as done'
+      },
       listView: 'List view',
       kanbanView: 'Kanban view (one column per list)',
       list: 'Shown list',

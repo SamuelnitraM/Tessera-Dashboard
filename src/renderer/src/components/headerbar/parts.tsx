@@ -142,3 +142,17 @@ export function Meter({ value }: { value: number }): React.JSX.Element {
     </span>
   )
 }
+
+/**
+ * Valeur ou texte court sur le bouton d'un widget de la barre (nombre, titre en cours…), aux
+ * couleurs de ceux de Tessera ; `text` : un texte qui se coupe s'il est trop long.
+ */
+export function HeaderButtonText({
+  children,
+  text = false
+}: {
+  children: ReactNode
+  text?: boolean
+}): React.JSX.Element {
+  return <span className={text ? styles.chipText : styles.chipValue}>{children}</span>
+}

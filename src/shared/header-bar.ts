@@ -21,6 +21,18 @@ export const HEADER_WIDGETS = [
 ] as const
 export type HeaderWidget = (typeof HEADER_WIDGETS)[number]
 
+/**
+ * Élément de la barre : un widget de Tessera, ou celui d'une extension (`<extension>/<type>`,
+ * affiché tant que l'extension est là et activée).
+ */
+export type HeaderItem = HeaderWidget | `${string}/${string}`
+
+export const isHeaderWidget = (item: string): item is HeaderWidget =>
+  (HEADER_WIDGETS as readonly string[]).includes(item)
+
+/** Widget de la barre fourni par une extension (`tessera.mail/unread`). */
+const PLUGIN_HEADER_ITEM = /^[a-z0-9][a-z0-9.-]{0,63}\/[a-z0-9][a-z0-9-]{0,63}$/
+
 /** Extension intégrée qui propose les widgets de la barre en blocs (`tessera.toolbox/météo`…). */
 export const TOOLBOX_PLUGIN = 'tessera.toolbox'
 export const toolboxWidgetType = (widget: HeaderWidget): string => `${TOOLBOX_PLUGIN}/${widget}`
@@ -81,7 +93,7 @@ export type ScreenshotTool = (typeof SCREENSHOT_TOOLS)[number]
 
 export interface HeaderBarSettings {
   /** Widgets affichés, dans l'ordre. */
-  items: HeaderWidget[]
+  items: HeaderItem[]
   align: HeaderAlign
   /** Texte de la note rapide. */
   note: string
@@ -185,8 +197,10 @@ export function sanitizeHeaderBar(input: unknown): HeaderBarSettings {
               .map((item: unknown) =>
                 typeof item === 'string' ? (MERGED_HEADER_WIDGETS[item] ?? item) : item
               )
-              .filter((item): item is HeaderWidget =>
-                (HEADER_WIDGETS as readonly unknown[]).includes(item)
+              .filter(
+                (item): item is HeaderItem =>
+                  typeof item === 'string' &&
+                  (isHeaderWidget(item) || PLUGIN_HEADER_ITEM.test(item))
               )
           )
         ]

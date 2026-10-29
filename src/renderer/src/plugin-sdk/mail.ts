@@ -12,6 +12,7 @@ import type {
 } from '@shared/mail'
 import { DEFAULT_QUERY } from '@shared/mail'
 import { useMailStore } from '../stores/mail'
+import { openMailMessage } from '../stores/notifications'
 import { useNavigationStore } from '../stores/navigation'
 import { useSettingsStore } from '../stores/settings'
 import { PluginContext } from './context'
@@ -113,6 +114,14 @@ export function useMailOpenRequest(
 }
 
 type MailStoreRequest = ReturnType<typeof useMailStore.getState>['openRequest']
+
+/**
+ * Ouvre un mail dans un bloc Mails (celui du compte, sinon un autre ; sa page s'ouvre). Sans
+ * bloc Mails sur aucune page, propose d'en ajouter un.
+ */
+export function openMail(accountId: string, messageId: string): void {
+  openMailMessage(accountId, messageId)
+}
 
 /** Ouvre Paramètres → Comptes (« Se connecter avec Google », comptes IMAP…). */
 export function openMailSettings(): void {

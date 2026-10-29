@@ -480,9 +480,16 @@ function Get-Manager {
   $script:manager
 }
 
-# Session affichée : celle que Windows met en avant, sinon une qui joue, sinon la première
-function Get-Session {
+# Session affichée : celle que Windows met en avant, sinon une qui joue, sinon la première.
+# `$app` : celle d'une application (nom contenu dans son identifiant, ex. « Spotify »), ou rien.
+function Get-Session([string]$app) {
   $manager = Get-Manager
+  if ($app) {
+    $own = @($manager.GetSessions()) | Where-Object { $_.SourceAppUserModelId -like "*$app*" }
+    $playing = $own | Where-Object { $_.GetPlaybackInfo().PlaybackStatus -eq 'Playing' } | Select-Object -First 1
+    if ($null -ne $playing) { return $playing }
+    return $own | Select-Object -First 1
+  }
   $current = $manager.GetCurrentSession()
   if ($null -ne $current) { return $current }
   $sessions = @($manager.GetSessions())
@@ -491,8 +498,8 @@ function Get-Session {
   $sessions | Select-Object -First 1
 }
 
-function Get-Media {
-  $session = Get-Session
+function Get-Media([string]$app) {
+  $session = Get-Session $app
   if ($null -eq $session) { return $null }
   $properties = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
   $info = $session.GetPlaybackInfo()
@@ -508,8 +515,8 @@ function Get-Media {
   }
 }
 
-function Get-Thumbnail {
-  $session = Get-Session
+function Get-Thumbnail([string]$app) {
+  $session = Get-Session $app
   if ($null -eq $session) { return $null }
   $properties = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
   if ($null -eq $properties.Thumbnail) { return $null }
@@ -528,8 +535,8 @@ function Get-Thumbnail {
   }
 }
 
-function Invoke-MediaCommand([string]$action) {
-  $session = Get-Session
+function Invoke-MediaCommand([string]$action, [string]$app) {
+  $session = Get-Session $app
   if ($null -eq $session) { return $false }
   $operation = switch ($action) {
     'play-pause' { $session.TryTogglePlayPauseAsync() }
@@ -545,9 +552,9 @@ function Invoke-MediaCommand([string]$action) {
 function Invoke-Request($request) {
   $params = $request.args
   switch ($request.cmd) {
-    'media.get' { Get-Media }
-    'media.thumb' { Get-Thumbnail }
-    'media.command' { Invoke-MediaCommand $params.action }
+    'media.get' { Get-Media ([string]$params.app) }
+    'media.thumb' { Get-Thumbnail ([string]$params.app) }
+    'media.command' { Invoke-MediaCommand $params.action ([string]$params.app) }
     'audio.get' { @{ output = [Tessera.Audio]::Get(0); input = [Tessera.Audio]::Get(1) } }
     'audio.volume' { [Tessera.Audio]::SetVolume([int]($params.flow -eq 'input'), [int]$params.value); $true }
     'audio.mute' { [Tessera.Audio]::SetMute([int]($params.flow -eq 'input'), [bool]$params.value); $true }

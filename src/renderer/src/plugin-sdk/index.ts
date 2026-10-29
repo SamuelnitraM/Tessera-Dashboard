@@ -45,9 +45,17 @@ export type WidgetComponent = ComponentType<WidgetProps<any>>
 export type PluginTranslations = Partial<Record<Language, Record<string, unknown>>>
 
 /** Code d'une extension, exporté par défaut par son fichier `index.tsx`. */
+/**
+ * Widget de la barre des pages : un bouton (`HeaderWidgetButton`) qui déplie un panneau. Il est
+ * affiché dans le contexte de son extension (traductions, permissions), sans réglages de bloc.
+ */
+export type HeaderWidgetComponent = ComponentType<Record<string, never>>
+
 export interface PluginModule {
   /** Un composant par widget déclaré dans le manifeste, indexé par son `type`. */
   widgets: Record<string, WidgetComponent>
+  /** Un composant par widget de la barre déclaré dans le manifeste (`headerWidgets`). */
+  headerWidgets?: Record<string, HeaderWidgetComponent>
   translations?: PluginTranslations
 }
 
@@ -75,6 +83,14 @@ export function useLatest<T>(value: T): RefObject<T> {
  * garde la dernière valeur non nulle (petit message…).
  */
 export { useLingering, usePresence } from '../hooks/usePresence'
+
+/**
+ * Widgets de la barre des pages (`headerWidgets` du manifeste) : le bouton qui déplie un panneau
+ * (`HeaderWidgetButton`, avec `button`, `label` et le contenu du panneau), le titre du panneau et
+ * le texte du bouton, aux couleurs des widgets de Tessera.
+ */
+export { HeaderPopover as HeaderWidgetButton } from '../components/headerbar/HeaderPopover'
+export { HeaderButtonText, PanelTitle as HeaderPanelTitle } from '../components/headerbar/parts'
 
 /** Bouton des réglages du bloc, à poser dans la barre du widget (réglages hors mode édition). */
 export { BlockSettingsButton } from './BlockSettingsButton'
@@ -296,6 +312,7 @@ export {
   parseAddressList
 } from '@shared/mail'
 export {
+  openMail,
   openMailSettings,
   useMail,
   useMailAccounts,

@@ -23,5 +23,17 @@ export interface SpotifyItem {
   durationMs: number | null
 }
 
+/** Lecture en cours sur le compte (titre ou épisode). */
+export interface SpotifyPlayback {
+  playing: boolean
+  title: string
+  /** Artistes, ou émission d'un épisode. */
+  artist: string
+  image: string | null
+  uri: string | null
+}
+
+export type SpotifyCommand = 'play-pause' | 'next' | 'previous'
+
 /** Port fixe de l'adresse de retour (`http://127.0.0.1:47873`). */
 export const SPOTIFY_REDIRECT_PORT = 47873

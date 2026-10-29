@@ -66,6 +66,21 @@ export interface WidgetManifest {
 }
 
 /**
+ * Widget de la barre des pages fourni par une extension (mails non lus, tâches du jour…) : un
+ * petit bouton qui déplie un panneau, ajouté depuis la barre en mode édition.
+ */
+export interface HeaderWidgetManifest {
+  /** Identifiant dans l'extension (ex. `unread`). */
+  type: string
+  name: LocalizedText
+  description: LocalizedText
+  /** Nom d'une icône Lucide, ex. `mail`. */
+  icon: string
+  /** Widget de l'extension créé en bloc quand on le glisse sur une page (`null` : aucun). */
+  block: string | null
+}
+
+/**
  * Catégories des widgets et modules (classement dans Paramètres et « Ajouter un bloc »).
  * Une catégorie inconnue (version plus récente de Tessera) est rangée dans `other`.
  */
@@ -109,6 +124,8 @@ export interface PluginManifest {
   /** Site du module (facultatif), affiché dans Paramètres → Extensions. */
   homepage: string | null
   widgets: WidgetManifest[]
+  /** Widgets de la barre des pages (extensions intégrées seulement, pour l'instant). */
+  headerWidgets: HeaderWidgetManifest[]
 }
 
 /**
@@ -372,6 +389,25 @@ function integrationList(raw: Raw, permissions: PluginPermission[]): Integration
   ]
 }
 
+function headerWidget(
+  value: unknown,
+  path: string,
+  widgets: WidgetManifest[]
+): HeaderWidgetManifest {
+  const raw = object(value, path)
+  const block = raw.block === undefined ? null : string(raw.block, `${path}.block`, LOCAL_ID)
+  if (block && !widgets.some((item) => item.type === block)) {
+    fail(`${path}.block`, `widget « ${block} » absent de « widgets »`)
+  }
+  return {
+    type: string(raw.type, `${path}.type`, LOCAL_ID),
+    name: localized(raw.name, `${path}.name`),
+    description: localized(raw.description, `${path}.description`),
+    icon: string(raw.icon, `${path}.icon`, LOCAL_ID),
+    block
+  }
+}
+
 /** Valide un manifeste lu depuis un fichier `manifest.json`. */
 export function parseManifest(input: unknown): ManifestResult {
   try {
@@ -390,6 +426,16 @@ export function parseManifest(input: unknown): ManifestResult {
     for (const { type } of widgets) {
       if (types.has(type)) fail('widgets', `type « ${type} » en double`)
       types.add(type)
+    }
+    const rawHeader = raw.headerWidgets === undefined ? [] : raw.headerWidgets
+    if (!Array.isArray(rawHeader)) fail('headerWidgets', 'liste attendue')
+    const headerWidgets = rawHeader.map((item, index) =>
+      headerWidget(item, `headerWidgets[${index}]`, widgets)
+    )
+    const headerTypes = new Set<string>()
+    for (const { type } of headerWidgets) {
+      if (headerTypes.has(type)) fail('headerWidgets', `type « ${type} » en double`)
+      headerTypes.add(type)
     }
 
     return {
@@ -413,7 +459,8 @@ export function parseManifest(input: unknown): ManifestResult {
           raw.homepage === undefined
             ? null
             : string(raw.homepage, 'homepage', /^https:\/\/[^\s]+$/),
-        widgets
+        widgets,
+        headerWidgets
       }
     }
   } catch (error) {

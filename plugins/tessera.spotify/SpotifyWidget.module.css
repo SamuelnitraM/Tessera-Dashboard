@@ -1,9 +1,106 @@
 /* Spotify */
 
-.spotify {
+/* Bloc : barre du haut (application ou lecteur), puis la fenêtre de Spotify ou le lecteur */
+.block {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+}
+
+.viewBar {
+  /* Bloc qui a le focus : la barre se colore (variable posée par le cadre du bloc) */
+  background: var(--block-bar-background, transparent);
+  transition: background 120ms;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  height: 30px;
+  padding: 0 0.25rem 0 0.375rem;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+}
+
+.viewBar[data-pan='true'] {
+  cursor: grab;
+}
+
+.viewBar[data-pan='true']:active {
+  cursor: grabbing;
+}
+
+.views {
+  display: flex;
+  gap: 0.125rem;
+}
+
+.view {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 22px;
+  padding: 0 0.625rem;
+  background: none;
+  border: none;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.view:hover {
+  color: var(--color-text);
+}
+
+.view[aria-pressed='true'] {
+  background: #1db954;
+  color: #000;
+}
+
+/* Fenêtre de l'application Spotify : tout le reste du bloc */
+.window {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Spotify n'est pas installé sur ce PC */
+.notInstalled {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.notInstalled strong {
+  color: var(--color-text);
+  font-size: 0.875rem;
+}
+
+.notInstalled p {
+  max-width: 26rem;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+/* Lecteur de Tessera */
+.spotify {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-height: 0;
   font-size: 0.8125rem;
 }
@@ -14,7 +111,6 @@
   gap: 0.125rem;
   padding: 0.375rem 0.5rem;
   overflow-x: auto;
-  background: var(--block-bar-background, transparent);
   border-bottom: 1px solid var(--color-border);
   scrollbar-width: none;
 }
@@ -231,4 +327,31 @@
   padding: 1rem;
   color: var(--color-text-muted);
   text-align: center;
+}
+
+/* Sans compte : lecture en cours de l'application Spotify et recherche dans l'application */
+.free {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  width: min(100%, 24rem);
+  margin: 0 auto;
+  padding: 0.75rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.8125rem;
+}
+
+.searchRow {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.searchRow input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
 }

@@ -1,13 +1,25 @@
 import { definePlugin } from '@tessera/plugin-sdk'
 import { MailWidget } from './MailWidget'
+import { UnreadButton } from './UnreadButton'
 
 export default definePlugin({
   widgets: {
     inbox: MailWidget
   },
+  headerWidgets: {
+    unread: UnreadButton
+  },
   translations: {
     fr: {
       account: 'Compte',
+      header: {
+        name: 'Mails non lus',
+        label: 'Mails : {{count}} non lus',
+        loading: 'Chargement…',
+        empty: 'Aucun mail non lu.',
+        noAccount: 'Aucun compte mail.',
+        addAccount: 'Ajouter un compte (Paramètres → Comptes)'
+      },
       allAccounts: 'Tous les comptes',
       allInboxes: 'Boîtes de réception',
       unread: '{{count}} non lus',
@@ -109,6 +121,14 @@ export default definePlugin({
     },
     en: {
       account: 'Account',
+      header: {
+        name: 'Unread emails',
+        label: 'Email: {{count}} unread',
+        loading: 'Loading…',
+        empty: 'No unread email.',
+        noAccount: 'No email account.',
+        addAccount: 'Add an account (Settings → Accounts)'
+      },
       allAccounts: 'All accounts',
       allInboxes: 'Inboxes',
       unread: '{{count}} unread',

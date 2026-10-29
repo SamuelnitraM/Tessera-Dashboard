@@ -2,7 +2,10 @@
   "id": "tessera.tasks",
   "version": "1.0.0",
   "apiVersion": 1,
-  "name": { "fr": "Tâches", "en": "Tasks" },
+  "name": {
+    "fr": "Tâches",
+    "en": "Tasks"
+  },
   "description": {
     "fr": "Tes listes de tâches, locales ou Google Tasks, en liste ou en kanban.",
     "en": "Your to-do lists, local or Google Tasks, as a list or a kanban."
@@ -12,14 +15,38 @@
   "widgets": [
     {
       "type": "tasks",
-      "name": { "fr": "Tâches", "en": "Tasks" },
+      "name": {
+        "fr": "Tâches",
+        "en": "Tasks"
+      },
       "description": {
         "fr": "Listes locales et Google Tasks, échéances, notes, vue kanban.",
         "en": "Local and Google Tasks lists, due dates, notes, kanban view."
       },
       "icon": "list-checks",
-      "defaultSize": { "w": 8, "h": 7 },
-      "minSize": { "w": 4, "h": 4 }
+      "defaultSize": {
+        "w": 8,
+        "h": 7
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      }
+    }
+  ],
+  "headerWidgets": [
+    {
+      "type": "today",
+      "name": {
+        "fr": "Tâches du jour",
+        "en": "Today’s tasks"
+      },
+      "description": {
+        "fr": "Les tâches à faire aujourd’hui (et celles en retard), à cocher sur place.",
+        "en": "Tasks due today (and overdue ones), to check off right there."
+      },
+      "icon": "list-checks",
+      "block": "tasks"
     }
   ]
 }

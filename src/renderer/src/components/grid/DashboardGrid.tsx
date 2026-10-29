@@ -4,12 +4,7 @@ import ReactGridLayout, { getCompactor, type Layout, type LayoutItem } from 'rea
 import { GridBackground } from 'react-grid-layout/extras'
 import 'react-grid-layout/css/styles.css'
 import { GRID, type DashboardPage, type GridItem, type LayoutMode } from '@shared/dashboard'
-import {
-  HEADER_WIDGET_DRAG,
-  HEADER_WIDGETS,
-  headerWidgetBlock,
-  type HeaderWidget
-} from '@shared/header-bar'
+import { HEADER_WIDGET_DRAG } from '@shared/header-bar'
 import {
   colsFor,
   layoutBottom,
@@ -25,7 +20,7 @@ import { useDashboardStore } from '../../stores/dashboard'
 import { fillsScreen, screenLines, usePageScreensStore } from '../../stores/pageScreens'
 import { useSettingsStore } from '../../stores/settings'
 import { getDefaultSize, getMinSize } from '../../plugins/registry'
-import { getDraggedWidget } from '../headerbar/drag'
+import { getDraggedWidget, headerItemBlock } from '../headerbar/drag'
 import { WidgetFrame } from './WidgetFrame'
 import styles from './DashboardGrid.module.css'
 
@@ -218,7 +213,7 @@ export function DashboardGrid({
   /** Case sous la souris pour un widget de la barre glissé (taille par défaut de son bloc). */
   const spotAt = (event: React.DragEvent): GridItem => {
     const box = root.current!.getBoundingClientRect()
-    const block = headerWidgetBlock(getDraggedWidget() ?? 'datetime')
+    const block = headerItemBlock(getDraggedWidget() ?? 'datetime') ?? headerItemBlock('datetime')!
     const size = block.size ?? getDefaultSize(block.type)
     const w = Math.min(size.w, cols)
     return {
@@ -230,8 +225,11 @@ export function DashboardGrid({
     }
   }
 
+  // Un widget de la barre qui ne devient pas un bloc (extension sans bloc désigné) : refusé
   const acceptsDrop = (event: React.DragEvent): boolean =>
-    editing && event.dataTransfer.types.includes(HEADER_WIDGET_DRAG)
+    editing &&
+    event.dataTransfer.types.includes(HEADER_WIDGET_DRAG) &&
+    headerItemBlock(getDraggedWidget() ?? 'datetime') !== null
 
   const onDragOver = (event: React.DragEvent): void => {
     if (!acceptsDrop(event)) return
@@ -243,11 +241,10 @@ export function DashboardGrid({
 
   const onDrop = (event: React.DragEvent): void => {
     setDropSpot(null)
-    const widget = event.dataTransfer.getData(HEADER_WIDGET_DRAG) as HeaderWidget
-    if (!acceptsDrop(event) || !HEADER_WIDGETS.includes(widget)) return
+    const block = headerItemBlock(event.dataTransfer.getData(HEADER_WIDGET_DRAG))
+    if (!acceptsDrop(event) || !block) return
     event.preventDefault()
     const spot = spotAt(event)
-    const block = headerWidgetBlock(widget)
     addWidget(
       page.id,
       block.type,

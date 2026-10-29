@@ -23,11 +23,18 @@ import { useTranslation } from 'react-i18next'
 import {
   HEADER_WIDGET_DRAG,
   HEADER_WIDGETS,
+  isHeaderWidget,
   type HeaderAlign,
+  type HeaderItem,
   type HeaderWidget
 } from '@shared/header-bar'
+import { localize } from '@shared/plugins'
+import { getHeaderWidget, listHeaderWidgets } from '../../plugins/registry'
+import { PluginContext } from '../../plugin-sdk/context'
 import { useContextMenuStore } from '../../stores/contextMenu'
-import { useSettingsStore } from '../../stores/settings'
+import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
+import { WidgetErrorBoundary } from '../grid/WidgetErrorBoundary'
+import { PluginIcon } from '../PluginIcon'
 import { AgendaItem } from './AgendaItem'
 import { CalculatorItem } from './CalculatorItem'
 import { setDraggedWidget } from './drag'
@@ -63,6 +70,28 @@ const WIDGETS: Record<HeaderWidget, { component: () => React.JSX.Element; icon: 
   note: { component: NoteItem, icon: StickyNote }
 }
 
+/** Icône d'un widget d'extension (nom Lucide de son manifeste), pour le menu d'ajout. */
+const pluginIcons = new Map<string, LucideIcon>()
+function pluginIcon(name: string): LucideIcon {
+  let icon = pluginIcons.get(name)
+  if (!icon) {
+    const Icon = ({ size }: { size?: number | string }): React.JSX.Element => (
+      <PluginIcon name={name} size={Number(size) || 15} />
+    )
+    icon = Icon as unknown as LucideIcon
+    pluginIcons.set(name, icon)
+  }
+  return icon
+}
+
+/** Élément affiché dans la barre : son nom, son icône et son contenu. */
+interface HeaderEntry {
+  item: HeaderItem
+  name: string
+  icon: LucideIcon
+  render: () => React.JSX.Element
+}
+
 const JUSTIFY: Record<HeaderAlign, React.CSSProperties['justifyContent']> = {
   start: 'flex-start',
   center: 'center',
@@ -79,12 +108,9 @@ const DEFAULT_WIDTH = 44
  * de la page et ses boutons : les derniers widgets passent dans le menu quand ils n'y tiennent
  * plus, et reviennent dès qu'il y a de la place (largeur mesurée quand ils étaient affichés).
  */
-function useOverflow(
-  barRef: React.RefObject<HTMLDivElement | null>,
-  items: HeaderWidget[]
-): number {
+function useOverflow(barRef: React.RefObject<HTMLDivElement | null>, items: string[]): number {
   const [hidden, setHidden] = useState(0)
-  const widths = useRef(new Map<HeaderWidget, number>())
+  const widths = useRef(new Map<string, number>())
 
   const measure = useCallback(() => {
     const bar = barRef.current
@@ -94,7 +120,7 @@ function useOverflow(
     const children = [...bar.children] as HTMLElement[]
     for (const element of children) {
       if (element.dataset.widget) {
-        widths.current.set(element.dataset.widget as HeaderWidget, element.offsetWidth)
+        widths.current.set(element.dataset.widget, element.offsetWidth)
       }
     }
     const used =
@@ -137,18 +163,53 @@ function useOverflow(
  */
 export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element | null {
   const { t } = useTranslation()
+  const language = useResolvedLanguage()
   const items = useSettingsStore((state) => state.settings.headerBar.items)
   const align = useSettingsStore((state) => state.settings.headerBar.align)
+  const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
   const update = useSettingsStore((state) => state.update)
   const barRef = useRef<HTMLDivElement>(null)
-  const hidden = useOverflow(barRef, items)
-  /** Glisser en cours : place où le widget serait déposé (index dans `items`). */
-  const [dropIndex, setDropIndex] = useState<number | null>(null)
-  const missing = HEADER_WIDGETS.filter((widget) => !items.includes(widget))
-  if (!editing && items.length === 0) return null
 
-  const visible = items.slice(0, items.length - hidden)
-  const folded = items.slice(items.length - hidden)
+  /** Widget de Tessera ou d'une extension (`null` : extension absente ou désactivée). */
+  const entryOf = (item: HeaderItem): HeaderEntry | null => {
+    if (isHeaderWidget(item)) {
+      const { component: Component, icon } = WIDGETS[item]
+      return { item, name: t(`headerBar.names.${item}`), icon, render: () => <Component /> }
+    }
+    const widget = getHeaderWidget(item, disabledPlugins)
+    if (!widget) return null
+    const Component = widget.component
+    return {
+      item,
+      name: localize(widget.manifest.name, language),
+      icon: pluginIcon(widget.manifest.icon),
+      // Une erreur dans le widget n'affecte ni la barre ni les autres widgets
+      render: () => (
+        <WidgetErrorBoundary>
+          <PluginContext.Provider value={widget.context}>
+            <Component />
+          </PluginContext.Provider>
+        </WidgetErrorBoundary>
+      )
+    }
+  }
+  const entries = items.map(entryOf).filter((entry): entry is HeaderEntry => entry !== null)
+  // Widgets d'une extension absente : gardés à la fin, ils reviennent avec elle
+  const absent = items.filter((item) => !entries.some((entry) => entry.item === item))
+  const shown = entries.map((entry) => entry.item)
+  const hidden = useOverflow(barRef, shown)
+  /** Glisser en cours : place où le widget serait déposé (index dans les widgets affichés). */
+  const [dropIndex, setDropIndex] = useState<number | null>(null)
+  const missing: HeaderEntry[] = [
+    ...HEADER_WIDGETS.filter((widget) => !items.includes(widget)).map((widget) => entryOf(widget)!),
+    ...listHeaderWidgets(disabledPlugins)
+      .filter((widget) => !items.includes(widget.key as HeaderItem))
+      .map((widget) => entryOf(widget.key as HeaderItem)!)
+  ]
+  if (!editing && entries.length === 0) return null
+
+  const visible = entries.slice(0, entries.length - hidden)
+  const folded = entries.slice(entries.length - hidden)
 
   /** Place de dépôt d'après la souris : avant le premier widget dont le milieu est à droite. */
   const indexAt = (clientX: number): number => {
@@ -170,14 +231,14 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
   }
 
   const onDrop = (event: React.DragEvent): void => {
-    const widget = event.dataTransfer.getData(HEADER_WIDGET_DRAG) as HeaderWidget
+    const widget = event.dataTransfer.getData(HEADER_WIDGET_DRAG) as HeaderItem
     setDropIndex(null)
-    if (!editing || !items.includes(widget)) return
+    if (!editing || !shown.includes(widget)) return
     event.preventDefault()
     const index = indexAt(event.clientX)
-    const before = items.slice(0, index).filter((item) => item !== widget)
-    const after = items.slice(index).filter((item) => item !== widget)
-    void update({ headerBar: { items: [...before, widget, ...after] } })
+    const before = shown.slice(0, index).filter((item) => item !== widget)
+    const after = shown.slice(index).filter((item) => item !== widget)
+    void update({ headerBar: { items: [...before, widget, ...after, ...absent] } })
   }
 
   const openAddMenu = (event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -185,19 +246,18 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
     useContextMenuStore.getState().open(
       rect.left,
       rect.bottom + 4,
-      missing
-        .map((widget) => ({ widget, label: t(`headerBar.names.${widget}`) }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-        .map(({ widget, label }) => ({
-          label,
-          icon: WIDGETS[widget].icon,
-          onSelect: () => void update({ headerBar: { items: [...items, widget] } })
+      [...missing]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((entry) => ({
+          label: entry.name,
+          icon: entry.icon,
+          onSelect: () => void update({ headerBar: { items: [...items, entry.item] } })
         }))
     )
   }
 
-  const renderItem = (widget: HeaderWidget, index?: number): React.JSX.Element => {
-    const Component = WIDGETS[widget].component
+  const renderItem = (entry: HeaderEntry, index?: number): React.JSX.Element => {
+    const widget = entry.item
     return (
       <div
         key={widget}
@@ -216,13 +276,13 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
           setDraggedWidget(null)
         }}
       >
-        <Component />
+        {entry.render()}
         {editing && (
           <button
             type="button"
             className={styles.remove}
-            title={t('headerBar.remove', { name: t(`headerBar.names.${widget}`) })}
-            aria-label={t('headerBar.remove', { name: t(`headerBar.names.${widget}`) })}
+            title={t('headerBar.remove', { name: entry.name })}
+            aria-label={t('headerBar.remove', { name: entry.name })}
             onClick={() =>
               void update({ headerBar: { items: items.filter((item) => item !== widget) } })
             }
@@ -258,10 +318,10 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
         >
           {() => (
             <div className={styles.overflow}>
-              {folded.map((widget) => (
-                <div key={widget} className={styles.overflowRow}>
-                  {renderItem(widget)}
-                  <span>{t(`headerBar.names.${widget}`)}</span>
+              {folded.map((entry) => (
+                <div key={entry.item} className={styles.overflowRow}>
+                  {renderItem(entry)}
+                  <span>{entry.name}</span>
                 </div>
               ))}
             </div>
