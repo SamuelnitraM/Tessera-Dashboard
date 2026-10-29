@@ -13,6 +13,10 @@ import { errorText } from '../i18n'
  * Git Bash ou WSL. Les sessions vivent dans le processus principal : un bloc qui disparaît
  * (autre page) les retrouve avec leur historique ; elles se ferment avec leur onglet, ou quand
  * Tessera quitte.
+ *
+ * À chaque invite, le shell signale son dossier courant (séquence OSC 9;9, comme pour Windows
+ * Terminal) : l'onglet le retient, et au prochain lancement de Tessera son shell est rouvert dans
+ * ce dossier (rien ne tourne pendant que Tessera est fermé).
  */
 
 const MAX_BUFFER = 300_000
@@ -60,6 +64,69 @@ function findShells(): (TerminalShell & { file: string; args: string[] })[] {
 
 let shells: ReturnType<typeof findShells> | null = null
 
+/** PowerShell : l'invite habituelle (celle du profil comprise), précédée du dossier courant. */
+const POWERSHELL_PROMPT = `$__tesseraPrompt = $function:prompt
+function global:prompt {
+  $location = $executionContext.SessionState.Path.CurrentLocation
+  if ($location.Provider.Name -eq 'FileSystem') {
+    [Console]::Write("$([char]27)]9;9;$($location.ProviderPath)$([char]7)")
+  }
+  & $__tesseraPrompt
+}`
+/** Git Bash et WSL : dossier courant au format du shell (`/c/Users/…`, `/home/…`). */
+const POSIX_PROMPT = `printf '\\033]9;9;%s\\007' "$PWD"`
+
+/** Dossier d'un shell WSL (chemin Linux, retenu par l'onglet). */
+const LINUX_PATH = /^\/[^\0"\r\n]{0,1000}$/
+
+/**
+ * Lancement d'un shell : arguments, variables (invite qui signale le dossier courant) et dossier
+ * de départ. `cwd` : dossier retenu par l'onglet, ou dossier de départ du bloc.
+ */
+function launchOf(
+  shell: TerminalShell & { file: string; args: string[] },
+  cwd: unknown
+): { args: string[]; env: Record<string, string>; cwd: string } {
+  const env = { ...process.env, TERM_PROGRAM: 'Tessera' } as Record<string, string>
+  switch (shell.id) {
+    case 'pwsh':
+    case 'powershell': {
+      const command = Buffer.from(POWERSHELL_PROMPT, 'utf16le').toString('base64')
+      return {
+        args: [...shell.args, '-NoExit', '-EncodedCommand', command],
+        env,
+        cwd: folderOrHome(cwd)
+      }
+    }
+    case 'cmd':
+      env.PROMPT = `$e]9;9;$P$e\\${process.env.PROMPT || '$P$G'}`
+      return { args: shell.args, env, cwd: folderOrHome(cwd) }
+    case 'bash': {
+      env.PROMPT_COMMAND = POSIX_PROMPT
+      // Sans elle, le profil de Git Bash repart du dossier personnel
+      env.CHERE_INVOKING = '1'
+      const drive = typeof cwd === 'string' ? /^\/([a-z])(\/.*)?$/i.exec(cwd) : null
+      const folder = drive
+        ? `${drive[1].toUpperCase()}:${(drive[2] ?? '').replace(/\//g, '\\') || '\\'}`
+        : cwd
+      return { args: shell.args, env, cwd: folderOrHome(folder) }
+    }
+    case 'wsl': {
+      env.PROMPT_COMMAND = POSIX_PROMPT
+      // La variable passe à Linux
+      env.WSLENV = `${process.env.WSLENV ? `${process.env.WSLENV}:` : ''}PROMPT_COMMAND/u`
+      const linux = typeof cwd === 'string' && LINUX_PATH.test(cwd)
+      return {
+        args: linux ? [...shell.args, '--cd', cwd] : shell.args,
+        env,
+        cwd: linux ? homedir() : folderOrHome(cwd)
+      }
+    }
+    default:
+      return { args: shell.args, env, cwd: folderOrHome(cwd) }
+  }
+}
+
 export function listShells(): TerminalShell[] {
   shells ??= findShells()
   return shells.map(({ id, name }) => ({ id, name }))
@@ -90,12 +157,13 @@ export function createSession(
   // Identifiant unique : un onglet qui garde l'ancien après un redémarrage ne se branche jamais
   // sur le shell d'un autre onglet
   const id = `term-${randomUUID()}`
-  const pty = spawnPty(shell.file, shell.args, {
+  const launch = launchOf(shell, cwd)
+  const pty = spawnPty(shell.file, launch.args, {
     name: 'xterm-256color',
     cols: Math.max(20, Math.min(500, Number(cols) || 80)),
     rows: Math.max(5, Math.min(300, Number(rows) || 24)),
-    cwd: folderOrHome(cwd),
-    env: { ...process.env, TERM_PROGRAM: 'Tessera' } as Record<string, string>
+    cwd: launch.cwd,
+    env: launch.env
   })
   const session: Session = { pty, shell: shell.id, buffer: '', viewer: sender, exited: false }
   sessions.set(id, session)

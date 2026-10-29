@@ -14,8 +14,8 @@
       "type": "terminal",
       "name": { "fr": "Terminal", "en": "Terminal" },
       "description": {
-        "fr": "Onglets, shell au choix, dossier de départ propre au bloc.",
-        "en": "Tabs, shell of your choice, start folder per block."
+        "fr": "Onglets fractionnables, shell au choix, dossiers retrouvés au lancement.",
+        "en": "Splittable tabs, shell of your choice, folders kept between launches."
       },
       "icon": "square-terminal",
       "defaultSize": { "w": 12, "h": 6 },

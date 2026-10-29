@@ -296,7 +296,8 @@ export const fr = {
     },
     sources: {
       tessera: 'Tessera Dashboard',
-      web: 'Pages web'
+      web: 'Pages web',
+      calendar: 'Agenda (rappels)'
     }
   },
   desktopApps: {
@@ -477,7 +478,11 @@ export const fr = {
       outputDevice: 'Sortie audio',
       inputDevice: 'Micro utilisé',
       volume: 'Volume',
-      micVolume: 'Volume du micro'
+      micVolume: 'Volume du micro',
+      apps: 'Programmes',
+      appVolume: 'Volume de {{name}}',
+      appMute: 'Couper le son de {{name}}',
+      appUnmute: 'Rétablir le son de {{name}}'
     },
     system: {
       cpu: 'Processeur',
@@ -585,7 +590,43 @@ export const fr = {
         location: 'Lieu (facultatif)',
         save: 'Enregistrer',
         cancel: 'Annuler',
-        delete: 'Supprimer'
+        delete: 'Supprimer',
+        reminder: 'Rappel',
+        repeat: 'Répétition',
+        guests: 'Invités (adresses séparées par des virgules)',
+        guestsTitle: 'Invités',
+        guestsHint: 'Google leur envoie l’invitation et les changements.',
+        invalidGuests: 'Une adresse d’invité n’est pas valide.',
+        occurrence: 'Cette occurrence',
+        series: 'Toute la série'
+      },
+      reminderOptions: {
+        default: 'Comme l’agenda',
+        none: 'Aucun',
+        start: 'Au début',
+        before: '{{delay}} avant'
+      },
+      repeats: {
+        none: 'Ne se répète pas',
+        daily: 'Chaque jour',
+        weekly: 'Chaque semaine',
+        monthly: 'Chaque mois',
+        yearly: 'Chaque année',
+        custom: 'Personnalisée (dans Google Agenda)'
+      },
+      responses: {
+        accepted: 'a accepté',
+        declined: 'a refusé',
+        tentative: 'peut-être',
+        needsAction: 'pas encore répondu'
+      },
+      organizer: 'organisateur',
+      reminders: {
+        now: 'Commence maintenant ({{time}})',
+        soon: 'Dans {{delay}} ({{time}})',
+        minutes: '{{count}} min',
+        hours: '{{count}} h',
+        days: '{{count}} j'
       }
     },
     converter: {

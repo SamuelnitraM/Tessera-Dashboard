@@ -289,7 +289,8 @@ export const en: Translation = {
     },
     sources: {
       tessera: 'Tessera Dashboard',
-      web: 'Web pages'
+      web: 'Web pages',
+      calendar: 'Calendar (reminders)'
     }
   },
   desktopApps: {
@@ -468,7 +469,11 @@ export const en: Translation = {
       outputDevice: 'Audio output',
       inputDevice: 'Microphone in use',
       volume: 'Volume',
-      micVolume: 'Microphone volume'
+      micVolume: 'Microphone volume',
+      apps: 'Programs',
+      appVolume: '{{name}} volume',
+      appMute: 'Mute {{name}}',
+      appUnmute: 'Unmute {{name}}'
     },
     system: {
       cpu: 'Processor',
@@ -576,7 +581,43 @@ export const en: Translation = {
         location: 'Location (optional)',
         save: 'Save',
         cancel: 'Cancel',
-        delete: 'Delete'
+        delete: 'Delete',
+        reminder: 'Reminder',
+        repeat: 'Repeat',
+        guests: 'Guests (addresses separated by commas)',
+        guestsTitle: 'Guests',
+        guestsHint: 'Google sends them the invitation and the changes.',
+        invalidGuests: 'A guest address is not valid.',
+        occurrence: 'This occurrence',
+        series: 'The whole series'
+      },
+      reminderOptions: {
+        default: 'Calendar default',
+        none: 'None',
+        start: 'At the start',
+        before: '{{delay}} before'
+      },
+      repeats: {
+        none: 'Does not repeat',
+        daily: 'Every day',
+        weekly: 'Every week',
+        monthly: 'Every month',
+        yearly: 'Every year',
+        custom: 'Custom (in Google Calendar)'
+      },
+      responses: {
+        accepted: 'accepted',
+        declined: 'declined',
+        tentative: 'maybe',
+        needsAction: 'no answer yet'
+      },
+      organizer: 'organizer',
+      reminders: {
+        now: 'Starts now ({{time}})',
+        soon: 'In {{delay}} ({{time}})',
+        minutes: '{{count}} min',
+        hours: '{{count}} h',
+        days: '{{count}} d'
       }
     },
     converter: {

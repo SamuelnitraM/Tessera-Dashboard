@@ -20,6 +20,8 @@ export type NotificationSource = string
 
 export const WEB_SOURCE = 'web'
 export const TESSERA_SOURCE = 'tessera'
+/** Rappels des événements de Google Agenda. */
+export const CALENDAR_SOURCE = 'calendar'
 export const appSource = (appId: string): NotificationSource => `app:${appId}`
 export const pluginSource = (pluginId: string): NotificationSource => `plugin:${pluginId}`
 
@@ -159,7 +161,8 @@ function asRecord(value: unknown): Record<string, unknown> {
     : {}
 }
 
-const SOURCE = /^(tessera|web|app:[a-z0-9-]{1,64}|plugin:[a-z0-9.-]{1,64}|mail:[a-z0-9-]{1,64})$/
+const SOURCE =
+  /^(tessera|web|calendar|app:[a-z0-9-]{1,64}|plugin:[a-z0-9.-]{1,64}|mail:[a-z0-9-]{1,64})$/
 const SOUND = /^(system|none|chime|pop|bell|custom:[a-z0-9-]{1,64})$/
 
 const isSound = (value: unknown): value is SoundId => typeof value === 'string' && SOUND.test(value)

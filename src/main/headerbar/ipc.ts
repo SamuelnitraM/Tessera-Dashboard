@@ -32,11 +32,13 @@ import {
   type CaptureMode
 } from './screenshot'
 import {
+  getAppAudio,
   getAudio,
   getMediaSession,
   getSystemStats,
   getTopProcesses,
   sendMediaCommand,
+  setAppVolume,
   setAudioDevice,
   setAudioMute,
   setAudioVolume
@@ -65,6 +67,15 @@ export function registerHeaderBarHandlers(): void {
     setAudioMute(flow, value)
   )
   ipcMain.handle(IpcChannels.headerBarAudioDevice, (_event, id: string) => setAudioDevice(id))
+  ipcMain.handle(IpcChannels.headerBarAppAudio, () => getAppAudio())
+  ipcMain.handle(
+    IpcChannels.headerBarAppVolume,
+    (_event, id: string, change: { volume?: number; muted?: boolean }) =>
+      setAppVolume(id, {
+        volume: typeof change?.volume === 'number' ? change.volume : undefined,
+        muted: typeof change?.muted === 'boolean' ? change.muted : undefined
+      })
+  )
   ipcMain.handle(IpcChannels.headerBarSystem, (_event, network: boolean) =>
     getSystemStats(network === true)
   )
@@ -118,7 +129,20 @@ export function registerHeaderBarHandlers(): void {
   )
   ipcMain.handle(
     IpcChannels.calendarDeleteEvent,
-    (_event, accountId: string, calendarId: string, eventId: string) =>
-      deleteCalendarEvent(String(accountId), String(calendarId), String(eventId))
+    (
+      _event,
+      accountId: string,
+      calendarId: string,
+      eventId: string,
+      scope: unknown,
+      recurringEventId: unknown
+    ) =>
+      deleteCalendarEvent(
+        String(accountId),
+        String(calendarId),
+        String(eventId),
+        scope === 'series' ? 'series' : 'occurrence',
+        typeof recurringEventId === 'string' ? recurringEventId : undefined
+      )
   )
 }

@@ -267,6 +267,18 @@ export interface AudioDevice {
   isDefault: boolean
 }
 
+/** Programme qui joue du son (widget Son) : son volume, réglable à part. */
+export interface AppAudio {
+  /** Programme (chemin de son exécutable, en minuscules). */
+  id: string
+  name: string
+  /** Icône du programme (`data:` URL). */
+  icon: string | null
+  volume: number
+  /** Coupé depuis Tessera (volume à 0, l'ancien est rendu au rallumage). */
+  muted: boolean
+}
+
 /** Sortie (haut-parleurs) ou entrée (micro) audio. */
 export interface AudioEndpoint {
   devices: AudioDevice[]
@@ -331,6 +343,26 @@ export interface Screenshot {
   createdAt: number
 }
 
+/** Répétition d'un événement : les plus courantes, ou une règle de Google Agenda gardée telle quelle. */
+export const CALENDAR_REPEATS = ['none', 'daily', 'weekly', 'monthly', 'yearly', 'custom'] as const
+export type CalendarRepeat = (typeof CALENDAR_REPEATS)[number]
+
+/** Réponse d'un invité. */
+export type CalendarResponse = 'accepted' | 'declined' | 'tentative' | 'needsAction'
+
+export interface CalendarGuest {
+  email: string
+  name: string
+  response: CalendarResponse
+  /** Organisateur de l'événement. */
+  organizer: boolean
+  /** L'utilisateur lui-même. */
+  self: boolean
+}
+
+/** Rappel choisi : ceux de l'agenda, aucun, ou un nombre de minutes avant le début. */
+export type CalendarReminder = 'default' | 'none' | number
+
 export interface CalendarEvent {
   /** Identifiant unique dans l'état (compte, agenda, événement). */
   id: string
@@ -351,6 +383,16 @@ export interface CalendarEvent {
   link: string
   /** Lien de visioconférence (Meet…). */
   meeting: string | null
+  /** Rappels (minutes avant le début) : ceux de l'événement, sinon ceux de son agenda. */
+  reminders: number[]
+  /** L'événement garde les rappels de son agenda. */
+  defaultReminders: boolean
+  guests: CalendarGuest[]
+  /** L'utilisateur organise l'événement : il peut changer ses invités. */
+  organizer: boolean
+  /** Occurrence d'un événement qui se répète : l'événement d'origine (la série). */
+  recurringEventId: string | null
+  repeat: CalendarRepeat
 }
 
 /** Agenda d'un compte, proposé pour créer un événement. */
@@ -377,6 +419,15 @@ export interface CalendarEventInput {
   endDate: string
   start: string
   end: string
+  /** Rappel ; absent : inchangé. */
+  reminder?: CalendarReminder
+  /** Adresses des invités (l'organisateur reste) ; absent : inchangés. */
+  guests?: string[]
+  /** Répétition ; absente ou `custom` : inchangée. */
+  repeat?: CalendarRepeat
+  /** Occurrence d'une série : la série d'origine, et ce qui change (elle seule, ou toute la série). */
+  recurringEventId?: string
+  scope?: 'occurrence' | 'series'
 }
 
 export interface CalendarState {

@@ -594,6 +594,25 @@
   gap: 0.5rem;
 }
 
+/* Son : programme qui joue du son (icône, nom, curseur) */
+.appIcon {
+  object-fit: contain;
+}
+
+.appIcon[data-muted='true'] {
+  opacity: 0.4;
+  filter: grayscale(1);
+}
+
+.appName {
+  flex: 0 1 7rem;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .slider {
   flex: 1;
   min-width: 0;
@@ -1174,6 +1193,73 @@
   gap: 0.25rem;
   color: var(--color-text-muted);
   font-size: 0.75rem;
+}
+
+/* Occurrence d'une série : elle seule, ou toute la série */
+.segmented {
+  display: flex;
+  padding: 0.125rem;
+  background: var(--color-surface-hover);
+  border-radius: var(--radius-md);
+}
+
+.segment {
+  flex: 1;
+  padding: 0.25rem 0.5rem;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.segment[aria-checked='true'] {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 20%));
+  color: var(--color-text);
+}
+
+.guestsField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+/* Invités et leur réponse */
+.guestList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  max-height: 7rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  font-size: 0.75rem;
+  list-style: none;
+}
+
+.guestList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.guestList li[data-response='accepted'] .guestName::before {
+  content: '✓ ';
+  color: var(--color-success, #22c55e);
+}
+
+.guestList li[data-response='declined'] .guestName::before {
+  content: '✕ ';
+  color: var(--color-danger);
+}
+
+.guestName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .formActions {

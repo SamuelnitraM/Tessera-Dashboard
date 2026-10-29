@@ -222,7 +222,19 @@ namespace Tessera {
     [PreserveSig] int GetChannelVolume(int index, out float level);
   }
 
+  // Niveau du son joué par la session (crête), pour ne montrer que les programmes qui en jouent
+  [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+  interface IAudioMeterInformation {
+    [PreserveSig] int GetPeakValue(out float peak);
+  }
+
   public class AppSession { public int pid; public int volume; }
+
+  /// <summary>Session d'un programme : volume, flux ouvert (`active`), niveau du son, programme.</summary>
+  public class AudibleSession {
+    public int pid; public int volume; public bool active; public float peak;
+    public string path; public string description;
+  }
 
   public static class Sessions {
     static List<object> All() {
@@ -261,6 +273,33 @@ namespace Tessera {
         int pid;
         if (((IAudioSessionControl2)session).GetProcessId(out pid) != 0 || pid == 0) continue;
         list.Add(new AppSession { pid = pid, volume = VolumeOf((IChannelAudioVolume)session) });
+      }
+      return list;
+    }
+
+    static readonly Dictionary<string, string> descriptions = new Dictionary<string, string>();
+
+    /// <summary>Sessions des programmes sur la sortie par défaut, avec leur niveau de son.</summary>
+    public static List<AudibleSession> Audible() {
+      var list = new List<AudibleSession>();
+      foreach (var session in All()) {
+        var control = (IAudioSessionControl2)session;
+        int pid, state;
+        if (control.GetProcessId(out pid) != 0 || pid == 0) continue;
+        if (control.GetState(out state) != 0) state = 0;
+        float peak = 0;
+        var meter = session as IAudioMeterInformation;
+        if (meter == null || meter.GetPeakValue(out peak) != 0) peak = 0;
+        string path = Procs.PathOf(pid);
+        string description = null;
+        if (path != null && !descriptions.TryGetValue(path, out description)) {
+          try { description = System.Diagnostics.FileVersionInfo.GetVersionInfo(path).FileDescription; } catch { }
+          descriptions[path] = description;
+        }
+        list.Add(new AudibleSession {
+          pid = pid, volume = VolumeOf((IChannelAudioVolume)session), active = state == 1,
+          peak = peak, path = path, description = description
+        });
       }
       return list;
     }
@@ -515,6 +554,7 @@ function Invoke-Request($request) {
     'audio.default' { [Tessera.Audio]::SetDefault([string]$params.id); $true }
     # Listes dans un objet : PowerShell déroulerait une liste d'un seul élément
     'sessions.list' { @{ items = [Tessera.Sessions]::List().ToArray() } }
+    'sessions.audible' { @{ items = [Tessera.Sessions]::Audible().ToArray() } }
     'sessions.set' { [Tessera.Sessions]::Set([int[]]@($params.pids), [int]$params.volume); $true }
     'procs.under' { @{ items = [Tessera.Procs]::Under([string[]]@($params.folders)).ToArray() } }
     'procs.info' { @{ items = [Tessera.ProcInfos]::Of([int[]]@($params.pids)).ToArray() } }

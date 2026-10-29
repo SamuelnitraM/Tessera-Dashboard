@@ -1,6 +1,9 @@
 import { statfs } from 'node:fs/promises'
 import { cpus, freemem, totalmem, uptime } from 'node:os'
+import { basename } from 'node:path'
+import { app } from 'electron'
 import type {
+  AppAudio,
   AudioFlow,
   AudioState,
   MediaCommand,
@@ -104,6 +107,101 @@ export async function setAudioMute(flow: AudioFlow, value: boolean): Promise<voi
 export async function setAudioDevice(id: string): Promise<void> {
   if (typeof id !== 'string' || !/^\{[0-9a-f.}{-]+$/i.test(id)) return
   await helperRequest('audio.default', { id })
+}
+
+/* ---------- Son des programmes ---------- */
+
+interface AudibleSession {
+  pid: number
+  volume: number
+  active: boolean
+  peak: number
+  path: string | null
+  description: string | null
+}
+
+/** Un programme reste dans la liste ce temps après le dernier son entendu. */
+const HEARD_MS = 20_000
+/** Niveau en dessous duquel une session est silencieuse. */
+const SILENCE = 0.0005
+
+/** Dernier son entendu de chaque programme. */
+const heardAt = new Map<string, number>()
+/** Programmes coupés depuis Tessera : leur volume d'avant. */
+const mutedApps = new Map<string, number>()
+const icons = new Map<string, string | null>()
+/** Sessions de chaque programme listé (pour régler son volume). */
+let appPids = new Map<string, number[]>()
+
+async function iconOf(path: string): Promise<string | null> {
+  if (!icons.has(path)) {
+    const icon = await app.getFileIcon(path, { size: 'small' }).catch(() => null)
+    icons.set(path, icon && !icon.isEmpty() ? icon.toDataURL() : null)
+  }
+  return icons.get(path) ?? null
+}
+
+/**
+ * Programmes qui jouent du son (sortie par défaut), regroupés par exécutable : ceux entendus il y a
+ * peu, et ceux dont le volume a été baissé (sinon, coupés, ils disparaîtraient de la liste).
+ */
+export async function getAppAudio(): Promise<AppAudio[]> {
+  const sessions =
+    (await helperRequest<{ items: AudibleSession[] | null }>('sessions.audible')).items ?? []
+  const now = Date.now()
+  const groups = new Map<string, AudibleSession[]>()
+  for (const session of sessions) {
+    if (!session.path || !session.active) continue
+    const id = session.path.toLowerCase()
+    groups.set(id, [...(groups.get(id) ?? []), session])
+  }
+  const list: AppAudio[] = []
+  const pids = new Map<string, number[]>()
+  for (const [id, group] of groups) {
+    if (group.some((session) => session.peak > SILENCE)) heardAt.set(id, now)
+    const volume = Math.max(...group.map((session) => session.volume))
+    const muted = mutedApps.has(id)
+    const heard = now - (heardAt.get(id) ?? 0) < HEARD_MS
+    if (!heard && volume >= 100 && !muted) continue
+    const path = group[0].path!
+    pids.set(
+      id,
+      group.map((session) => session.pid)
+    )
+    list.push({
+      id,
+      name: group[0].description?.trim() || basename(path).replace(/\.exe$/i, ''),
+      icon: await iconOf(path),
+      volume: muted ? (mutedApps.get(id) ?? volume) : volume,
+      muted
+    })
+  }
+  appPids = pids
+  return list.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Volume (0 à 100) ou sourdine d'un programme de la liste. */
+export async function setAppVolume(
+  id: string,
+  change: { volume?: number; muted?: boolean }
+): Promise<void> {
+  const pids = typeof id === 'string' ? appPids.get(id) : undefined
+  if (!pids) return
+  if (change.muted === true) {
+    const current = (await getAppAudio()).find((item) => item.id === id)
+    mutedApps.set(id, current?.volume ?? 100)
+    await helperRequest('sessions.set', { pids, volume: 0 })
+    return
+  }
+  const volume =
+    typeof change.volume === 'number' && Number.isFinite(change.volume)
+      ? change.volume
+      : (mutedApps.get(id) ?? 100)
+  mutedApps.delete(id)
+  await helperRequest('sessions.set', {
+    pids,
+    volume: Math.round(Math.max(0, Math.min(100, volume)))
+  })
 }
 
 /* ---------- Système ---------- */

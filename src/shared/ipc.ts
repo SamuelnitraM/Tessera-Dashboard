@@ -168,6 +168,8 @@ export const IpcChannels = {
   headerBarAudioVolume: 'header-bar:audio-volume',
   headerBarAudioMute: 'header-bar:audio-mute',
   headerBarAudioDevice: 'header-bar:audio-device',
+  headerBarAppAudio: 'header-bar:app-audio',
+  headerBarAppVolume: 'header-bar:app-volume',
   headerBarSystem: 'header-bar:system',
   headerBarTopProcesses: 'header-bar:top-processes',
   headerBarClipboardList: 'header-bar:clipboard-list',

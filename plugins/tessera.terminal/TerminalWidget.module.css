@@ -90,9 +90,13 @@
   color: var(--color-text-muted);
 }
 
-.iconButton:hover {
+.iconButton:hover:not(:disabled) {
   background: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
 }
 
 .screens {
@@ -101,15 +105,69 @@
   min-height: 0;
 }
 
-.screen {
+/* Onglet : une console, ou plusieurs côte à côte ou l'une sous l'autre */
+.split {
   position: absolute;
   inset: 0;
   display: none;
-  padding: 0.25rem 0 0 0.375rem;
 }
 
-.screen[data-visible='true'] {
-  display: block;
+.split[data-visible='true'] {
+  display: flex;
+}
+
+.split[data-direction='column'] {
+  flex-direction: column;
+}
+
+.screen {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.25rem 0 0 0.375rem;
+  border-top: 2px solid transparent;
+}
+
+.screen + .screen {
+  border-left: 1px solid var(--color-border);
+}
+
+.split[data-direction='column'] .screen + .screen {
+  border-left: none;
+  border-top-color: var(--color-border);
+}
+
+/* Console qui a le clavier, dans un onglet fractionné */
+.split .screen[data-focused='true'] {
+  border-top-color: var(--color-accent);
+}
+
+.closePane {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.375rem;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.screen:hover .closePane,
+.closePane:focus-visible {
+  opacity: 1;
+}
+
+.closePane:hover {
+  color: var(--color-text);
 }
 
 .xterm {

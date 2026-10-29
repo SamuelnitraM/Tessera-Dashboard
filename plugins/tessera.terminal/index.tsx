@@ -8,6 +8,9 @@ export default definePlugin({
   translations: {
     fr: {
       newTab: 'Nouvel onglet',
+      splitRight: 'Fractionner : nouvelle console à droite',
+      splitDown: 'Fractionner : nouvelle console en dessous',
+      closePane: 'Fermer cette console (et son programme)',
       closeTab: 'Fermer l’onglet (et son programme)',
       cwd: 'Dossier de départ : {{path}}',
       chooseCwd: 'Choisir le dossier de départ',
@@ -20,6 +23,9 @@ export default definePlugin({
     },
     en: {
       newTab: 'New tab',
+      splitRight: 'Split: new console on the right',
+      splitDown: 'Split: new console below',
+      closePane: 'Close this console (and its program)',
       closeTab: 'Close the tab (and its program)',
       cwd: 'Start folder: {{path}}',
       chooseCwd: 'Choose the start folder',

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Mic, MicOff, Volume, Volume1, Volume2, VolumeX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import type { AudioEndpoint, AudioFlow, AudioState } from '@shared/header-bar'
+import type { AppAudio, AudioEndpoint, AudioFlow, AudioState } from '@shared/header-bar'
 import { Select } from '../ui/Select'
 import { HeaderPopover } from './HeaderPopover'
 import { formatPercent, usePolling } from './helpers'
@@ -209,6 +209,122 @@ function EndpointControls({
   )
 }
 
+/** Réglage d'un programme, affiché tout de suite (Windows le confirme un peu plus tard). */
+interface LocalApp {
+  volume: number
+  muted: boolean
+}
+
+/**
+ * Programmes qui jouent du son (ou dont le volume a été baissé) : un volume chacun, réglable
+ * sans toucher au volume général. Rien quand aucun programme n'en joue.
+ */
+function AppsVolume(): React.JSX.Element | null {
+  const { t, i18n } = useTranslation()
+  const { data } = usePolling(() => window.tessera.headerBar.appAudio(), REFRESH_MS)
+  const [local, setLocal] = useState<Record<string, LocalApp>>({})
+  const pending = useRef(new Map<string, number>())
+  const timer = useRef(0)
+  const forget = useRef(new Map<string, number>())
+  useEffect(() => {
+    const timers = forget.current
+    return () => {
+      window.clearTimeout(timer.current)
+      for (const id of timers.values()) window.clearTimeout(id)
+    }
+  }, [])
+  if (!data || data.length === 0) return null
+
+  const shown = (item: AppAudio): AppAudio => ({ ...item, ...local[item.id] })
+  // Valeur lue dans Windows de nouveau prise en compte un instant après
+  const remember = (id: string, value: LocalApp): void => {
+    setLocal((current) => ({ ...current, [id]: value }))
+    window.clearTimeout(forget.current.get(id))
+    forget.current.set(
+      id,
+      window.setTimeout(() => {
+        forget.current.delete(id)
+        setLocal((current) => {
+          const next = { ...current }
+          delete next[id]
+          return next
+        })
+      }, LOCAL_MS)
+    )
+  }
+  // Au plus toutes les 80 ms pendant qu'on fait glisser un curseur
+  const setVolume = (id: string, volume: number): void => {
+    remember(id, { volume, muted: false })
+    pending.current.set(id, volume)
+    if (timer.current) return
+    timer.current = window.setTimeout(() => {
+      timer.current = 0
+      for (const [app, value] of pending.current) {
+        void window.tessera.headerBar.setAppVolume(app, { volume: value }).catch(() => undefined)
+      }
+      pending.current.clear()
+    }, 80)
+  }
+  const toggleMute = (item: AppAudio): void => {
+    remember(item.id, { volume: item.volume, muted: !item.muted })
+    void window.tessera.headerBar
+      .setAppVolume(item.id, { muted: !item.muted })
+      .catch(() => undefined)
+  }
+
+  return (
+    <section className={styles.endpoint}>
+      <PanelTitle title={t('headerBar.sound.apps')} />
+      {data.map(shown).map((item) => {
+        const label = item.muted
+          ? t('headerBar.sound.appUnmute', { name: item.name })
+          : t('headerBar.sound.appMute', { name: item.name })
+        return (
+          <div key={item.id} className={styles.volumeRow}>
+            <button
+              type="button"
+              className={styles.iconButton}
+              data-active={item.muted}
+              title={label}
+              aria-label={label}
+              onClick={() => toggleMute(item)}
+            >
+              {item.icon ? (
+                <img
+                  src={item.icon}
+                  alt=""
+                  width={16}
+                  height={16}
+                  className={styles.appIcon}
+                  data-muted={item.muted}
+                />
+              ) : (
+                <VolumeIcon volume={item.volume} muted={item.muted} />
+              )}
+            </button>
+            <span className={styles.appName} title={item.name}>
+              {item.name}
+            </span>
+            <input
+              type="range"
+              className={styles.slider}
+              min={0}
+              max={100}
+              value={item.muted ? 0 : item.volume}
+              data-muted={item.muted}
+              aria-label={t('headerBar.sound.appVolume', { name: item.name })}
+              onChange={(event) => setVolume(item.id, Number(event.target.value))}
+            />
+            <span className={styles.volumeValue}>
+              {formatPercent(item.muted ? 0 : item.volume, i18n.language)}
+            </span>
+          </div>
+        )
+      })}
+    </section>
+  )
+}
+
 function SoundPanel({
   audio,
   failed,
@@ -242,6 +358,7 @@ function SoundPanel({
         onMute={onMute}
         onDevice={onRefresh}
       />
+      <AppsVolume />
       <EndpointControls
         flow="input"
         endpoint={audio.input}

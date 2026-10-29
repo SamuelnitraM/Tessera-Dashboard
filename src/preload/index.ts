@@ -4,6 +4,7 @@ import type { BrowserChoice, InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type {
   AudioFlow,
+  AppAudio,
   AudioState,
   CalendarEventInput,
   CalendarState,
@@ -452,6 +453,10 @@ const api = {
       ipcRenderer.invoke(IpcChannels.headerBarAudioMute, flow, value),
     setAudioDevice: (id: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.headerBarAudioDevice, id),
+    /** Programmes qui jouent du son, et leur volume. */
+    appAudio: (): Promise<AppAudio[]> => ipcRenderer.invoke(IpcChannels.headerBarAppAudio),
+    setAppVolume: (id: string, change: { volume?: number; muted?: boolean }): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.headerBarAppVolume, id, change),
     system: (network: boolean): Promise<SystemStats> =>
       ipcRenderer.invoke(IpcChannels.headerBarSystem, network),
     topProcesses: (sort: 'cpu' | 'memory'): Promise<TopProcess[]> =>
@@ -518,8 +523,22 @@ const api = {
     /** Crée ou modifie un événement ; renvoie l'agenda à jour. */
     saveEvent: (input: CalendarEventInput): Promise<CalendarState> =>
       ipcRenderer.invoke(IpcChannels.calendarSaveEvent, input),
-    deleteEvent: (accountId: string, calendarId: string, eventId: string): Promise<CalendarState> =>
-      ipcRenderer.invoke(IpcChannels.calendarDeleteEvent, accountId, calendarId, eventId)
+    /** `series` : toute la série d'une occurrence (`recurringEventId`). */
+    deleteEvent: (
+      accountId: string,
+      calendarId: string,
+      eventId: string,
+      scope?: 'occurrence' | 'series',
+      recurringEventId?: string
+    ): Promise<CalendarState> =>
+      ipcRenderer.invoke(
+        IpcChannels.calendarDeleteEvent,
+        accountId,
+        calendarId,
+        eventId,
+        scope,
+        recurringEventId
+      )
   },
   system: {
     getPreferences: (): Promise<SystemPreferences> =>

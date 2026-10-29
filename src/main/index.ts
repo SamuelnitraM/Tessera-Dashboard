@@ -10,6 +10,7 @@ import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking
 import { registerIpcHandlers } from './ipc'
 import { logApp, watchCrashes } from './log'
 import { flushMailState, initMail, stopMail } from './mail'
+import { startCalendarReminders, stopCalendarReminders } from './calendar'
 import { initMedia, stopMedia } from './media'
 import {
   applyLaunchAtStartup,
@@ -89,6 +90,7 @@ if (!app.requestSingleInstanceLock()) {
       flushModulesData,
       stopHelper,
       stopMail,
+      stopCalendarReminders,
       stopMedia,
       stopCapturedProcesses
     ]
@@ -199,6 +201,8 @@ if (!app.requestSingleInstanceLock()) {
       changed: (accountId, state, fresh) =>
         broadcast(IpcChannels.mailChanged, accountId, state, fresh)
     })
+    // Rappels de Google Agenda : notifications, tant que Tessera est ouvert
+    startCalendarReminders()
     initMedia({
       status: (status) => broadcast(IpcChannels.mediaStatusChanged, status),
       live: (streams) => broadcast(IpcChannels.mediaLiveChanged, streams)

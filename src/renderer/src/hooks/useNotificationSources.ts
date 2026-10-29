@@ -2,6 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   appSource,
+  CALENDAR_SOURCE,
   pluginSource,
   TESSERA_SOURCE,
   WEB_SOURCE,
@@ -33,6 +34,7 @@ export function useNotificationSources(): {
   const language = useResolvedLanguage()
   const apps = useSettingsStore((state) => state.settings.apps.items)
   const mailAccounts = useSettingsStore((state) => state.settings.mail.accounts)
+  const hasCalendar = useSettingsStore((state) => state.settings.calendar.accounts.length > 0)
 
   const sources = useMemo<SourceInfo[]>(() => {
     const list: SourceInfo[] = apps
@@ -58,6 +60,15 @@ export function useNotificationSources(): {
         pluginIcon: 'mail'
       })
     }
+    // Rappels des événements de Google Agenda
+    if (hasCalendar) {
+      list.push({
+        source: CALENDAR_SOURCE,
+        name: t('notifications.sources.calendar'),
+        icon: null,
+        pluginIcon: 'calendar-clock'
+      })
+    }
     for (const plugin of getPlugins()) {
       if (!plugin.manifest?.permissions.includes('notifications')) continue
       list.push({
@@ -74,7 +85,7 @@ export function useNotificationSources(): {
       pluginIcon: null
     })
     return list
-  }, [apps, mailAccounts, language, t])
+  }, [apps, mailAccounts, hasCalendar, language, t])
 
   const describe = useCallback(
     (source: NotificationSource): SourceInfo =>
