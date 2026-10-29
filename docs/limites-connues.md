@@ -56,7 +56,9 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 ## Mails
 
 - **Application Google non validée** : l'écran « Google n'a pas validé cette application » s'affiche à la connexion (bouton Continuer), et 100 comptes Google au plus peuvent se connecter. La validation (et l'audit de sécurité qu'exige Gmail) reste à demander à Google.
-- **IMAP** : la liste n'affiche pas l'aperçu du texte (seulement l'expéditeur et l'objet).
+- **IMAP** : l'aperçu vient du début du texte du mail (2 Ko, ou 12 Ko de HTML) ; une lettre d'information très chargée en styles peut rester sans aperçu.
+- **Boîte de réception commune** : seulement les boîtes de réception (pas les autres dossiers ni les libellés).
+- **Molette d'un module** (bloc d'un module installé, dans son propre cadre) : son contenu défile à la molette même sans le focus, et arrivé au bout, la page peut défiler.
 
 ## YouTube et Twitch
 

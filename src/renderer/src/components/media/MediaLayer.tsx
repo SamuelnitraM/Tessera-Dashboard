@@ -6,7 +6,6 @@ import { SHARED_WEB_PARTITION } from '@shared/web-apps'
 import { measure } from '../../lib/visibleRect'
 import {
   blockIdOf,
-  leaveBlock,
   scrollPage,
   setActiveBlock,
   useActiveBlockStore
@@ -141,19 +140,17 @@ function Player({ session }: { session: MediaSession }): React.JSX.Element {
     if (!element || !blockId || !isLocal) return
     const onWheel = (event: WheelEvent): void => {
       const { activeId, pageScrolls } = useActiveBlockStore.getState()
-      if (!pageScrolls || activeId === blockId || useNavigationStore.getState().editing) return
+      if (!pageScrolls || useNavigationStore.getState().editing) return
       event.preventDefault()
-      scrollPage(event.deltaY * (event.deltaMode === 1 ? 40 : 1))
+      // Bloc qui a le focus : la vidéo n'a rien à faire défiler, la page ne bouge pas
+      if (activeId !== blockId) scrollPage(event.deltaY * (event.deltaMode === 1 ? 40 : 1))
     }
     const onPointerDown = (): void => setActiveBlock(blockId)
-    const onLeave = (): void => leaveBlock(blockId)
     element.addEventListener('wheel', onWheel, { passive: false })
     element.addEventListener('pointerdown', onPointerDown, true)
-    element.addEventListener('mouseleave', onLeave)
     return () => {
       element.removeEventListener('wheel', onWheel)
       element.removeEventListener('pointerdown', onPointerDown, true)
-      element.removeEventListener('mouseleave', onLeave)
     }
   }, [blockId, isLocal])
 

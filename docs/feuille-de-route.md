@@ -168,7 +168,10 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Onglet d'un navigateur tiré au-dessus d'un bloc Navigateur qui en affiche un autre : le bloc passe sur ce navigateur (s'il est déjà dans Tessera, mis de côté), qui reçoit l'onglet.
   - [x] Sortie du plein écran d'une vidéo (double-clic, Échap) : la fenêtre n'est plus replacée un instant à la taille de l'écran avant de retrouver son bloc.
   - [x] Bloc Navigateur dont le navigateur a été retiré des applications : il propose d'en choisir un autre (il restait bloqué sur « application introuvable »).
-- [ ] **Étape 26 : mails.** Aperçu du texte en IMAP, boîte de réception commune à tous les comptes.
+- [x] **Étape 26 : mails.**
+  - [x] Aperçu du texte en IMAP : le début de chaque mail (texte, sinon HTML sans ses styles ni son texte caché), lu sans le marquer comme lu et sans télécharger le mail entier.
+  - [x] Boîte de réception commune : « Tous les comptes » dans le choix du compte d'un bloc Mails. Les boîtes de réception de tous les comptes, du plus récent au plus ancien, avec le nom du compte sur chaque mail ; filtres, recherche, actions et sélection comme pour un compte. Un nouveau mail choisit son compte d'envoi (« De ») ; une réponse part du compte du mail.
+  - [x] Focus et molette : un clic dans un bloc, sa barre comprise, lui donne le focus. La molette au-dessus de lui fait défiler son contenu, et la page ne bouge pas, même arrivé au bout. Le focus reste quand la souris sort du bloc ou après un clic dans une autre fenêtre ; pour faire défiler la page, il suffit d'avoir la souris ailleurs ou de cliquer ailleurs dans Tessera. Vaut pour les widgets, les pages web, les mails et les applications installées.
 - [ ] **Étape 27 : agenda, terminal et son.**
   - [ ] Agenda : rappels, invités, événements qui se répètent.
   - [ ] Terminal : fractionner un onglet ; retrouver ses onglets au redémarrage (dossier et shell, relancés à l'ouverture : rien ne tourne pendant que Tessera est fermé).

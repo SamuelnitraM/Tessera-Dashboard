@@ -68,7 +68,7 @@ export function WidgetFrame({
     []
   )
   // Bloc qui a le focus (dernier cliqué) : bordure et barre du haut colorées
-  const focused = useActiveBlockStore((state) => !editing && state.focusedId === widget.id)
+  const focused = useActiveBlockStore((state) => !editing && state.activeId === widget.id)
   const contentRef = useRef<HTMLDivElement>(null)
 
   // Mode édition : le contenu ne réagit pas à la souris (CSS) ni au clavier (Tab, Suppr dans

@@ -22,6 +22,8 @@ interface MailListProps {
   onOpen: (message: MailSummary) => void
   /** Erreur d'une action (affichée par le bloc). */
   onError: (message: string) => void
+  /** Boîte commune : nom du compte de chaque mail. */
+  accountOf?: (message: MailSummary) => string | null
 }
 
 /**
@@ -34,7 +36,8 @@ export function MailList({
   showRecipients,
   emptyText,
   onOpen,
-  onError
+  onError,
+  accountOf
 }: MailListProps): React.JSX.Element {
   const t = usePluginTranslation()
   const language = useLanguage()
@@ -228,6 +231,9 @@ export function MailList({
                     ? `${t('reader.to')} : ${message.to.map(senderName).join(', ') || '—'}`
                     : senderName(message.from) || t('unknownSender')}
                 </span>
+                {accountOf?.(message) && (
+                  <span className={styles.itemAccount}>{accountOf(message)}</span>
+                )}
                 {message.hasAttachments && (
                   <Paperclip size={12} className={styles.itemClip} aria-label={t('attachment')} />
                 )}

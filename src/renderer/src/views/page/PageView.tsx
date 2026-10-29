@@ -27,6 +27,32 @@ const WHEEL_SCROLL_MS = 250
 /** La page se cale après ce délai sans défilement (ms). */
 const SNAP_AFTER_MS = 160
 
+/** L'élément peut encore défiler dans ce sens (molette vers le bas si `deltaY` est positif). */
+function canScroll(node: Element, deltaY: number, root = false): boolean {
+  if (node.scrollHeight <= node.clientHeight + 1) return false
+  // Élément d'un cadre intégré : son style est lu dans sa propre page
+  const overflow = (node.ownerDocument.defaultView ?? window).getComputedStyle(node).overflowY
+  if (root ? overflow === 'hidden' : !/auto|scroll|overlay/.test(overflow)) return false
+  return deltaY > 0
+    ? node.scrollTop + node.clientHeight < node.scrollHeight - 1
+    : node.scrollTop > 0
+}
+
+/**
+ * Un élément entre `target` et son bloc peut-il encore défiler dans ce sens ? Un cadre intégré
+ * du même site (texte d'un mail, qui rejoue sa molette sur le cadre) compte avec son contenu. Une
+ * molette horizontale est laissée au bloc.
+ */
+function scrollsWithin(target: Element, block: Element, deltaY: number): boolean {
+  if (deltaY === 0) return true
+  for (let node: Element | null = target; node && node !== block.parentElement;) {
+    const inner = node instanceof HTMLIFrameElement ? node.contentDocument?.scrollingElement : null
+    if (canScroll(node, deltaY) || (inner && canScroll(inner, deltaY, true))) return true
+    node = node.parentElement
+  }
+  return false
+}
+
 export function PageView({ pageId }: PageViewProps): React.JSX.Element {
   const { t } = useTranslation()
   // Page introuvable (ex. supprimée) : on affiche la page principale
@@ -82,7 +108,13 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
     const onWheel = (event: WheelEvent): void => {
       if (editing || !scrolls()) return
       const block = (event.target as HTMLElement).closest<HTMLElement>('[data-block-id]')
-      if (!block || block.dataset.blockId === useActiveBlockStore.getState().activeId) return
+      if (!block) return
+      // Bloc qui a le focus : son contenu défile ; arrivé au bout (ou sans rien à faire
+      // défiler), la page ne bouge pas
+      if (block.dataset.blockId === useActiveBlockStore.getState().activeId) {
+        if (!scrollsWithin(event.target as Element, block, event.deltaY)) event.preventDefault()
+        return
+      }
       event.preventDefault()
       const unit = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? area.clientHeight : 1
       area.scrollTop += event.deltaY * unit
@@ -134,10 +166,6 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
       window.removeEventListener('pointerdown', onPointerDown, true)
     }
   }, [editing, page.id, measured])
-
-  // Mode édition ou autre page : plus de bloc actif. Le focus reste (bloc d'une notification
-  // dont la page s'ouvre) ; en mode édition, les blocs ne l'affichent pas.
-  useEffect(() => useActiveBlockStore.setState({ activeId: null }), [editing, page.id])
 
   const openPicker = (): void => {
     setEditing(true)

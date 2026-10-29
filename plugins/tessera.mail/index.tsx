@@ -8,6 +8,8 @@ export default definePlugin({
   translations: {
     fr: {
       account: 'Compte',
+      allAccounts: 'Tous les comptes',
+      allInboxes: 'Boîtes de réception',
       unread: '{{count}} non lus',
       refresh: 'Actualiser',
       compose: 'Nouveau mail',
@@ -107,6 +109,8 @@ export default definePlugin({
     },
     en: {
       account: 'Account',
+      allAccounts: 'All accounts',
+      allInboxes: 'Inboxes',
       unread: '{{count}} unread',
       refresh: 'Refresh',
       compose: 'New email',

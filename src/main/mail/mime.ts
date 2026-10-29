@@ -8,6 +8,39 @@ import type { MailAddress, MailAttachment, MailDraft, MailMessage, MailSummary }
  */
 
 const MAX_TEXT = 500_000
+/** Longueur de l'aperçu d'un mail dans la liste. */
+const SNIPPET_LENGTH = 200
+
+const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" }
+
+/** Caractère d'après son code (`&#233;`), rien s'il n'existe pas. */
+function codePoint(code: number): string {
+  return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : ''
+}
+
+/**
+ * Aperçu d'un mail : le début de son texte, sur une ligne. HTML (peut-être coupé au milieu) :
+ * sans styles, balises ni caractères invisibles (texte caché des lettres d'information).
+ */
+export function snippetOf(content: string, html = false): string {
+  let text = content
+  if (html) {
+    text = text
+      .replace(/<(style|script|head|title)\b[\s\S]*?(<\/\1\s*>|$)/gi, ' ')
+      .replace(/<!--[\s\S]*?(-->|$)/g, ' ')
+      .replace(/<[^>]*(>|$)/g, ' ')
+      .replace(/&#(\d+);/g, (_, code: string) => codePoint(Number(code)))
+      .replace(/&#x([0-9a-f]+);/gi, (_, code: string) => codePoint(parseInt(code, 16)))
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&(amp|lt|gt|quot|apos);/gi, (_, name: string) => ENTITIES[name.toLowerCase()])
+      .replace(/&[a-z]+;/gi, ' ')
+  }
+  return text
+    .replace(/[\u00ad\u200b-\u200f\u2060\ufeff\ufffd]|\u034f/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, SNIPPET_LENGTH)
+}
 
 function addresses(value: AddressObject | AddressObject[] | undefined): MailAddress[] {
   const list = Array.isArray(value) ? value : value ? [value] : []
@@ -51,7 +84,7 @@ export async function toMessage(
     starred: known.starred ?? false,
     from,
     subject: mail.subject ?? '',
-    snippet: text.replace(/\s+/g, ' ').trim().slice(0, 200),
+    snippet: snippetOf(text),
     date: known.date ?? mail.date?.getTime() ?? Date.now(),
     hasAttachments: attachments.length > 0,
     to: addresses(mail.to),

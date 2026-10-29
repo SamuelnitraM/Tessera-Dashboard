@@ -204,6 +204,8 @@ const frameProc = koffi.register(
     if (message === WM_ACTIVATE) {
       const window = windowIn(Number(hwnd))
       const state = Number(wParam) & 0xffff
+      // Cadre activé (clic dans son application…) : son bloc prend le focus
+      if (window && state !== WA_INACTIVE) reply({ active: Number(hwnd) })
       // Le cadre cède l'activation à sa propre fenêtre insérée : rien à relayer
       if (window && !(state === WA_INACTIVE && Number(lParam) === window)) {
         if (state === WA_INACTIVE) {
@@ -278,6 +280,8 @@ const EVENT_SYSTEM_FOREGROUND = 0x0003
 const foregroundProc = koffi.register((_hook: number, _event: number, hwnd: number): void => {
   const entry = adopted.get(Number(hwnd))
   if (!entry) return
+  // Son bloc prend le focus
+  reply({ active: entry.frame })
   const owner = Number(api.GetWindow(entry.frame, GW_OWNER))
   if (owner) api.SetWindowPos(owner, 0 /* HWND_TOP */, 0, 0, 0, 0, SWP_RAISE)
 }, koffi.pointer(WinEventProc))

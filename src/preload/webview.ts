@@ -162,16 +162,47 @@ contextBridge.executeInMainWorld({
   }
 })
 
-// Molette : hors du bloc actif (pas encore cliqué), elle fait défiler la page de Tessera, qui
-// le décide et le dit ici. Un clic dans la page rend son bloc actif.
+// Molette : hors du bloc qui a le focus (pas encore cliqué), elle fait défiler la page de
+// Tessera, qui le décide et le dit ici. Un clic dans la page donne le focus à son bloc.
 let wheelToHost = false
 ipcRenderer.on(WebviewChannels.wheelMode, (_event, value: boolean) => {
   wheelToHost = value === true
 })
+
+/**
+ * Un élément sous la souris (ou la page elle-même) peut-il encore défiler dans ce sens ? Sinon,
+ * Chromium passerait la molette à la page de Tessera.
+ */
+function scrollsAt(event: WheelEvent): boolean {
+  if (event.deltaY === 0) return true
+  for (const node of event.composedPath()) {
+    if (!(node instanceof Element) || node.scrollHeight <= node.clientHeight + 1) continue
+    const overflow = getComputedStyle(node).overflowY
+    const scrollable =
+      node === document.scrollingElement
+        ? overflow !== 'hidden'
+        : /auto|scroll|overlay/.test(overflow)
+    if (!scrollable) continue
+    if (
+      event.deltaY > 0
+        ? node.scrollTop + node.clientHeight < node.scrollHeight - 1
+        : node.scrollTop > 0
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
 window.addEventListener(
   'wheel',
   (event) => {
-    if (!wheelToHost) return
+    if (!wheelToHost) {
+      // Bloc qui a le focus : arrivée au bout de la page (ou rien à faire défiler), la molette
+      // ne passe pas à la page de Tessera
+      if (!scrollsAt(event)) event.preventDefault()
+      return
+    }
     event.preventDefault()
     const unit = event.deltaMode === 1 ? 40 : event.deltaMode === 2 ? window.innerHeight : 1
     ipcRenderer.sendToHost(WebviewChannels.wheel, event.deltaY * unit)
@@ -181,9 +212,6 @@ window.addEventListener(
 window.addEventListener('pointerdown', () => ipcRenderer.sendToHost(WebviewChannels.pointerDown), {
   capture: true
 })
-// Souris sortie de la page : seule la page le sait (pour Tessera, elle « quitte » l'élément
-// dès qu'elle entre dans la page web)
-document.addEventListener('mouseleave', () => ipcRenderer.sendToHost(WebviewChannels.pointerLeave))
 // Vidéo en plein écran : le clic molette ne va pas à la page (lien ouvert, défilement
 // automatique), il bascule la molette de Tessera entre la page et la vidéo
 let stage = false

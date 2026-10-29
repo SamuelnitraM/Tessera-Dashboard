@@ -134,7 +134,11 @@ const alwaysFrames = new Set<number>()
 const middleFrames = new Set<number>()
 /** Clic molette retenu : son relâchement l'est aussi. */
 let middleHeld = false
-/** Cadre où l'utilisateur a cliqué : la molette reste à son application, jusqu'à la sortie. */
+/**
+ * Cadre où l'utilisateur vient de cliquer : la molette reste à son application, le temps que
+ * l'interface donne le focus à son bloc (elle retire alors le cadre de `wheelFrames`). Remis à
+ * zéro quand l'interface y renvoie la molette (le bloc a perdu le focus).
+ */
 let activeFrame = 0
 let hook = 0
 /**
@@ -248,11 +252,6 @@ function onMouse(message: number, x: number, y: number, mouseData: number): bool
       return true
 
     case WM_MOUSEMOVE:
-      // Souris sortie du bloc actif : la molette revient à la page
-      if (activeFrame && rootAt(x, y) !== activeFrame) {
-        activeFrame = 0
-        reply({ active: 0 })
-      }
       if (pan) {
         pan.dx = x - pan.x
         pan.dy = y - pan.y
@@ -378,8 +377,9 @@ function run(command: MouseCommand): boolean {
   if (command.cmd === 'wheel') {
     if (command.value && command.always) alwaysFrames.add(command.frame)
     else alwaysFrames.delete(command.frame)
+    // Bloc qui a perdu le focus : sa molette revient à la page
+    if (command.value && command.frame === activeFrame) activeFrame = 0
   }
-  if (!wheelFrames.has(activeFrame)) activeFrame = 0
   updateHook()
   return true
 }

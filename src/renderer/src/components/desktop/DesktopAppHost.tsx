@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next'
 import type { DesktopApp, FullScreenMode, HostRect } from '@shared/desktop-apps'
 import {
   blockIdOf,
-  leaveBlock,
   scrollPage,
   setActiveBlock,
   useActiveBlockStore
@@ -266,8 +265,11 @@ export function DesktopAppHost({
         // Plein écran de l'application : tout l'écran, ou seulement le bloc (le processus
         // principal la garde alors dans son bloc)
         if (rect) rect.fullScreen = live.current.fullScreen
-        // Bloc d'une page qui défile : la molette au-dessus de la fenêtre fait défiler la page
-        if (rect && !staged && blockIdOf(element) && useActiveBlockStore.getState().pageScrolls) {
+        // Bloc d'une page qui défile, sans le focus : la molette au-dessus de la fenêtre fait
+        // défiler la page
+        const blockId = blockIdOf(element)
+        const { pageScrolls, activeId } = useActiveBlockStore.getState()
+        if (rect && !staged && blockId && pageScrolls && activeId !== blockId) {
           rect.pageWheel = true
         }
         // Poignées d'étirement : seulement autour d'un bloc entièrement visible, à l'extérieur
@@ -304,9 +306,12 @@ export function DesktopAppHost({
       mutationObserver.observe(gridItem, { attributes: true, attributeFilter: ['style'] })
     window.addEventListener('resize', report)
     window.addEventListener('scroll', report, true)
-    // La page se met à défiler (ou plus) : la molette change de destinataire
+    // La page se met à défiler (ou plus), le focus change de bloc : la molette change de
+    // destinataire
     const unsubscribe = useActiveBlockStore.subscribe((state, previous) => {
-      if (state.pageScrolls !== previous.pageScrolls) report()
+      if (state.pageScrolls !== previous.pageScrolls || state.activeId !== previous.activeId) {
+        report()
+      }
     })
     // Vidéo plein écran qui glisse, réglage de la molette changé
     const stopStage = useVideoStageStore.subscribe(report)
@@ -469,7 +474,6 @@ export function DesktopAppHost({
     })
     const stopActivate = window.tessera.desktopApps.onActivate((activated) => {
       if (activated === hostId) setActiveBlock(blockId)
-      else leaveBlock(blockId)
     })
     return () => {
       stopWheel()

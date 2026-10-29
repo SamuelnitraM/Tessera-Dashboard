@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   mailErrorMessage,
   useMail,
+  useLatest,
   useMailArrivals,
   type MailAction,
   type MailPage,
@@ -27,15 +28,46 @@ export interface Inbox {
 }
 
 /**
- * Mails d'un dossier (filtrés, recherchés) : rechargés quand la requête change et à
- * l'arrivée de nouveaux mails. `starredFolder` : le dossier des mails suivis (un mail qui
- * n'est plus suivi en disparaît).
+ * Boîte commune à plusieurs comptes : l'identifiant d'un mail de la liste est précédé de son
+ * compte (un identifiant n'est unique que dans son compte).
  */
-export function useInbox(accountId: string, query: MailQuery, starredFolder: boolean): Inbox {
+const SEPARATOR = '\u001f'
+
+export const joinMailId = (accountId: string, id: string): string => `${accountId}${SEPARATOR}${id}`
+
+/** Compte et identifiant d'un mail de la liste (`fallback` : le compte d'une liste à un compte). */
+export function splitMailId(id: string, fallback: string): { accountId: string; id: string } {
+  const index = id.indexOf(SEPARATOR)
+  return index < 0
+    ? { accountId: fallback, id }
+    : { accountId: id.slice(0, index), id: id.slice(index + 1) }
+}
+
+/** Mails chargés d'un compte, et sa page suivante. */
+interface AccountPages {
+  messages: MailSummary[]
+  next: string | null
+}
+
+/**
+ * Mails d'un dossier (filtrés, recherchés) d'un compte, ou de la boîte de réception de plusieurs
+ * comptes (boîte commune, du plus récent au plus ancien) : rechargés quand la requête change et à
+ * l'arrivée de nouveaux mails. `starredFolder` : le dossier des mails suivis (un mail qui n'est
+ * plus suivi en disparaît).
+ */
+export function useInbox(
+  accountIds: readonly string[],
+  query: MailQuery,
+  starredFolder: boolean
+): Inbox {
   const mail = useMail()
-  const arrivals = useMailArrivals(accountId)
-  const [messages, setMessages] = useState<MailSummary[]>([])
-  const [next, setNext] = useState<string | null>(null)
+  // Comparés par leur contenu (la liste peut être recréée à chaque rendu)
+  const accountsKey = accountIds.join('\n')
+  const accounts = useMemo(() => accountsKey.split('\n'), [accountsKey])
+  const multi = accounts.length > 1
+  const arrivals = useMailArrivals(accounts)
+  const [pages, setPages] = useState<Record<string, AccountPages>>({})
+  const pagesRef = useLatest(pages)
   /** Premier chargement terminé (réussi ou non). */
   const [ready, setReady] = useState(false)
   /** Chargement demandé par l'utilisateur (actualiser, mails plus anciens). */
@@ -44,45 +76,78 @@ export function useInbox(accountId: string, query: MailQuery, starredFolder: boo
   /** Chargement le plus récent : les réponses plus anciennes sont ignorées. */
   const request = useRef(0)
 
-  /** Page reçue (ou erreur) : appliquée si c'est la réponse au chargement le plus récent. */
-  const settle = useCallback((id: number, page: string | null, result: MailPage | Error) => {
-    if (id !== request.current) return
-    setReady(true)
-    if (result instanceof Error) return setError(mailErrorMessage(result))
-    setMessages((previous) => {
-      if (!page) return result.messages
-      const known = new Set(previous.map((message) => message.id))
-      return [...previous, ...result.messages.filter((message) => !known.has(message.id))]
-    })
-    setNext(result.next)
-    setError(null)
-  }, [])
-
   // La requête est un objet : comparée par son contenu
   const queryKey = JSON.stringify(query)
-  const fetchPage = useCallback(
-    (page: string | null): Promise<void> => {
+  /** Première page de chaque compte (`more` : page suivante de ceux qui en ont une). */
+  const fetchPages = useCallback(
+    async (more: boolean): Promise<void> => {
       const id = ++request.current
-      return mail.list(accountId, JSON.parse(queryKey) as MailQuery, page).then(
-        (result) => settle(id, page, result),
-        (failure: unknown) =>
-          settle(id, page, failure instanceof Error ? failure : new Error(String(failure)))
+      const current = pagesRef.current
+      const targets = more ? accounts.filter((account) => current[account]?.next) : accounts
+      const results = await Promise.allSettled(
+        targets.map((account) =>
+          mail.list(account, JSON.parse(queryKey) as MailQuery, more ? current[account].next : null)
+        )
       )
+      if (id !== request.current) return
+      setReady(true)
+      const failures = results.flatMap((result) =>
+        result.status === 'rejected' ? [mailErrorMessage(result.reason)] : []
+      )
+      setError(failures[0] ?? null)
+      setPages((previous) => {
+        const next: Record<string, AccountPages> = more ? { ...previous } : {}
+        targets.forEach((account, index) => {
+          const result = results[index]
+          // Échec : les mails déjà affichés restent
+          if (result.status === 'rejected') {
+            if (!more) next[account] = previous[account] ?? { messages: [], next: null }
+            return
+          }
+          const page: MailPage = result.value
+          const before = more ? (previous[account]?.messages ?? []) : []
+          const known = new Set(before.map((message) => message.id))
+          next[account] = {
+            messages: [...before, ...page.messages.filter((message) => !known.has(message.id))],
+            next: page.next
+          }
+        })
+        return next
+      })
     },
-    [mail, accountId, queryKey, settle]
+    [mail, accounts, queryKey, pagesRef]
   )
 
   // Compte choisi, ou nouveaux mails arrivés : la liste repart du début (sans indicateur)
   useEffect(() => {
-    void fetchPage(null)
-  }, [fetchPage, arrivals])
+    void fetchPages(false)
+  }, [fetchPages, arrivals])
 
-  const load = (page: string | null): void => {
+  const load = (more: boolean): void => {
     setBusy(true)
-    void fetchPage(page).finally(() => setBusy(false))
+    void fetchPages(more).finally(() => setBusy(false))
   }
 
-  /** La liste après l'action sur ces mails (ceux qui ne correspondent plus la quittent). */
+  const messages = useMemo(() => {
+    if (!multi) return pages[accounts[0]]?.messages ?? []
+    const all = accounts.flatMap((account) =>
+      (pages[account]?.messages ?? []).map((message) => ({
+        ...message,
+        id: joinMailId(account, message.id)
+      }))
+    )
+    all.sort((a, b) => b.date - a.date)
+    // Un compte a des mails plus anciens à charger : rien n'est montré avant son dernier mail
+    // chargé (un mail d'un autre compte, plus ancien, viendrait sinon avant les siens)
+    const limits = accounts.flatMap((account) => {
+      const page = pages[account]
+      return page?.next && page.messages.length ? [page.messages.at(-1)!.date] : []
+    })
+    const limit = limits.length ? Math.max(...limits) : -Infinity
+    return all.filter((message) => message.date >= limit)
+  }, [multi, accounts, pages])
+
+  /** Les mails de ce compte après l'action (ceux qui ne correspondent plus quittent la liste). */
   const applied = useCallback(
     (list: MailSummary[], ids: Set<string>, action: MailAction): MailSummary[] => {
       const leaves =
@@ -103,47 +168,78 @@ export function useInbox(accountId: string, query: MailQuery, starredFolder: boo
     [query.filter, starredFolder]
   )
 
+  /** Mails de la liste, rangés par compte (identifiants du compte). */
+  const byAccount = useCallback(
+    (ids: string[]): Map<string, string[]> => {
+      const groups = new Map<string, string[]>()
+      for (const id of ids) {
+        const split = splitMailId(id, accounts[0])
+        groups.set(split.accountId, [...(groups.get(split.accountId) ?? []), split.id])
+      }
+      return groups
+    },
+    [accounts]
+  )
+
+  const applyLocally = useCallback(
+    (groups: Map<string, string[]>, action: MailAction) =>
+      setPages((previous) => {
+        const next = { ...previous }
+        for (const [account, ids] of groups) {
+          const page = previous[account]
+          if (page)
+            next[account] = { ...page, messages: applied(page.messages, new Set(ids), action) }
+        }
+        return next
+      }),
+    [applied]
+  )
+
   const act = useCallback(
     async (id: string, action: MailAction) => {
-      const before = messages
-      setMessages((list) => applied(list, new Set([id]), action))
+      const before = pagesRef.current
+      const split = splitMailId(id, accounts[0])
+      applyLocally(new Map([[split.accountId, [split.id]]]), action)
       try {
-        await mail.act(accountId, id, action)
+        await mail.act(split.accountId, split.id, action)
       } catch (failure) {
-        setMessages(before)
+        setPages(before)
         throw failure
       }
     },
-    [mail, accountId, messages, applied]
+    [mail, accounts, applyLocally, pagesRef]
   )
 
   const actMany = useCallback(
     async (ids: string[], action: MailAction) => {
-      setMessages((list) => applied(list, new Set(ids), action))
+      const groups = byAccount(ids)
+      applyLocally(groups, action)
       let failure: unknown = null
       // Un mail après l'autre : un serveur IMAP supporte mal les demandes en rafale
-      for (const id of ids) {
-        try {
-          await mail.act(accountId, id, action)
-        } catch (error) {
-          failure ??= error
+      for (const [account, accountIds] of groups) {
+        for (const id of accountIds) {
+          try {
+            await mail.act(account, id, action)
+          } catch (error) {
+            failure ??= error
+          }
         }
       }
       if (failure) {
-        void fetchPage(null)
+        void fetchPages(false)
         throw failure
       }
     },
-    [mail, accountId, applied, fetchPage]
+    [mail, byAccount, applyLocally, fetchPages]
   )
 
   return {
     messages,
     loading: !ready || busy,
     error,
-    hasMore: next !== null,
-    reload: () => load(null),
-    loadMore: () => next && load(next),
+    hasMore: accounts.some((account) => pages[account]?.next),
+    reload: () => load(false),
+    loadMore: () => load(true),
     act,
     actMany
   }

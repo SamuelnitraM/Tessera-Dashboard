@@ -2,42 +2,33 @@ import { create } from 'zustand'
 
 /**
  * Molette de la page (hors mode édition) : elle fait défiler la page, pas l'intérieur des blocs.
- * Un clic dans un bloc le rend actif : la molette fait alors défiler son contenu, jusqu'à un clic
- * ailleurs ou la sortie de la souris. Vaut pour les widgets, les pages web et les applications
- * installées.
+ * Un clic dans un bloc (sa barre comprise) lui donne le focus : la molette au-dessus de lui fait
+ * alors défiler son contenu, et la page ne bouge pas, même arrivé au bout. Le focus reste jusqu'à
+ * un clic ailleurs dans Tessera (pas quand la souris sort du bloc, ni après un clic dans une autre
+ * fenêtre). Vaut pour les widgets, les pages web et les applications installées.
  */
 interface ActiveBlockState {
-  /** Bloc où l'utilisateur a cliqué et que la souris n'a pas quitté (molette), ou `null`. */
+  /** Bloc qui a le focus (sa barre se colore, la molette fait défiler son contenu), ou `null`. */
   activeId: string | null
-  /** Bloc qui a le focus (dernier cliqué, jusqu'à un clic ailleurs) : sa barre se colore. */
-  focusedId: string | null
   /** La page affichée défile (des blocs dépassent) : sinon, la molette reste aux blocs. */
   pageScrolls: boolean
 }
 
 export const useActiveBlockStore = create<ActiveBlockState>()(() => ({
   activeId: null,
-  focusedId: null,
   pageScrolls: false
 }))
 
-/** Clic dans un bloc (actif et focus), ou ailleurs (`null` : plus aucun). */
+/** Clic dans un bloc (focus), ou ailleurs (`null` : plus aucun). */
 export const setActiveBlock = (blockId: string | null): void =>
-  useActiveBlockStore.setState({ activeId: blockId, focusedId: blockId })
-
-/** Le bloc quitte l'état actif (souris sortie), s'il l'était : il garde le focus. */
-export function leaveBlock(blockId: string): void {
-  if (useActiveBlockStore.getState().activeId === blockId) {
-    useActiveBlockStore.setState({ activeId: null })
-  }
-}
+  useActiveBlockStore.setState({ activeId: blockId })
 
 /**
- * Donne le focus à un bloc sans l'activer (clic sur une notification) : sa barre se colore et
- * la page défile jusqu'à lui, dès qu'il est affiché (la page peut être en train de s'ouvrir).
+ * Donne le focus à un bloc (clic sur une notification) : sa barre se colore et la page défile
+ * jusqu'à lui, dès qu'il est affiché (la page peut être en train de s'ouvrir).
  */
 export function focusBlock(blockId: string): void {
-  useActiveBlockStore.setState({ activeId: null, focusedId: blockId })
+  useActiveBlockStore.setState({ activeId: blockId })
   const started = performance.now()
   const reveal = (): void => {
     const block = document.querySelector(`[data-block-id="${CSS.escape(blockId)}"]`)

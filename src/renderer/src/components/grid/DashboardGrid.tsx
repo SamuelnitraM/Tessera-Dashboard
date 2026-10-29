@@ -20,7 +20,7 @@ import {
   toCompactMinSize,
   type MovePlan
 } from '../../lib/grid'
-import { leaveBlock, setActiveBlock, useActiveBlockStore } from '../../stores/activeBlock'
+import { setActiveBlock, useActiveBlockStore } from '../../stores/activeBlock'
 import { useDashboardStore } from '../../stores/dashboard'
 import { fillsScreen, screenLines, usePageScreensStore } from '../../stores/pageScreens'
 import { useSettingsStore } from '../../stores/settings'
@@ -329,9 +329,9 @@ export function DashboardGrid({
             data-block-id={widget.id}
             data-displaced={displaced.has(widget.id)}
             data-active={!editing && activeId === widget.id}
-            // Clic dans le bloc : la molette fait défiler son contenu (jusqu'à la sortie)
+            // Clic dans le bloc (sa barre comprise) : il a le focus, la molette fait défiler
+            // son contenu
             onPointerDownCapture={editing ? undefined : () => setActiveBlock(widget.id)}
-            onMouseLeave={() => leaveBlock(widget.id)}
           >
             <WidgetFrame
               pageId={page.id}

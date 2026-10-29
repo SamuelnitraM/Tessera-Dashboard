@@ -62,7 +62,7 @@ export interface FrameMiddle {
   middle: number
 }
 
-/** Clic dans l'application d'un cadre (`active`), ou souris sortie (`active: 0`). */
+/** Clic dans l'application d'un cadre, ou cadre activé : son bloc prend le focus. */
 export interface FrameActive {
   active: number
 }

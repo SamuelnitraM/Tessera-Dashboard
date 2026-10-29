@@ -15,8 +15,8 @@
       "type": "inbox",
       "name": { "fr": "Mails", "en": "Email" },
       "description": {
-        "fr": "La boîte de réception d’un compte, avec lecture et écriture des mails.",
-        "en": "An account’s inbox, to read and write emails."
+        "fr": "La boîte de réception d’un compte, ou de tous les comptes, avec lecture et écriture des mails.",
+        "en": "The inbox of one account, or of all accounts, to read and write emails."
       },
       "icon": "mail",
       "defaultSize": { "w": 8, "h": 6 },

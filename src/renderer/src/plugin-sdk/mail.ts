@@ -76,29 +76,40 @@ export function useMailAccounts(): {
   return { accounts, states }
 }
 
-/** Augmente à chaque arrivée de nouveaux mails sur le compte (pour recharger la liste). */
-export function useMailArrivals(accountId: string): number {
-  return useMailStore((state) => state.arrivals[accountId] ?? 0)
+/**
+ * Augmente à chaque arrivée de nouveaux mails sur le compte (ou l'un des comptes), pour recharger
+ * la liste.
+ */
+export function useMailArrivals(accountId: string | readonly string[]): number {
+  const ids = typeof accountId === 'string' ? [accountId] : accountId
+  return useMailStore((state) => ids.reduce((sum, id) => sum + (state.arrivals[id] ?? 0), 0))
 }
 
 /**
- * Clic sur la notification d'un mail de ce compte : `onOpen` reçoit son identifiant (y compris
- * si la demande précède l'affichage du bloc). Un seul bloc ouvre chaque mail.
+ * Clic sur la notification d'un mail de ce compte (ou de l'un des comptes) : `onOpen` reçoit son
+ * identifiant et son compte (y compris si la demande précède l'affichage du bloc). Un seul bloc
+ * ouvre chaque mail.
  */
-export function useMailOpenRequest(accountId: string, onOpen: (messageId: string) => void): void {
+export function useMailOpenRequest(
+  accountId: string | readonly string[],
+  onOpen: (messageId: string, accountId: string) => void
+): void {
   const onOpenRef = useRef(onOpen)
   useLayoutEffect(() => {
     onOpenRef.current = onOpen
   })
+  // Comparés par leur contenu (une liste peut être recréée à chaque rendu)
+  const key = typeof accountId === 'string' ? accountId : accountId.join('\n')
   useEffect(() => {
+    const ids = key.split('\n')
     const handle = (request: MailStoreRequest): void => {
-      if (!request || request.accountId !== accountId) return
+      if (!request || !ids.includes(request.accountId)) return
       useMailStore.getState().clearOpenRequest(request.nonce)
-      onOpenRef.current(request.messageId)
+      onOpenRef.current(request.messageId, request.accountId)
     }
     handle(useMailStore.getState().openRequest)
     return useMailStore.subscribe((state) => handle(state.openRequest))
-  }, [accountId, onOpenRef])
+  }, [key, onOpenRef])
 }
 
 type MailStoreRequest = ReturnType<typeof useMailStore.getState>['openRequest']

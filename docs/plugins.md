@@ -307,14 +307,14 @@ await mail.send(accountId, {
 })
 ```
 
-| Fonction                                                              | Rôle                                                                                                 |
-| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `list`, `get`, `act`, `send`                                          | Boîte de réception, mail complet, classement, envoi (réponse : `replyTo`, transfert : `forwardFrom`) |
-| `pickUploads()`                                                       | Fichiers à joindre, choisis par l'utilisateur                                                        |
-| `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                           |
-| `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                     |
-| `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée                           |
-| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                      |
+| Fonction                                                              | Rôle                                                                                                                                        |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list`, `get`, `act`, `send`                                          | Boîte de réception, mail complet, classement, envoi (réponse : `replyTo`, transfert : `forwardFrom`)                                        |
+| `pickUploads()`                                                       | Fichiers à joindre, choisis par l'utilisateur                                                                                               |
+| `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                                                                  |
+| `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                                                            |
+| `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée (un compte ou plusieurs ; `onOpen` reçoit le mail et son compte) |
+| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                                                             |
 
 Le HTML d'un mail (`message.html`) n'est **pas nettoyé** : l'afficher sans précaution exposerait Tessera. L'extension **Mails** (`plugins/tessera.mail`) montre comment le nettoyer (DOMPurify) et l'isoler dans un cadre sans scripts, images distantes bloquées. Les notifications des nouveaux mails sont envoyées par Tessera elle-même (source par compte).
 

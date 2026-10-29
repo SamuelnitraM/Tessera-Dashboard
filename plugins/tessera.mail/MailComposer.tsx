@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import {
   Button,
+  Select,
   formatAddress,
   mailErrorMessage,
   parseAddressList,
@@ -50,6 +51,8 @@ export interface ComposeRequest {
 
 interface MailComposerProps {
   account: MailAccount
+  /** Nouveau mail : comptes d'où il peut partir (choix « De »), si plusieurs. */
+  accounts?: MailAccount[]
   request: ComposeRequest
   onClose: (sent: boolean) => void
   /** Reçoit une fonction qui dit si le mail a du contenu (avant de quitter l'écriture). */
@@ -123,7 +126,8 @@ function htmlToText(html: string, quoted: boolean): string {
 
 /** Nouveau mail, réponse ou transfert. */
 export function MailComposer({
-  account,
+  account: initialAccount,
+  accounts = [],
   request,
   onClose,
   hasContentRef
@@ -131,6 +135,10 @@ export function MailComposer({
   const t = usePluginTranslation()
   const language = useLanguage()
   const mail = useMail()
+  // Une réponse ou un transfert part du compte du mail d'origine
+  const choosable = request.mode === 'new' && accounts.length > 1
+  const [fromId, setFromId] = useState(initialAccount.id)
+  const account = accounts.find((item) => item.id === fromId) ?? initialAccount
   const initial = useMemo(
     () => initialDraft(request, account, t, language),
     // Calculé une fois, à l'ouverture
@@ -239,6 +247,20 @@ export function MailComposer({
 
   return (
     <div className={styles.composer}>
+      {choosable && (
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>{t('composer.from')}</span>
+          <Select
+            value={account.id}
+            aria-label={t('composer.from')}
+            options={accounts.map((item) => ({
+              value: item.id,
+              label: item.name === item.address ? item.address : `${item.name} <${item.address}>`
+            }))}
+            onChange={setFromId}
+          />
+        </label>
+      )}
       {field(
         t('composer.to'),
         to,

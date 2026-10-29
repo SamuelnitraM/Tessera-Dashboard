@@ -11,6 +11,7 @@ import {
 } from '@shared/mail'
 import type { MailConnection } from './connection'
 import { getAccountSecret } from '../auth/secrets'
+import { snippetOf } from './mime'
 
 /**
  * Autres fournisseurs : IMAP pour lire et classer, SMTP pour envoyer, avec le mot de passe
@@ -136,6 +137,70 @@ const SPECIAL_USE: Record<string, MailFolderKind> = {
 /** Dossier virtuel : mails suivis de la boîte de réception (serveur sans dossier « Suivis »). */
 const STARRED = '\u0000starred'
 
+/** Partie qui donne l'aperçu d'un mail : son texte, sinon son HTML. */
+interface TextPart {
+  /** Numéro de la partie (`TEXT` : mail d'une seule partie). */
+  key: string
+  html: boolean
+  encoding: string
+  charset: string
+}
+
+/**
+ * Octets lus au début de la partie (texte, HTML) : assez pour l'aperçu, sans télécharger le mail.
+ * Le HTML commence souvent par ses styles.
+ */
+const PREVIEW_BYTES = { text: 2048, html: 12_288 }
+/** Aperçus gardés en mémoire (par mail) : pas relus à chaque vérification. */
+const SNIPPET_CACHE = 2000
+
+function textPart(root: MessageStructureObject | undefined): TextPart | null {
+  const found: Record<'plain' | 'html', MessageStructureObject | null> = { plain: null, html: null }
+  const walk = (node: MessageStructureObject): void => {
+    if (node.disposition === 'attachment' || node.type === 'message/rfc822') return
+    if (node.childNodes) return node.childNodes.forEach(walk)
+    if (node.type === 'text/plain') found.plain ??= node
+    else if (node.type === 'text/html') found.html ??= node
+  }
+  if (root) walk(root)
+  const node = found.plain ?? found.html
+  if (!node) return null
+  return {
+    key: node.part ?? 'TEXT',
+    html: node === found.html,
+    encoding: (node.encoding ?? '').toLowerCase(),
+    charset: node.parameters?.charset ?? 'utf-8'
+  }
+}
+
+/** Début d'une partie, encore encodée (base64, quoted-printable) : son texte. */
+function decodePart(raw: Buffer, part: TextPart): string {
+  let bytes = raw
+  if (part.encoding === 'base64') {
+    const clean = raw.toString('latin1').replace(/[^A-Za-z0-9+/]/g, '')
+    bytes = Buffer.from(clean.slice(0, clean.length - (clean.length % 4)), 'base64')
+  } else if (part.encoding === 'quoted-printable') {
+    const text = raw.toString('latin1').replace(/=\r?\n/g, '')
+    const decoded: number[] = []
+    for (let i = 0; i < text.length; i++) {
+      const hex = text[i] === '=' ? text.slice(i + 1, i + 3) : ''
+      if (/^[0-9A-Fa-f]{2}$/.test(hex)) {
+        decoded.push(parseInt(hex, 16))
+        i += 2
+      } else decoded.push(text.charCodeAt(i) & 0xff)
+    }
+    bytes = Buffer.from(decoded)
+  }
+  let text: string
+  try {
+    text = new TextDecoder(part.charset).decode(bytes)
+  } catch {
+    // Jeu de caractères inconnu
+    text = new TextDecoder().decode(bytes)
+  }
+  return snippetOf(text, part.html)
+}
+
 function toSummary(path: string, message: FetchMessageObject): MailSummary {
   const from = message.envelope?.from?.[0]
   const date = message.internalDate ?? message.envelope?.date
@@ -168,6 +233,7 @@ export function connectImap(account: MailAccount): MailConnection {
 
   let client: ImapFlow | null = null
   let connecting: Promise<ImapFlow> | null = null
+  const snippets = new Map<string, string>()
 
   /** Connexion gardée ouverte, rouverte si le serveur l'a fermée. */
   const connection = (): Promise<ImapFlow> => {
@@ -205,6 +271,41 @@ export function connectImap(account: MailAccount): MailConnection {
     } finally {
       lock.release()
     }
+  }
+
+  /**
+   * Aperçu des mails (début de leur texte), lu sans les marquer comme lus : une demande par sorte
+   * de partie (souvent une ou deux pour toute la page). Un aperçu illisible reste vide.
+   */
+  async function readSnippets(
+    current: ImapFlow,
+    path: string,
+    parts: Map<number, TextPart>
+  ): Promise<void> {
+    const groups = new Map<string, number[]>()
+    for (const [uid, part] of parts) {
+      const group = `${part.key}|${part.html}`
+      groups.set(group, [...(groups.get(group) ?? []), uid])
+    }
+    for (const [group, uids] of groups) {
+      const [key, html] = group.split('|')
+      const maxLength = html === 'true' ? PREVIEW_BYTES.html : PREVIEW_BYTES.text
+      try {
+        for await (const message of current.fetch(
+          uids.join(','),
+          { uid: true, bodyParts: [{ key, maxLength }] },
+          { uid: true }
+        )) {
+          const part = parts.get(message.uid)
+          const raw = message.bodyParts?.values().next().value
+          if (!part || !raw) continue
+          snippets.set(mailId(path, message.uid), decodePart(raw, part))
+        }
+      } catch {
+        // Sans aperçu : la liste s'affiche quand même
+      }
+    }
+    for (const key of [...snippets.keys()].slice(0, -SNIPPET_CACHE)) snippets.delete(key)
   }
 
   /** Dossier spécial (Archives, Corbeille, Envoyés), d'après le serveur ou son nom. */
@@ -269,15 +370,22 @@ export function connectImap(account: MailAccount): MailConnection {
         const offset = Math.max(0, Number(page) || 0)
         const slice = uids.slice(offset, offset + limit)
         const messages: MailSummary[] = []
+        const parts = new Map<number, TextPart>()
         if (slice.length) {
           for await (const message of current.fetch(
             slice.join(','),
             { uid: true, flags: true, envelope: true, internalDate: true, bodyStructure: true },
             { uid: true }
           )) {
-            messages.push(toSummary(path, message))
+            const summary = toSummary(path, message)
+            summary.snippet = snippets.get(summary.id) ?? ''
+            messages.push(summary)
+            const part = textPart(message.bodyStructure)
+            if (part && !snippets.has(summary.id)) parts.set(message.uid, part)
           }
         }
+        await readSnippets(current, path, parts)
+        for (const message of messages) message.snippet = snippets.get(message.id) ?? ''
         return {
           messages: messages.sort((a, b) => b.date - a.date),
           next: offset + limit < uids.length ? String(offset + limit) : null

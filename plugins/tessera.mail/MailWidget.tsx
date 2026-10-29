@@ -25,11 +25,11 @@ import { useFolderName, useFolders } from './useFolders'
 import { MailComposer, type ComposeRequest } from './MailComposer'
 import { MailList } from './MailList'
 import { MailReader } from './MailReader'
-import { useInbox } from './useInbox'
+import { joinMailId, splitMailId, useInbox } from './useInbox'
 import styles from './MailWidget.module.css'
 
 interface MailConfig {
-  /** Compte affiché ; absent : le premier compte. */
+  /** Compte affiché (`all` : boîte commune à tous les comptes) ; absent : le premier compte. */
   accountId?: string
   remoteImages: boolean
   /** Dossier ou libellé affiché. */
@@ -42,12 +42,19 @@ interface MailConfig {
 /** En dessous de cette largeur, le menu des dossiers passe par-dessus la liste. */
 const NARROW_WIDTH = 620
 
-type View =
-  { kind: 'list' } | { kind: 'read'; id: string } | { kind: 'compose'; request: ComposeRequest }
+/** Choix « Tous les comptes » : boîte de réception commune. */
+const ALL_ACCOUNTS = 'all'
 
-/** Bloc Mails : boîte de réception d'un compte, lecture et écriture. */
+type View =
+  | { kind: 'list' }
+  | { kind: 'read'; id: string }
+  /** `accountId` : compte d'envoi (réponse : celui du mail d'origine). */
+  | { kind: 'compose'; request: ComposeRequest; accountId?: string }
+
+/** Bloc Mails : boîte de réception d'un compte (ou de tous), lecture et écriture. */
 export function MailWidget({ config, setConfig }: WidgetProps<MailConfig>): React.JSX.Element {
   const { accounts } = useMailAccounts()
+  const unified = config.accountId === ALL_ACCOUNTS && accounts.length > 1
   const account = accounts.find((item) => item.id === config.accountId) ?? accounts[0]
 
   if (!account) {
@@ -60,8 +67,9 @@ export function MailWidget({ config, setConfig }: WidgetProps<MailConfig>): Reac
   return (
     <AccountInbox
       // Autre compte : la vue repart de la liste
-      key={account.id}
+      key={unified ? ALL_ACCOUNTS : account.id}
       account={account}
+      scope={unified ? accounts : [account]}
       accounts={accounts}
       remoteImages={config.remoteImages}
       config={config}
@@ -73,13 +81,17 @@ export function MailWidget({ config, setConfig }: WidgetProps<MailConfig>): Reac
 
 function AccountInbox({
   account,
+  scope,
   accounts,
   remoteImages,
   config,
   setConfig,
   onAccountChange
 }: {
+  /** Compte affiché (boîte commune : le premier, pour écrire un mail). */
   account: MailAccount
+  /** Comptes dont les mails sont listés : un seul, ou tous (boîte commune). */
+  scope: MailAccount[]
   accounts: MailAccount[]
   remoteImages: boolean
   config: MailConfig
@@ -89,20 +101,27 @@ function AccountInbox({
   const t = usePluginTranslation()
   const mail = useMail()
   const { states } = useMailAccounts()
-  const state = states[account.id]
+  // Boîte commune : les boîtes de réception seulement, chaque mail avec le nom de son compte
+  const unified = scope.length > 1
+  const scopeIds = scope.map((item) => item.id)
+  const accountOf = (id: string): MailAccount =>
+    scope.find((item) => item.id === splitMailId(id, account.id).accountId) ?? account
+  // Compte en erreur (boîte commune : le premier)
+  const failing = scope.find((item) => states[item.id]?.error)
+  const state = failing ? states[failing.id] : undefined
   const folders = useFolders(account.id)
   const folderName = useFolderName()
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const query: MailQuery = {
-    folder: config.folder ?? INBOX,
+    folder: unified ? INBOX : (config.folder ?? INBOX),
     filter: config.filter ?? 'all',
     search
   }
   const folder = folders?.find(
     (item) => item.id === query.folder || (query.folder === INBOX && item.kind === 'inbox')
   )
-  const inbox = useInbox(account.id, query, folder?.kind === 'starred')
+  const inbox = useInbox(scopeIds, query, !unified && folder?.kind === 'starred')
 
   // Largeur du bloc : menu des dossiers à côté de la liste, ou par-dessus (bloc étroit)
   const root = useRef<HTMLDivElement>(null)
@@ -117,7 +136,7 @@ function AccountInbox({
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
-  const sidebarVisible = narrow ? menuOpen : config.sidebar !== false
+  const sidebarVisible = !unified && (narrow ? menuOpen : config.sidebar !== false)
   const toggleSidebar = (): void =>
     narrow ? setMenuOpen((open) => !open) : setConfig({ sidebar: config.sidebar === false })
   const [view, setView] = useState<View>({ kind: 'list' })
@@ -135,9 +154,11 @@ function AccountInbox({
     else action()
   }
 
-  // Clic sur la notification d'un mail de ce compte : il s'ouvre ici
-  useMailOpenRequest(account.id, (messageId) =>
-    leaveComposer(() => setView({ kind: 'read', id: messageId }))
+  // Clic sur la notification d'un mail de ce compte (ou de l'un d'eux) : il s'ouvre ici
+  useMailOpenRequest(scopeIds, (messageId, accountId) =>
+    leaveComposer(() =>
+      setView({ kind: 'read', id: unified ? joinMailId(accountId, messageId) : messageId })
+    )
   )
 
   // Les messages passagers (« Mail envoyé »…) disparaissent d'eux-mêmes, en s'animant
@@ -151,7 +172,7 @@ function AccountInbox({
   const refresh = async (): Promise<void> => {
     setRefreshing(true)
     try {
-      await mail.checkNow(account.id)
+      await Promise.all(scope.map((item) => mail.checkNow(item.id)))
       inbox.reload()
     } finally {
       setRefreshing(false)
@@ -177,21 +198,26 @@ function AccountInbox({
   return (
     <div ref={root} className={styles.widget}>
       <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.iconButton}
-          title={t('folders.toggle')}
-          aria-label={t('folders.toggle')}
-          aria-expanded={sidebarVisible}
-          onClick={toggleSidebar}
-        >
-          <Menu size={16} aria-hidden />
-        </button>
+        {!unified && (
+          <button
+            type="button"
+            className={styles.iconButton}
+            title={t('folders.toggle')}
+            aria-label={t('folders.toggle')}
+            aria-expanded={sidebarVisible}
+            onClick={toggleSidebar}
+          >
+            <Menu size={16} aria-hidden />
+          </button>
+        )}
         {accounts.length > 1 ? (
           <Select
-            value={account.id}
+            value={unified ? ALL_ACCOUNTS : account.id}
             aria-label={t('account')}
-            options={accounts.map((item) => ({ value: item.id, label: item.name }))}
+            options={[
+              { value: ALL_ACCOUNTS, label: t('allAccounts') },
+              ...accounts.map((item) => ({ value: item.id, label: item.name }))
+            ]}
             onChange={(accountId) => leaveComposer(() => onAccountChange(accountId))}
           />
         ) : (
@@ -233,21 +259,25 @@ function AccountInbox({
         <BlockSettingsButton className={styles.iconButton} />
       </header>
 
-      {state?.error &&
-        (account.provider === 'gmail' && needsReconnect(state.error) ? (
+      {failing &&
+        state?.error &&
+        (failing.provider === 'gmail' && needsReconnect(state.error) ? (
           // Connexion Google à refaire : sur place, la page s'ouvre sur ce compte
           <AccountRequired
             compact
             service="gmail"
             error={state.error}
-            account={account.address}
-            signIn={() => mail.reconnect(account.id)}
+            account={failing.address}
+            signIn={() => mail.reconnect(failing.id)}
             onConnected={inbox.reload}
           />
         ) : (
           <div className={styles.banner}>
             <AlertTriangle size={15} aria-hidden />
-            <span>{mailErrorMessage(new Error(`mail-error:${state.error}`))}</span>
+            <span>
+              {unified && `${failing.name} : `}
+              {mailErrorMessage(new Error(`mail-error:${state.error}`))}
+            </span>
             {/* Compte IMAP : mot de passe à saisir de nouveau dans Paramètres → Comptes */}
             {state.error === 'auth' && <Button onClick={openMailSettings}>{t('reconnect')}</Button>}
           </div>
@@ -287,7 +317,11 @@ function AccountInbox({
             <>
               <div className={styles.listBar}>
                 <span className={styles.listTitle}>
-                  {search ? t('searchResults', { query: search }) : folderName(folder)}
+                  {search
+                    ? t('searchResults', { query: search })
+                    : unified
+                      ? t('allInboxes')
+                      : folderName(folder)}
                 </span>
                 <span className={styles.chips} role="radiogroup" aria-label={t('filters.label')}>
                   {(['all', 'unread', 'read'] as const).map((filter) => (
@@ -320,7 +354,7 @@ function AccountInbox({
               </div>
               <MailList
                 inbox={inbox}
-                showRecipients={folder?.kind === 'sent' || folder?.kind === 'drafts'}
+                showRecipients={!unified && (folder?.kind === 'sent' || folder?.kind === 'drafts')}
                 emptyText={
                   search
                     ? t('emptySearch')
@@ -330,25 +364,31 @@ function AccountInbox({
                 }
                 onOpen={(message) => setView({ kind: 'read', id: message.id })}
                 onError={setNotice}
+                accountOf={unified ? (message) => accountOf(message.id).name : undefined}
               />
             </>
           )}
           {view.kind === 'read' && (
             <MailReader
               key={view.id}
-              accountId={account.id}
-              id={view.id}
+              accountId={accountOf(view.id).id}
+              id={splitMailId(view.id, account.id).id}
               remoteImages={remoteImages}
               onBack={() => setView({ kind: 'list' })}
               onAct={(action) => inbox.act(view.id, action)}
               onCompose={(mode, message) =>
-                setView({ kind: 'compose', request: { mode, message } })
+                setView({
+                  kind: 'compose',
+                  request: { mode, message },
+                  accountId: accountOf(view.id).id
+                })
               }
             />
           )}
           {view.kind === 'compose' && (
             <MailComposer
-              account={account}
+              account={scope.find((item) => item.id === view.accountId) ?? account}
+              accounts={unified ? scope : undefined}
               request={view.request}
               hasContentRef={composerContent}
               onClose={(sent) => {

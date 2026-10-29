@@ -15,10 +15,8 @@ export const WebviewChannels = {
   wheelMode: 'webview:wheel-mode',
   /** Page -> interface : molette reçue, à faire défiler par Tessera (px). */
   wheel: 'webview:wheel',
-  /** Page -> interface : clic dans la page (son bloc devient actif). */
+  /** Page -> interface : clic dans la page (son bloc prend le focus). */
   pointerDown: 'webview:pointer-down',
-  /** Page -> interface : la souris est sortie de la page (son bloc n'est plus actif). */
-  pointerLeave: 'webview:pointer-leave',
   /** Page -> interface : touche Échap (sortie d'une vidéo plein écran qui a glissé). */
   escape: 'webview:escape',
   /** Interface -> page : la page est une vidéo en plein écran (booléen). */

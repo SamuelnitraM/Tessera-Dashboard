@@ -2,7 +2,6 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 import { WebviewChannels } from '@shared/webview-channels'
 import {
   blockIdOf,
-  leaveBlock,
   scrollPage,
   setActiveBlock,
   useActiveBlockStore
@@ -153,7 +152,7 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
       eventsRef.current.onNavigate?.(url, webview.canGoBack(), webview.canGoForward())
     }
     // Page web dans un bloc de la grille : la molette fait défiler la page de Tessera, sauf
-    // quand le bloc est actif (clic dans la page, jusqu'à la sortie de la souris). Le bloc est
+    // quand le bloc a le focus (clic dans le bloc, jusqu'à un clic ailleurs). Le bloc est
     // cherché à chaque fois : la page web peut être créée avant d'être placée dans la grille.
     const block = (): string | null =>
       blockIdRef.current !== undefined ? blockIdRef.current : blockIdOf(containerRef.current)
@@ -186,7 +185,6 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
           const blockId = block()
           if (!blockId) return
           if (channel === WebviewChannels.pointerDown) setActiveBlock(blockId)
-          if (channel === WebviewChannels.pointerLeave) leaveBlock(blockId)
         }
       ],
       [
