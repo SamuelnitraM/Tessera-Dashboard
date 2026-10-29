@@ -116,6 +116,16 @@ const api = {
     'bool __stdcall PostMessageW(intptr_t hwnd, uint32_t msg, uintptr_t wParam, intptr_t lParam)'
   ),
   SetForegroundWindow: fn(user32, 'bool __stdcall SetForegroundWindow(intptr_t hwnd)'),
+  GetAsyncKeyState: fn(user32, 'int16_t __stdcall GetAsyncKeyState(int key)'),
+  SetWindowRgn: fn(
+    user32,
+    'int __stdcall SetWindowRgn(intptr_t hwnd, intptr_t region, bool redraw)'
+  ),
+  CreateRectRgn: fn(
+    gdi32,
+    'intptr_t __stdcall CreateRectRgn(int left, int top, int right, int bottom)'
+  ),
+  GetWindowRgnBox: fn(user32, 'int __stdcall GetWindowRgnBox(intptr_t hwnd, _Out_ RECT *rect)'),
   SetWinEventHook: fn(
     user32,
     'intptr_t __stdcall SetWinEventHook(uint32_t min, uint32_t max, intptr_t mod, WinEventProc *cb, uint32_t pid, uint32_t tid, uint32_t flags)'
@@ -158,6 +168,7 @@ const api = {
 const GWL_STYLE = -16
 const GWL_EXSTYLE = -20
 const GW_OWNER = 4
+const GWLP_HWNDPARENT = -8
 
 export const WS = {
   POPUP: 0x80000000 | 0,
@@ -353,6 +364,32 @@ export const isEnabled = (hwnd: Hwnd): boolean => api.IsWindowEnabled(hwnd)
  */
 /** Fenêtre propriétaire (0 si aucune). */
 export const getOwner = (hwnd: Hwnd): Hwnd => Number(api.GetWindow(hwnd, GW_OWNER))
+/** Fenêtre juste au-dessus dans l'ordre d'affichage (0 si aucune). */
+export const windowAbove = (hwnd: Hwnd): Hwnd => Number(api.GetWindow(hwnd, 3 /* GW_HWNDPREV */))
+/** Propriétaire d'une fenêtre de premier niveau (elle reste au-dessus de lui). */
+export const setOwner = (hwnd: Hwnd, owner: Hwnd): void =>
+  void api.SetWindowLongPtrW(hwnd, GWLP_HWNDPARENT, owner)
+/** Bouton gauche de la souris enfoncé en ce moment. */
+export const isLeftButtonDown = (): boolean =>
+  (api.GetAsyncKeyState(0x01 /* VK_LBUTTON */) & 0x8000) !== 0
+
+/**
+ * Partie affichée de la fenêtre (px, relatifs à la fenêtre), le reste est invisible et ne reçoit
+ * pas la souris. `null` : toute la fenêtre.
+ */
+export function setWindowRegion(hwnd: Hwnd, region: Rect | null): void {
+  const handle = region
+    ? api.CreateRectRgn(region.left, region.top, region.right, region.bottom)
+    : 0
+  // Windows garde la région (et la libère) quand elle est acceptée
+  if (!api.SetWindowRgn(hwnd, handle, true) && handle) api.DeleteObject(handle)
+}
+
+/** Rectangle de la partie affichée de la fenêtre (`setWindowRegion`), `null` sans région. */
+export function getWindowRegion(hwnd: Hwnd): Rect | null {
+  const rect = { left: 0, top: 0, right: 0, bottom: 0 }
+  return api.GetWindowRgnBox(hwnd, rect) > 0 ? rect : null
+}
 
 export function ownedPopups(owner: Hwnd): Hwnd[] {
   const found: Hwnd[] = []
@@ -501,6 +538,29 @@ export function watchShownWindows(listener: (hwnd: Hwnd) => void): () => void {
   )
   return () => {
     for (const hook of hooks) if (hook) api.UnhookWinEvent(hook)
+    koffi.unregister(callback)
+  }
+}
+
+/**
+ * Début et fin du déplacement d'une fenêtre par l'utilisateur, dans tous les programmes sauf
+ * Tessera (onglet de navigateur tiré hors de sa fenêtre…).
+ */
+export function watchMoveSize(listener: WinEventListener): () => void {
+  const callback = koffi.register((_hook: number, event: number, hwnd: Hwnd, idObject: number) => {
+    if (idObject === 0) listener(event, Number(hwnd))
+  }, koffi.pointer(WinEventProc))
+  const hook = api.SetWinEventHook(
+    WinEvent.SYSTEM_MOVESIZESTART,
+    WinEvent.SYSTEM_MOVESIZEEND,
+    0,
+    callback,
+    0,
+    0,
+    0x2 /* WINEVENT_SKIPOWNPROCESS */
+  )
+  return () => {
+    if (hook) api.UnhookWinEvent(hook)
     koffi.unregister(callback)
   }
 }

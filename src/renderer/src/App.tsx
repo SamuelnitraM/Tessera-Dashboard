@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
+import { isInstalledAppBlock } from '@shared/desktop-apps'
 import { AppDialogs } from './components/AppDialogs'
 import { ProgramPickerHost } from './components/desktop/ProgramPicker'
 import { releaseLeftoverDoNotDisturb } from './components/headerbar/focusDoNotDisturb'
@@ -65,7 +65,7 @@ export function App(): React.JSX.Element {
             .find((page) => page.id === pageId)
             ?.widgets.some(
               (widget) =>
-                (widget.type === DESKTOP_APP_WIDGET && widget.config.appId === appId) ||
+                (isInstalledAppBlock(widget.type) && widget.config.appId === appId) ||
                 widget.config.embeddedAppId === appId
             )
         if (view.type === 'app' && view.appId === appId) return

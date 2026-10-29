@@ -56,7 +56,8 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 
 ### Tes applications, dans Tessera
 
-- **Applications installées** : la vraie fenêtre de tes programmes (Discord, VS Code, Obsidian, VLC…) s'affiche dans un bloc ou un onglet, avec ta connexion et tes réglages habituels. Une fenêtre plus grande que son bloc est rognée : tu choisis la partie affichée. Besoin de plus de place un instant ? **Étire-la** par-dessus les autres blocs : elle reprend sa taille à ta prochaine action.
+- **Applications installées** : la vraie fenêtre de tes programmes (Discord, VS Code, Obsidian, VLC…) s'affiche dans un bloc ou un onglet, avec ta connexion et tes réglages habituels.
+- **Navigateur** : ton navigateur (Brave, Chrome, Edge, Firefox…) dans un bloc, avec ses onglets et ses extensions ; on passe d'un navigateur à l'autre en un clic, on y glisse un onglet d'une autre fenêtre, et ses vidéos en plein écran occupent tout l'écran (ou restent dans le bloc). Une fenêtre plus grande que son bloc est rognée : tu choisis la partie affichée. Besoin de plus de place un instant ? **Étire-la** par-dessus les autres blocs : elle reprend sa taille à ta prochaine action.
 - **Applications web** (Discord, WhatsApp, Slack… ou n'importe quel site) : dans un onglet de Tessera avec leurs messages non lus, dans un bloc, ou dans ton navigateur habituel.
 - Besoin d'une application sur le bureau ? **Sors sa fenêtre** de Tessera d'un clic, puis ramène-la dans son bloc.
 

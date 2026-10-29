@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
 import {
-  DESKTOP_APP_WIDGET,
+  isInstalledAppBlock,
   type DesktopAppSnapshot,
   type DesktopAppState
 } from '@shared/desktop-apps'
@@ -147,7 +147,7 @@ function usedApps(): Set<string> {
   const used = new Set<string>()
   for (const page of useDashboardStore.getState().dashboard.pages) {
     for (const widget of page.widgets) {
-      if (widget.type !== DESKTOP_APP_WIDGET) continue
+      if (!isInstalledAppBlock(widget.type)) continue
       const { appId, parked } = widget.config
       if (typeof appId === 'string') used.add(appId)
       // Navigateurs mis de côté par le bloc (changement de navigateur) : ouverts, cachés

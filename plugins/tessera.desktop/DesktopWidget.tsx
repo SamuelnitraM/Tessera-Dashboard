@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AppWindow, ExternalLink, Globe, Pencil, Plus, RotateCw } from 'lucide-react'
 import {
   BlockSettingsButton,
@@ -13,6 +13,8 @@ import {
   useInstalledApps,
   useLatest,
   usePluginTranslation,
+  useTabDragOver,
+  type BrowserChoice,
   type PanOffset,
   type UserInstalledApp,
   type WidgetProps
@@ -31,11 +33,26 @@ interface DesktopConfig {
   fullScreen?: string
 }
 
-export function DesktopWidget({
+/** Bloc « Application installée » : un programme du PC (pas un navigateur). */
+export function DesktopWidget(props: WidgetProps<DesktopConfig>): React.JSX.Element {
+  return <InstalledBlock {...props} kind="app" />
+}
+
+/**
+ * Bloc « Navigateur » : un navigateur installé, sur le même fonctionnement. On passe d'un
+ * navigateur à l'autre en un clic ; une vidéo en plein écran occupe tout l'écran (glissement et
+ * interrupteur Page / Vidéo).
+ */
+export function BrowserWidget(props: WidgetProps<DesktopConfig>): React.JSX.Element {
+  return <InstalledBlock {...props} kind="browser" />
+}
+
+function InstalledBlock({
   instanceId,
   config,
-  setConfig
-}: WidgetProps<DesktopConfig>): React.JSX.Element {
+  setConfig,
+  kind
+}: WidgetProps<DesktopConfig> & { kind: 'app' | 'browser' }): React.JSX.Element {
   const t = usePluginTranslation()
   const apps = useInstalledApps()
   const [changing, setChanging] = useState(false)
@@ -53,20 +70,33 @@ export function DesktopWidget({
     latestConfigRef.current = { ...latestConfigRef.current, ...patch }
     setConfig(patch)
   }
-  const switchBrowser = (browserId: string): void =>
-    void installedAppForBrowser(browserId).then((appId) => {
-      if (!appId) return
-      const { appId: currentId, parked = [] } = latestConfigRef.current
-      if (appId === currentId) return
-      update({
-        appId,
-        offset: { x: 0, y: 0 },
-        parked: [
-          ...parked.filter((id) => id !== appId && id !== currentId),
-          ...(currentId ? [currentId] : [])
-        ]
-      })
+  const showBrowser = (appId: string): void => {
+    const { appId: currentId, parked = [] } = latestConfigRef.current
+    if (appId === currentId) return
+    update({
+      appId,
+      offset: { x: 0, y: 0 },
+      parked: [
+        ...parked.filter((id) => id !== appId && id !== currentId),
+        ...(currentId ? [currentId] : [])
+      ]
     })
+  }
+  const switchBrowser = (browserId: string): void =>
+    void installedAppForBrowser(browserId).then((appId) => appId && showBrowser(appId))
+
+  // Onglet d'un navigateur tiré au-dessus du bloc : le bloc passe sur ce navigateur (s'il en
+  // affiche un autre), qui reçoit l'onglet. Ses blocs s'entourent d'un anneau « déposer ici ».
+  const root = useRef<HTMLDivElement>(null)
+  const tabDrag = useTabDragOver(root)
+  const tabTarget = kind === 'browser' && !!tabDrag && tabDrag.appId === config.appId
+  const draggedOver = kind === 'browser' && tabDrag?.over ? tabDrag.appId : null
+  const known = browsers.some((choice) => choice.appId === draggedOver)
+  useEffect(() => {
+    if (draggedOver && known) showBrowser(draggedOver)
+    // Seulement quand l'onglet arrive au-dessus du bloc
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draggedOver, known])
 
   // Autre application : les navigateurs mis de côté restent ouverts (avec leurs onglets)
   const choose = (appId: string): void => {
@@ -75,10 +105,23 @@ export function DesktopWidget({
     setChanging(false)
   }
 
+  // Navigateur supprimé des applications : on en choisit un autre
+  if (kind === 'browser' && (!config.appId || !app)) {
+    return (
+      <BrowserPicker
+        browsers={browsers}
+        onPick={(browserId) =>
+          void installedAppForBrowser(browserId).then((appId) => appId && choose(appId))
+        }
+      />
+    )
+  }
   if (!config.appId || changing) {
+    // Les navigateurs ont leur propre bloc
+    const browserApps = new Set(browsers.map((choice) => choice.appId))
     return (
       <AppPicker
-        apps={apps}
+        apps={apps.filter((candidate) => !browserApps.has(candidate.id))}
         onPick={choose}
         onCancel={config.appId ? () => setChanging(false) : undefined}
       />
@@ -86,10 +129,15 @@ export function DesktopWidget({
   }
 
   return (
-    <div className={styles.desktop}>
+    <div
+      ref={root}
+      className={styles.desktop}
+      data-tab-target={tabTarget}
+      data-tab-over={tabTarget && tabDrag?.over}
+    >
       {config.showHeader && (
         <div ref={header} className={styles.header}>
-          {browser && browsers.length > 1 ? (
+          {browser && (kind === 'browser' || browsers.length > 1) ? (
             // Navigateur : tous les navigateurs installés, un bouton chacun (logo et nom)
             <div className={styles.browsers} role="group" aria-label={t('switchBrowser')}>
               {browsers.map((choice) => (
@@ -144,16 +192,18 @@ export function DesktopWidget({
               <ExternalLink size={14} aria-hidden />
             </button>
           )}
-          <button
-            {...EDIT_ACTIVE}
-            type="button"
-            className={`${styles.iconButton} no-drag`}
-            title={t('change')}
-            aria-label={t('change')}
-            onClick={() => setChanging(true)}
-          >
-            <Pencil size={14} aria-hidden />
-          </button>
+          {kind === 'app' && (
+            <button
+              {...EDIT_ACTIVE}
+              type="button"
+              className={`${styles.iconButton} no-drag`}
+              title={t('change')}
+              aria-label={t('change')}
+              onClick={() => setChanging(true)}
+            >
+              <Pencil size={14} aria-hidden />
+            </button>
+          )}
           <BlockSettingsButton className={styles.iconButton} size={14} />
         </div>
       )}
@@ -180,6 +230,42 @@ function AppIcon({ app, size }: { app?: UserInstalledApp; size: number }): React
     <img src={app.icon} alt="" width={size} height={size} />
   ) : (
     <AppWindow size={size} strokeWidth={1.75} aria-hidden />
+  )
+}
+
+/** Choix du navigateur d'un bloc Navigateur, parmi ceux installés sur le PC. */
+function BrowserPicker({
+  browsers,
+  onPick
+}: {
+  browsers: readonly BrowserChoice[]
+  onPick: (browserId: string) => void
+}): React.JSX.Element {
+  const t = usePluginTranslation()
+  return (
+    // Utilisable en mode édition : c'est le réglage d'un bloc qui vient d'être ajouté
+    <div {...EDIT_ACTIVE} className={`${styles.picker} no-drag`}>
+      <h3 className={styles.pickerTitle}>{t('browserTitle')}</h3>
+      <p className={styles.pickerIntro}>{t('browserIntro')}</p>
+      {browsers.length > 0 ? (
+        <ul className={styles.apps}>
+          {browsers.map((choice) => (
+            <li key={choice.id}>
+              <button type="button" className={styles.app} onClick={() => onPick(choice.id)}>
+                {choice.icon ? (
+                  <img src={choice.icon} alt="" width={20} height={20} />
+                ) : (
+                  <Globe size={20} strokeWidth={1.75} aria-hidden />
+                )}
+                <span>{choice.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className={styles.pickerIntro}>{t('noBrowser')}</p>
+      )}
+    </div>
   )
 }
 

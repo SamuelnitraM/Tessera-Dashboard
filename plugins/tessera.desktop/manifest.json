@@ -69,6 +69,62 @@
           ]
         }
       ]
+    },
+    {
+      "type": "browser",
+      "name": {
+        "fr": "Navigateur",
+        "en": "Browser"
+      },
+      "description": {
+        "fr": "Ton navigateur (Brave, Chrome, Edge, Firefox…) dans un bloc, avec ses onglets.",
+        "en": "Your browser (Brave, Chrome, Edge, Firefox…) in a block, with its tabs."
+      },
+      "icon": "globe",
+      "defaultSize": {
+        "w": 12,
+        "h": 8
+      },
+      "minSize": {
+        "w": 4,
+        "h": 3
+      },
+      "settings": [
+        {
+          "key": "showHeader",
+          "type": "boolean",
+          "label": {
+            "fr": "Afficher la barre du bloc (nom de l’application)",
+            "en": "Show the block bar (app name)"
+          },
+          "default": true
+        },
+        {
+          "key": "fullScreen",
+          "type": "select",
+          "label": {
+            "fr": "Plein écran",
+            "en": "Full screen"
+          },
+          "default": "screen",
+          "options": [
+            {
+              "value": "screen",
+              "label": {
+                "fr": "Tout l’écran",
+                "en": "Whole screen"
+              }
+            },
+            {
+              "value": "block",
+              "label": {
+                "fr": "Dans le bloc",
+                "en": "In the block"
+              }
+            }
+          ]
+        }
+      ]
     }
   ]
 }

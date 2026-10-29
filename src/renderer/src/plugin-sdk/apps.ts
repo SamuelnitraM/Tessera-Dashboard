@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BrowserChoice } from '@shared/browsers'
-import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
+import { isInstalledAppBlock } from '@shared/desktop-apps'
 import { isDesktopApp, isWebApp } from '@shared/user-apps'
 import { focusBlock } from '../stores/activeBlock'
 import { useDashboardStore } from '../stores/dashboard'
@@ -69,6 +69,45 @@ export function useBrowserChoices(): readonly BrowserChoice[] {
   return choices
 }
 
+/** Onglet de navigateur tiré par l'utilisateur, vu d'un bloc. */
+export interface TabDragOver {
+  /** Application du navigateur dont un onglet est tiré. */
+  appId: string
+  /** La souris est au-dessus de l'élément. */
+  over: boolean
+}
+
+/**
+ * Onglet (ou fenêtre) d'un navigateur tiré par l'utilisateur, tant que le bouton est enfoncé :
+ * son application, et si la souris est au-dessus de `element`. Un bloc Navigateur s'en sert pour
+ * passer sur ce navigateur et montrer où l'onglet peut être déposé.
+ */
+export function useTabDragOver(element: React.RefObject<HTMLElement | null>): TabDragOver | null {
+  const [drag, setDrag] = useState<TabDragOver | null>(null)
+  useEffect(
+    () =>
+      window.tessera.desktopApps.onTabDrag((next) => {
+        if (!next) return setDrag(null)
+        const box = element.current?.getBoundingClientRect()
+        const over =
+          !!box &&
+          next.x !== null &&
+          next.y !== null &&
+          next.x >= box.left &&
+          next.x < box.right &&
+          next.y >= box.top &&
+          next.y < box.bottom
+        setDrag((current) =>
+          current?.appId === next.appId && current.over === over
+            ? current
+            : { appId: next.appId, over }
+        )
+      }),
+    [element]
+  )
+  return drag
+}
+
 /** Application installée qui affiche ce navigateur (ajoutée à Tessera au besoin). */
 export function installedAppForBrowser(browserId: string): Promise<string | null> {
   return window.tessera.browsers.appFor(browserId)
@@ -97,7 +136,7 @@ export function revealInstalledApp(appId: string): boolean {
   )
   for (const page of pages) {
     const block = page.widgets.find(
-      (widget) => widget.type === DESKTOP_APP_WIDGET && widget.config.appId === appId
+      (widget) => isInstalledAppBlock(widget.type) && widget.config.appId === appId
     )
     if (block) {
       navigate({ type: 'page', pageId: page.id })
@@ -109,7 +148,7 @@ export function revealInstalledApp(appId: string): boolean {
   for (const page of pages) {
     const block = page.widgets.find(
       (widget) =>
-        widget.type === DESKTOP_APP_WIDGET &&
+        isInstalledAppBlock(widget.type) &&
         Array.isArray(widget.config.parked) &&
         widget.config.parked.includes(appId)
     )

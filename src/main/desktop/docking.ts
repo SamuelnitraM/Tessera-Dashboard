@@ -1,10 +1,11 @@
-import { dirname } from 'node:path'
+import { basename, dirname } from 'node:path'
 import { nativeImage, screen, type BrowserWindow } from 'electron'
 import type {
   DesktopApp,
   DesktopAppPan,
   DesktopAppSnapshot,
   DesktopAppState,
+  DesktopAppTabDrag,
   FullScreenMode,
   HostRect,
   QuitMode
@@ -100,6 +101,11 @@ interface DockedWindow {
    * taille de l'écran. L'interface en fait une vidéo plein écran (sans la remettre dans son bloc).
    */
   fullScreen: boolean
+  /**
+   * Sortie de son cadre le temps qu'un onglet tiré y soit déposé (voir `openToTab`) : la partie
+   * affichée de la fenêtre (px, relatifs à elle).
+   */
+  tabDrop: w.Rect | null
   unwatch: () => void
 }
 
@@ -124,6 +130,8 @@ interface DockingListeners {
   fullScreen: (appId: string, value: boolean) => void
   /** Clic molette sur une vidéo en plein écran : la molette bascule entre la page et la vidéo. */
   middleClick: () => void
+  /** Onglet de navigateur tiré par l'utilisateur, et la souris (`null` : relâché). */
+  tabDrag: (drag: DesktopAppTabDrag | null) => void
 }
 
 /** Masquage signalé moins de 2 s après celui de Tessera : c'est le sien, pas celui de l'application. */
@@ -149,7 +157,8 @@ let listeners: DockingListeners = {
   wheel: () => {},
   activate: () => {},
   fullScreen: () => {},
-  middleClick: () => {}
+  middleClick: () => {},
+  tabDrag: () => {}
 }
 /** Fenêtre de Tessera recouverte par son interface (fenêtre de dialogue, mode édition…). */
 let suspended = false
@@ -308,6 +317,8 @@ function place(docked: DockedWindow): void {
     forget(docked)
     return setState(docked.appId, { status: 'closed' })
   }
+  // Prête à recevoir un onglet tiré : remise dans son cadre au relâchement
+  if (docked.tabDrop) return
   const layout = layoutFor(docked)
   if (!layout) {
     note(docked, `masquée : ${hiddenReason(docked) ?? 'raison inconnue'}`)
@@ -523,6 +534,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       wheelAlways: false,
       stage: false,
       fullScreen: false,
+      tabDrop: null,
       fixedSize,
       activatable,
       borderBand: activatable || w.getClassName(hwnd) === 'MozillaWindowClass',
@@ -631,6 +643,9 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
   }
 }
 
+/** Sortie du plein écran d'une application : délai laissé au bloc pour envoyer sa place. */
+const STAGE_EXIT_MS = 600
+
 /** Premier cran de molette relayé pendant le plein écran d'une application : déjà noté. */
 let wheelLogged = false
 
@@ -672,8 +687,19 @@ function followFullScreen(docked: DockedWindow): boolean {
   docked.target = null
   if (inBlock) return false
   listeners.fullScreen(docked.appId, full)
-  if (!full) place(docked)
-  return full
+  if (full) return true
+  // Sortie pendant la vidéo plein écran de Tessera : le bloc envoie sa place dans un instant.
+  // Replacée tout de suite à celle de la vidéo (tout l'écran), la fenêtre redevenue normale
+  // semblait encore en plein écran.
+  if (layoutFor(docked)?.stage) {
+    setTimeout(() => {
+      docked.target = null
+      place(docked)
+    }, STAGE_EXIT_MS)
+    return true
+  }
+  place(docked)
+  return false
 }
 
 /**
@@ -694,6 +720,168 @@ function keepPopupInBlock(docked: DockedWindow, popup: w.Hwnd, event: number): v
   if (x === rect.left && y === rect.top) return
   const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
   w.setWindowPos(popup, x, y, 0, 0, quiet | w.SWP.NOSIZE)
+}
+
+// ---------------------------------------------------------------------------
+// Onglets tirés vers un bloc
+// ---------------------------------------------------------------------------
+
+/**
+ * Onglet tiré hors d'une fenêtre de navigateur (Chromium : la fenêtre qui le porte est déplacée
+ * par l'utilisateur). Chromium ne cherche où le déposer que parmi ses fenêtres de premier niveau,
+ * et la fenêtre d'un bloc est l'enfant de son cadre : le temps du glisser, elle redevient une
+ * fenêtre de premier niveau, à la même place, juste sous la fenêtre tirée et réduite à la partie
+ * visible de son bloc. Elle retrouve son cadre quand le bouton est relâché.
+ */
+interface TabDrag {
+  pid: number
+  /**
+   * Application de ce navigateur, déjà insérée : un bloc Navigateur sous la souris peut passer
+   * sur lui.
+   */
+  appId: string | null
+  timer: ReturnType<typeof setInterval>
+  startedAt: number
+  /** Dernière position envoyée à l'interface. */
+  sent: string
+}
+let tabDrag: TabDrag | null = null
+/** Suivi de la souris pendant le glisser (px CSS envoyés à l'interface). */
+const TAB_DRAG_POLL_MS = 50
+/** Glisser jamais terminé (bouton relâché sans que Windows le signale…) : abandonné. */
+const TAB_DRAG_MAX_MS = 120_000
+/** Après le relâchement : le navigateur finit de déposer l'onglet avant que la fenêtre reparte. */
+const TAB_DROP_SETTLE_MS = 150
+
+function onMoveSize(event: number, hwnd: w.Hwnd): void {
+  if (event !== w.WinEvent.SYSTEM_MOVESIZESTART || tabDrag || !hostWindow) return
+  // Fenêtre principale d'un navigateur Chromium (ni insérée, ni bulle appartenant à une fenêtre)
+  if (!isChromium(hwnd) || w.getOwner(hwnd) || w.getStyle(hwnd) & w.WS.CHILD) return
+  const pid = w.getProcessId(hwnd)
+  const exe = basename(w.getProcessPath(pid)).toLowerCase()
+  const app = getSettings().apps.items.find(
+    (item): item is DesktopApp => isDesktopApp(item) && item.processName.toLowerCase() === exe
+  )
+  const docked = [...windows.values()].some((candidate) => candidate.pid === pid)
+  if (!docked) return
+  tabDrag = {
+    pid,
+    // Seulement s'il est déjà dans Tessera (affiché ou mis de côté dans un bloc) : le lancer
+    // pourrait insérer la fenêtre même que l'utilisateur est en train de tirer
+    appId: app && windows.has(app.id) ? app.id : null,
+    timer: setInterval(followTabDrag, TAB_DRAG_POLL_MS),
+    startedAt: Date.now(),
+    sent: ''
+  }
+  logDocking(`fenêtre de ${exe} tirée (onglet ?)`)
+  followTabDrag()
+}
+
+function followTabDrag(): void {
+  const drag = tabDrag
+  if (!drag || !hostWindow) return
+  if (!w.isLeftButtonDown() || Date.now() - drag.startedAt > TAB_DRAG_MAX_MS) {
+    clearInterval(drag.timer)
+    tabDrag = null
+    listeners.tabDrag(null)
+    setTimeout(() => {
+      for (const docked of windows.values()) if (docked.tabDrop) closeToTab(docked)
+    }, TAB_DROP_SETTLE_MS)
+    return
+  }
+  const point = screen.getCursorScreenPoint()
+  const content = hostWindow.getContentBounds()
+  const inside =
+    point.x >= content.x &&
+    point.y >= content.y &&
+    point.x < content.x + content.width &&
+    point.y < content.y + content.height
+  // Souris au-dessus de Tessera : les fenêtres de ce navigateur affichées dans un bloc (celle d'un
+  // bloc qui vient de passer sur lui aussi) sont prêtes à recevoir l'onglet. Ailleurs, elles
+  // restent dans leur cadre. Chromium remet parfois toute sa fenêtre (à chaque changement de
+  // taille ou de style) : la partie qui reçoit la souris est rétablie.
+  for (const docked of windows.values()) {
+    if (docked.pid !== drag.pid) continue
+    if (!inside) {
+      if (docked.tabDrop) closeToTab(docked)
+    } else if (docked.tabDrop) keepTabDropRegion(docked)
+    else if (docked.shown && !docked.fullScreen) openToTab(docked)
+  }
+  if (!drag.appId) return
+  // Souris dans la fenêtre de Tessera (px CSS) : un bloc Navigateur dessous passe sur ce navigateur
+  const zoom = hostWindow.webContents.getZoomFactor()
+  const next: DesktopAppTabDrag = {
+    appId: drag.appId,
+    x: inside ? Math.round((point.x - content.x) / zoom) : null,
+    y: inside ? Math.round((point.y - content.y) / zoom) : null
+  }
+  const key = JSON.stringify(next)
+  if (key === drag.sent) return
+  drag.sent = key
+  listeners.tabDrag(next)
+}
+
+/**
+ * La fenêtre du bloc devient une fenêtre de premier niveau, là où elle est, à la place de son
+ * cadre dans l'ordre d'affichage (une fenêtre posée sur Tessera reste devant elle).
+ */
+function openToTab(docked: DockedWindow): void {
+  if (!w.isWindow(docked.hwnd) || !w.isVisible(docked.frame)) return
+  const rect = w.getWindowRect(docked.hwnd)
+  const frame = w.getWindowRect(docked.frame)
+  // Seule la partie visible du bloc reçoit la souris (ni la bande du bord, ni ce qui dépasse d'un
+  // bloc rogné). Windows ne rogne pas l'image d'une fenêtre Chromium (DirectComposition) : la
+  // bande du bord se voit le temps du glisser.
+  docked.tabDrop = {
+    left: frame.left - rect.left,
+    top: frame.top - rect.top,
+    right: frame.right - rect.left,
+    bottom: frame.bottom - rect.top
+  }
+  w.setParent(docked.hwnd, 0)
+  w.setStyle(docked.hwnd, (w.getStyle(docked.hwnd) & ~w.WS.CHILD) | w.WS.POPUP)
+  // Au-dessus de Tessera, sans bouton dans la barre des tâches
+  w.setOwner(docked.hwnd, hostHwnd)
+  w.setWindowPos(
+    docked.hwnd,
+    rect.left,
+    rect.top,
+    rect.right - rect.left,
+    rect.bottom - rect.top,
+    w.SWP.NOACTIVATE | w.SWP.FRAMECHANGED,
+    w.windowAbove(docked.frame) || w.HWND_TOP
+  )
+  w.setWindowRegion(docked.hwnd, docked.tabDrop)
+  logDocking(`${docked.appId} : prête à recevoir un onglet`)
+}
+
+function keepTabDropRegion(docked: DockedWindow): void {
+  const expected = docked.tabDrop
+  const region = w.getWindowRegion(docked.hwnd)
+  if (expected && (!region || !sameRect(region, expected))) {
+    w.setWindowRegion(docked.hwnd, expected)
+  }
+}
+
+/** Glisser terminé : la fenêtre retrouve son cadre et son bloc. */
+function closeToTab(docked: DockedWindow): void {
+  docked.tabDrop = null
+  if (w.isWindow(docked.hwnd)) {
+    w.setWindowRegion(docked.hwnd, null)
+    w.setStyle(docked.hwnd, childStyle(w.getStyle(docked.hwnd), docked.activatable))
+    w.setParent(docked.hwnd, docked.frame)
+    w.setWindowPos(
+      docked.hwnd,
+      0,
+      0,
+      0,
+      0,
+      w.SWP.NOMOVE | w.SWP.NOSIZE | w.SWP.NOZORDER | w.SWP.FRAMECHANGED | w.SWP.NOACTIVATE
+    )
+    logDocking(`${docked.appId} : remise dans son cadre après le glisser`)
+  }
+  docked.target = null
+  place(docked)
 }
 
 // ---------------------------------------------------------------------------
@@ -1017,6 +1205,7 @@ function watchAll(): void {
 /** Compare l'état réel de la fenêtre à l'état attendu ; un écart est noté et réparé. */
 function watch(docked: DockedWindow): void {
   if (!w.isWindow(docked.hwnd) || !w.isWindow(docked.frame)) return place(docked)
+  if (docked.tabDrop) return
   const layout = layoutFor(docked)
   const problems: string[] = []
   let repair = false
@@ -1164,6 +1353,9 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
 
   setFrameMiddleListener(() => listeners.middleClick())
 
+  // Onglet tiré hors d'une fenêtre de navigateur : il peut être déposé dans un bloc
+  const stopMoveSize = w.watchMoveSize(onMoveSize)
+
   // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement).
   // Une fenêtre étirée reprend alors la taille de son bloc.
   window.on('move', () => {
@@ -1192,6 +1384,7 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
     placeAll()
   })
   window.on('closed', () => {
+    stopMoveSize()
     screen.off('display-metrics-changed', placeAll)
     hostWindow = null
   })

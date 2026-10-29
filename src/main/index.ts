@@ -5,6 +5,7 @@ import { APP_ID } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
+import { convertBrowserBlocks } from './browser-blocks'
 import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
 import { logApp, watchCrashes } from './log'
@@ -117,6 +118,8 @@ if (!app.requestSingleInstanceLock()) {
     const settings = loadSettings()
     applyTheme(settings.appearance.theme)
     loadDashboard()
+    // Blocs Application installée qui affichent un navigateur : blocs Navigateur
+    convertBrowserBlocks()
     loadProcessApprovals()
     loadWebPermissions()
     loadNotifications()
@@ -148,7 +151,8 @@ if (!app.requestSingleInstanceLock()) {
         getMainWindow()?.webContents.send(IpcChannels.desktopAppsActivate, hostId),
       fullScreen: (appId, value) =>
         getMainWindow()?.webContents.send(IpcChannels.desktopAppsFullScreen, { appId, value }),
-      middleClick: () => toggleVideoWheel()
+      middleClick: () => toggleVideoWheel(),
+      tabDrag: (drag) => getMainWindow()?.webContents.send(IpcChannels.desktopAppsTabDrag, drag)
     })
     createTray()
 

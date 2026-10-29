@@ -257,7 +257,9 @@ export {
   useBrowserChoices,
   useInstalledApps,
   type BrowserChoice,
-  type UserInstalledApp
+  type UserInstalledApp,
+  useTabDragOver,
+  type TabDragOver
 } from './apps'
 export { InstalledAppView, type InstalledAppViewProps, type PanOffset } from './installed'
 export { growBlockToFit } from './blocks'

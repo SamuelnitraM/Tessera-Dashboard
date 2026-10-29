@@ -109,6 +109,17 @@ export interface DesktopAppPan {
   dy: number
 }
 
+/**
+ * Onglet (ou fenêtre) d'un navigateur tiré par l'utilisateur : son application, et la souris
+ * (px CSS dans la fenêtre de Tessera, `null` en dehors). Un bloc Navigateur sous la souris
+ * passe sur ce navigateur et reçoit l'onglet.
+ */
+export interface DesktopAppTabDrag {
+  appId: string
+  x: number | null
+  y: number | null
+}
+
 /** Image d'une fenêtre (affichée pendant qu'elle est masquée), taille en px CSS. */
 export interface DesktopAppSnapshot {
   url: string
@@ -122,6 +133,17 @@ export type QuitMode = (typeof QUIT_MODES)[number]
 
 /** Bloc « application installée » (extension intégrée tessera.desktop), configuré par `{ appId }`. */
 export const DESKTOP_APP_WIDGET = 'tessera.desktop/app'
+
+/**
+ * Bloc « navigateur » (même extension) : un navigateur installé, sur le même fonctionnement
+ * qu'une application installée (`{ appId }`), avec le changement de navigateur et le plein écran
+ * sur tout l'écran.
+ */
+export const BROWSER_WIDGET = 'tessera.desktop/browser'
+
+/** Bloc qui affiche une application installée : application, ou navigateur. */
+export const isInstalledAppBlock = (type: string): boolean =>
+  type === DESKTOP_APP_WIDGET || type === BROWSER_WIDGET
 
 /** Lanceur Squirrel (Discord, Slack…) : `Update.exe --processStart Discord.exe`. */
 export function squirrelProcessName(args: string): string | null {

@@ -43,6 +43,7 @@ import type {
 import type {
   DesktopApp,
   DesktopAppPan,
+  DesktopAppTabDrag,
   DesktopAppSnapshot,
   DesktopAppState,
   HostRect,
@@ -215,7 +216,10 @@ const api = {
       ipcRenderer.invoke(IpcChannels.desktopAppsFocus, appId),
     /** Une application insérée passe en plein écran (vidéo…) ou en sort. */
     onFullScreen: (callback: (event: { appId: string; value: boolean }) => void) =>
-      subscribe(IpcChannels.desktopAppsFullScreen, callback)
+      subscribe(IpcChannels.desktopAppsFullScreen, callback),
+    /** Onglet de navigateur tiré par l'utilisateur (`null` : relâché). */
+    onTabDrag: (callback: (drag: DesktopAppTabDrag | null) => void) =>
+      subscribe(IpcChannels.desktopAppsTabDrag, callback)
   },
   /** Notifications : centre, test, sons importés, envoi par les widgets et modules. */
   notifications: {

@@ -1,7 +1,8 @@
 import i18n from 'i18next'
 import { create } from 'zustand'
 import { MAIN_PAGE_ID, type WidgetInstance } from '@shared/dashboard'
-import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
+import { isBrowserProcess } from '@shared/browsers'
+import { BROWSER_WIDGET, DESKTOP_APP_WIDGET, isInstalledAppBlock } from '@shared/desktop-apps'
 import type { TesseraNotification } from '@shared/notifications'
 import { localize, widgetKey } from '@shared/plugins'
 import type { Language } from '@shared/settings'
@@ -111,8 +112,17 @@ export function openNotificationSource(notification: TesseraNotification): void 
   if (kind === 'app') {
     const app = useSettingsStore.getState().settings.apps.items.find((item) => item.id === id)
     if (!app) return
-    const type = app.kind === 'web' ? WEB_APP_WIDGET : DESKTOP_APP_WIDGET
-    const block = findBlock((widget) => widget.type === type && widget.config.appId === id)
+    const type =
+      app.kind === 'web'
+        ? WEB_APP_WIDGET
+        : isBrowserProcess(app.processName)
+          ? BROWSER_WIDGET
+          : DESKTOP_APP_WIDGET
+    const block = findBlock(
+      (widget) =>
+        (app.kind === 'web' ? widget.type === type : isInstalledAppBlock(widget.type)) &&
+        widget.config.appId === id
+    )
     const openTab = (): void => navigate({ type: 'app', appId: id })
     if (block) goToBlock(block)
     else if (openedApps.includes(id)) openTab()

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { AppWindow, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
+import { isBrowserProcess } from '@shared/browsers'
+import { BROWSER_WIDGET, DESKTOP_APP_WIDGET } from '@shared/desktop-apps'
 import { localize, type PluginCategory } from '@shared/plugins'
 import { groupByCategory, matchesSearch } from '../../lib/catalog'
 import { listAvailableWidgets, WEB_APP_WIDGET, type RegisteredWidget } from '../../plugins/registry'
@@ -106,8 +107,16 @@ export function WidgetPicker({ pageId, open, onClose }: BlockPickerProps): React
         icon: <AppIcon app={app} size={20} />,
         name: app.name,
         description: app.kind === 'web' ? hostOf(app.url) : t('blocks.picker.installedApp'),
+        // Un navigateur va dans un bloc Navigateur
         onClick: () =>
-          add(app.kind === 'web' ? WEB_APP_WIDGET : DESKTOP_APP_WIDGET, { appId: app.id })
+          add(
+            app.kind === 'web'
+              ? WEB_APP_WIDGET
+              : isBrowserProcess(app.processName)
+                ? BROWSER_WIDGET
+                : DESKTOP_APP_WIDGET,
+            { appId: app.id }
+          )
       })),
     ...(webAppsEnabled
       ? [
@@ -130,7 +139,11 @@ export function WidgetPicker({ pageId, open, onClose }: BlockPickerProps): React
             // Choisi dans la liste des programmes, puis ajouté directement
             onClick: () =>
               void pickInstalledApp().then(
-                (app) => app && add(DESKTOP_APP_WIDGET, { appId: app.id })
+                (app) =>
+                  app &&
+                  add(isBrowserProcess(app.processName) ? BROWSER_WIDGET : DESKTOP_APP_WIDGET, {
+                    appId: app.id
+                  })
               )
           }
         ]

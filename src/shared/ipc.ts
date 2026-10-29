@@ -69,6 +69,7 @@ export const IpcChannels = {
    * navigateur…) ou en sort (`{ appId, value }`).
    */
   desktopAppsFullScreen: 'desktop-apps:full-screen',
+  desktopAppsTabDrag: 'desktop-apps:tab-drag',
   desktopAppsFocus: 'desktop-apps:focus',
   notificationsList: 'notifications:list',
   notificationsMarkRead: 'notifications:mark-read',

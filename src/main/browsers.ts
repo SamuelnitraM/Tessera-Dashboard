@@ -2,7 +2,7 @@ import { execFile, spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { basename } from 'node:path'
 import { shell } from 'electron'
-import type { BrowserChoice, InstalledBrowser } from '@shared/browsers'
+import { BROWSER_EXECUTABLES, type BrowserChoice, type InstalledBrowser } from '@shared/browsers'
 import { fileName } from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
 import { normalizeWebUrl } from '@shared/web-apps'
@@ -35,7 +35,7 @@ const KNOWN_BROWSERS: KnownBrowser[] = [
   {
     id: 'brave',
     name: 'Brave',
-    executables: ['brave.exe'],
+    executables: [...BROWSER_EXECUTABLES.brave],
     chromium: true,
     fallbackPaths: [
       `${PROGRAMS}\\BraveSoftware\\Brave-Browser\\Application\\brave.exe`,
@@ -45,7 +45,7 @@ const KNOWN_BROWSERS: KnownBrowser[] = [
   {
     id: 'chrome',
     name: 'Google Chrome',
-    executables: ['chrome.exe'],
+    executables: [...BROWSER_EXECUTABLES.chrome],
     chromium: true,
     fallbackPaths: [
       `${PROGRAMS}\\Google\\Chrome\\Application\\chrome.exe`,
@@ -55,29 +55,28 @@ const KNOWN_BROWSERS: KnownBrowser[] = [
   {
     id: 'edge',
     name: 'Microsoft Edge',
-    executables: ['msedge.exe'],
+    executables: [...BROWSER_EXECUTABLES.edge],
     chromium: true,
     fallbackPaths: [`${PROGRAMS_X86}\\Microsoft\\Edge\\Application\\msedge.exe`]
   },
   {
     id: 'firefox',
     name: 'Firefox',
-    executables: ['firefox.exe'],
+    executables: [...BROWSER_EXECUTABLES.firefox],
     chromium: false,
     fallbackPaths: [`${PROGRAMS}\\Mozilla Firefox\\firefox.exe`]
   },
   {
     id: 'vivaldi',
     name: 'Vivaldi',
-    executables: ['vivaldi.exe'],
+    executables: [...BROWSER_EXECUTABLES.vivaldi],
     chromium: true,
     fallbackPaths: [`${LOCAL}\\Vivaldi\\Application\\vivaldi.exe`]
   },
   {
     id: 'opera',
     name: 'Opera',
-    // Pas `launcher.exe` (lanceur d'Opera) : bien d'autres programmes portent ce nom
-    executables: ['opera.exe'],
+    executables: [...BROWSER_EXECUTABLES.opera],
     chromium: true,
     fallbackPaths: [`${LOCAL}\\Programs\\Opera\\opera.exe`]
   }
