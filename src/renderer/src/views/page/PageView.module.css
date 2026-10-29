@@ -99,58 +99,62 @@
   border-radius: var(--radius-md);
 }
 
-/* Zone de la grille : les boutons d'écran y sont posés, sans défiler avec elle */
+/* Zone de la grille et boutons d'écran à côté d'elle (en haut, en bas, sur un côté) : rien,
+   ni une application insérée ni un lecteur, ne peut les recouvrir */
 .gridFrame {
-  position: relative;
-  display: flex;
+  display: grid;
   flex: 1;
   min-height: 0;
-  flex-direction: column;
+  grid-template:
+    'top top top' auto
+    'left grid right' minmax(0, 1fr)
+    'bottom bottom bottom' auto
+    / auto minmax(0, 1fr) auto;
 }
 
-/* Posés sur la zone de la page (une application insérée à cet endroit les recouvre) */
-.screenButtons[data-floating] {
-  position: absolute;
-  z-index: 30;
-  box-shadow: 0 6px 20px rgb(0 0 0 / 0.25);
-}
-
-/* Sur les côtés et dans les coins : l'un au-dessus de l'autre */
-.screenButtons[data-floating^='middle'],
-.screenButtons[data-floating^='bottom-l'],
-.screenButtons[data-floating^='bottom-r'] {
-  flex-direction: column;
-}
-
-.screenButtons[data-floating='top-center'],
-.screenButtons[data-floating='bottom-center'] {
-  left: 50%;
-  translate: -50% 0;
+.gridFrame > .gridArea {
+  grid-area: grid;
 }
 
 .screenButtons[data-floating='top-center'] {
-  top: 0.5rem;
+  grid-area: top;
+  justify-self: center;
+  margin-bottom: 0.5rem;
 }
 
 .screenButtons[data-floating='bottom-center'],
 .screenButtons[data-floating='bottom-left'],
 .screenButtons[data-floating='bottom-right'] {
-  bottom: 0.75rem;
+  grid-area: bottom;
+  margin-top: 0.5rem;
+}
+
+.screenButtons[data-floating='bottom-center'] {
+  justify-self: center;
+}
+
+.screenButtons[data-floating='bottom-left'] {
+  justify-self: start;
+}
+
+.screenButtons[data-floating='bottom-right'] {
+  justify-self: end;
 }
 
 .screenButtons[data-floating='middle-left'],
 .screenButtons[data-floating='middle-right'] {
-  top: 50%;
-  translate: 0 -50%;
+  flex-direction: column;
+  align-self: center;
 }
 
-.screenButtons[data-floating$='left'] {
-  left: 0.75rem;
+.screenButtons[data-floating='middle-left'] {
+  grid-area: left;
+  margin-right: 0.5rem;
 }
 
-/* À droite : la barre de défilement de la page reste libre */
-.screenButtons[data-floating$='right'] {
-  right: 1.5rem;
+.screenButtons[data-floating='middle-right'] {
+  grid-area: right;
+  margin-left: 0.5rem;
 }
 
 .screenButton {

@@ -9,7 +9,7 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - **Réglages d'un bloc hors mode édition** : un bloc Application installée sans barre (réglage « Afficher la barre du bloc » décoché) n'a pas de bouton de réglages, la fenêtre de l'application couvrant tout le bloc ; ils restent accessibles en mode édition.
 - **Vidéo en plein écran** : seuls les lecteurs (YouTube, Twitch) et les navigateurs insérés glissent pour montrer la page. Le plein écran d'un bloc Page web ou d'une vidéo locale reste un plein écran classique. Pendant que la vidéo d'un lecteur glisse, sa page n'est plus en vrai plein écran (ses commandes reprennent leur aspect habituel) ; elle le reprend une fois revenue tout en haut.
 - Une page qui ne défile pas (tous ses blocs tiennent dans la fenêtre) laisse la molette aux blocs, sans clic préalable.
-- **Écrans de la page** : seulement en disposition large (la disposition compacte n'a pas d'écrans). L'aimantation ne suit que la molette (pas la barre de défilement). Les boutons d'écran posés dans un coin de la page sont recouverts par la fenêtre d'une application insérée dans ce coin : mieux vaut alors les mettre dans la barre de la page.
+- **Écrans de la page** : seulement en disposition large (la disposition compacte n'a pas d'écrans). L'aimantation ne suit que la molette (pas la barre de défilement). Les boutons d'écran placés ailleurs que dans la barre de la page prennent une bande à côté de la grille (en haut, en bas ou sur un côté) : la grille perd quelques pixels de ce côté.
 
 ## Barre des pages
 

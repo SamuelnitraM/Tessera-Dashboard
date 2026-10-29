@@ -895,12 +895,12 @@ export const fr = {
       description:
         'Écran précédent et suivant d’une page qui défile (un écran : 12 lignes de la grille, la hauteur de la zone visible).',
       toolbar: 'Dans la barre de la page',
-      'top-center': 'En haut, au centre',
-      'bottom-center': 'En bas, au centre',
-      'middle-left': 'À gauche, au milieu',
-      'middle-right': 'À droite, au milieu',
-      'bottom-right': 'En bas à droite',
-      'bottom-left': 'En bas à gauche',
+      'top-center': 'Centre, haut',
+      'bottom-center': 'Centre, bas',
+      'middle-left': 'Milieu, gauche',
+      'middle-right': 'Milieu, droite',
+      'bottom-left': 'Bas, gauche',
+      'bottom-right': 'Bas, droite',
       hidden: 'Masqués'
     },
     screenRows: {

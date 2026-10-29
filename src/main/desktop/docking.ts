@@ -631,6 +631,9 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
   }
 }
 
+/** Premier cran de molette relayé pendant le plein écran d'une application : déjà noté. */
+let wheelLogged = false
+
 /** Taille de l'écran de Tessera (px physiques). */
 function monitorSize(): { width: number; height: number } | null {
   if (!hostWindow) return null
@@ -661,9 +664,11 @@ function followFullScreen(docked: DockedWindow): boolean {
   const inBlock = (hostId && hosts.get(hostId)?.rect?.fullScreen) === 'block'
   if (full === docked.fullScreen) return docked.fullScreen && !inBlock
   docked.fullScreen = full
+  const wheelMode = full && !inBlock ? `, molette : ${getSettings().window.videoWheel}` : ''
   logDocking(
-    `${docked.appId} : ${full ? 'passe en plein écran' : 'sort du plein écran'}${inBlock ? ' (dans le bloc)' : ''}`
+    `${docked.appId} : ${full ? 'passe en plein écran' : 'sort du plein écran'}${inBlock ? ' (dans le bloc)' : wheelMode}`
   )
+  wheelLogged = false
   docked.target = null
   if (inBlock) return false
   listeners.fullScreen(docked.appId, full)
@@ -1140,7 +1145,14 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
     // Un cran de molette (120) : 100 px, comme dans une page web
     wheel: ({ wheel, delta }) => {
       const hostId = hostOfFrame(wheel)
-      if (hostId) listeners.wheel(hostId, (-delta / 120) * 100)
+      if (!hostId) return
+      // Vidéo plein écran : le premier cran relayé est noté (diagnostic de la molette)
+      const docked = [...windows.values()].find((candidate) => candidate.frame === wheel)
+      if (docked?.fullScreen && !wheelLogged) {
+        wheelLogged = true
+        logDocking(`${docked.appId} : molette relayée à Tessera (vidéo plein écran)`)
+      }
+      listeners.wheel(hostId, (-delta / 120) * 100)
     },
     active: ({ active }) => {
       listeners.activate(active ? hostOfFrame(active) : null)

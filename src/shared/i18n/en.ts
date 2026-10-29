@@ -884,12 +884,12 @@ export const en: Translation = {
       description:
         'Previous and next screen of a scrolling page (one screen: 12 grid rows, the height of the visible area).',
       toolbar: 'In the page bar',
-      'top-center': 'Top center',
-      'bottom-center': 'Bottom center',
-      'middle-left': 'Middle left',
-      'middle-right': 'Middle right',
-      'bottom-right': 'Bottom right',
-      'bottom-left': 'Bottom left',
+      'top-center': 'Center, top',
+      'bottom-center': 'Center, bottom',
+      'middle-left': 'Middle, left',
+      'middle-right': 'Middle, right',
+      'bottom-left': 'Bottom, left',
+      'bottom-right': 'Bottom, right',
       hidden: 'Hidden'
     },
     screenRows: {

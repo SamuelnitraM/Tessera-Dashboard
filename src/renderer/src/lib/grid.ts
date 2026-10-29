@@ -178,9 +178,10 @@ export interface MovePlan {
 
 /**
  * Où vont les blocs gênés quand `id` est posé sur `target` (déplacement ou redimensionnement).
- * Chacun s'écarte d'abord du côté où il a de la place (haut, bas, gauche, droite, de quelques
- * cases au plus) ; sinon il prend la place libérée par le bloc déplacé ; en dernier recours, il
- * descend sous lui. Rien ne bouge avant le relâchement : la grille affiche ce plan en aperçu.
+ * Chacun monte d'abord, sinon s'écarte sur un côté (de quelques cases au plus) ; sinon il prend,
+ * dans la place libérée par le bloc déplacé, l'endroit le plus proche de sa place d'origine ; en
+ * dernier recours, il descend à la place libre la plus proche. Rien ne bouge avant le
+ * relâchement : la grille affiche ce plan en aperçu.
  */
 export function planMove(
   layout: readonly GridItem[],
@@ -207,48 +208,52 @@ export function planMove(
       candidate.x + candidate.w <= cols &&
       !fixed.some((item) => collides(item, candidate))
 
-    for (const item of blocked) {
-      // 1. S'écarter du bloc posé, du côté le plus proche
-      const sides = [
-        { ...item, y: placedTarget.y - item.h },
-        { ...item, y: placedTarget.y + placedTarget.h },
-        { ...item, x: placedTarget.x - item.w },
-        { ...item, x: placedTarget.x + placedTarget.w }
-      ]
-        .filter((c) => Math.abs(c.x - item.x) + Math.abs(c.y - item.y) <= MAX_SHIFT)
-        .sort(
-          (a, b) =>
-            Math.abs(a.x - item.x) +
-            Math.abs(a.y - item.y) -
-            (Math.abs(b.x - item.x) + Math.abs(b.y - item.y))
-        )
-      let spot = sides.find(free)
+    const distance = (a: GridItem, b: GridItem): number => Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
+    const near = (candidate: GridItem, item: GridItem): boolean =>
+      distance(candidate, item) <= MAX_SHIFT
 
-      // 2. Prendre la place libérée par le bloc déplacé : d'abord en gardant sa position par
-      // rapport à lui (échange de places), sinon la première case libre de cette zone
-      if (!spot && previous) {
-        const swapped = {
-          ...item,
-          x: item.x + previous.x - placedTarget.x,
-          y: item.y + previous.y - placedTarget.y
-        }
-        if (free(swapped)) spot = swapped
-        for (let y = previous.y; !spot && y <= previous.y + Math.max(0, previous.h - item.h); y++) {
-          for (let x = previous.x; x <= previous.x + Math.max(0, previous.w - item.w); x++) {
-            const candidate = { ...item, x: Math.min(x, cols - item.w), y }
-            if (free(candidate)) {
-              spot = candidate
-              break
-            }
-          }
-        }
+    for (const item of blocked) {
+      // 1. Monter au-dessus du bloc posé (de quelques cases au plus)
+      const up = { ...item, y: placedTarget.y - item.h }
+      let spot: GridItem | undefined = near(up, item) && free(up) ? up : undefined
+
+      // 2. Sinon s'écarter sur un côté, le plus proche d'abord
+      if (!spot) {
+        spot = [
+          { ...item, x: placedTarget.x - item.w },
+          { ...item, x: placedTarget.x + placedTarget.w }
+        ]
+          .filter((candidate) => near(candidate, item))
+          .sort((a, b) => distance(a, item) - distance(b, item))
+          .find(free)
       }
 
-      // 3. Descendre sous le bloc posé, à la première place libre
+      // 3. Sinon prendre la place libérée par le bloc déplacé, à l'endroit le plus proche de sa
+      // place d'origine (l'échange de places en fait partie)
+      if (!spot && previous) {
+        const candidates: GridItem[] = [
+          {
+            ...item,
+            x: item.x + previous.x - placedTarget.x,
+            y: item.y + previous.y - placedTarget.y
+          }
+        ]
+        for (let y = previous.y; y <= previous.y + Math.max(0, previous.h - item.h); y++) {
+          for (let x = previous.x; x <= previous.x + Math.max(0, previous.w - item.w); x++) {
+            candidates.push({ ...item, x: Math.min(x, cols - item.w), y })
+          }
+        }
+        spot = candidates.filter(free).sort((a, b) => distance(a, item) - distance(b, item))[0]
+      }
+
+      // 4. En dernier recours, descendre à la place libre la plus proche (ligne par ligne, la
+      // colonne la plus proche de la sienne d'abord)
       if (!spot) {
-        for (let y = placedTarget.y + placedTarget.h; !spot; y++) {
-          const candidate = { ...item, x: Math.min(item.x, cols - item.w), y }
-          if (free(candidate)) spot = candidate
+        const columns = Array.from({ length: Math.max(1, cols - item.w + 1) }, (_, x) => x).sort(
+          (a, b) => Math.abs(a - item.x) - Math.abs(b - item.x) || a - b
+        )
+        for (let y = item.y + 1; !spot; y++) {
+          spot = columns.map((x) => ({ ...item, x, y })).find(free)
         }
       }
       fixed.push(spot)

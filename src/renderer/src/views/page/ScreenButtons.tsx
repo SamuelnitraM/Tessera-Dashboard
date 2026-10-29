@@ -8,13 +8,14 @@ import styles from './PageView.module.css'
 interface ScreenButtonsProps {
   /** Zone qui défile de la page. */
   area: HTMLElement | null
-  /** Posés sur la zone de la page (haut, bas, côtés), sinon dans sa barre. */
+  /** À côté de la grille (en haut, en bas, sur un côté), sinon dans la barre de la page. */
   floating?: Exclude<ScreenButtonsPlace, 'toolbar' | 'hidden'>
 }
 
 /**
- * Écran précédent / suivant d'une page qui défile (un écran : 12 lignes de la grille). Les
- * limites coupées par un bloc sont sautées ; « suivant » va jusqu'au bas de la page.
+ * Écran précédent / suivant (un écran : les lignes qui remplissent la zone visible). Toujours
+ * affichés : un bouton sans écran où aller est grisé. Les limites coupées par un bloc sont
+ * sautées ; « suivant » va jusqu'au bas de la page.
  */
 export function ScreenButtons({ area, floating }: ScreenButtonsProps): React.JSX.Element | null {
   const { t } = useTranslation()
@@ -29,17 +30,28 @@ export function ScreenButtons({ area, floating }: ScreenButtonsProps): React.JSX
     observer.observe(area)
     if (area.firstElementChild) observer.observe(area.firstElementChild)
     area.addEventListener('scroll', update, { passive: true })
+    // La grille est posée ou change (blocs, taille des lignes) : la hauteur de la page aussi
+    const stop = usePageScreensStore.subscribe(update)
     update()
     return () => {
       observer.disconnect()
+      stop()
       area.removeEventListener('scroll', update)
     }
   }, [area])
 
-  // Une page qui tient dans la zone (ou disposition compacte) : pas d'écrans
-  if (!area || !rowStep || position.max < 1) return null
-  const up = nextScreen(position.top, -1, position.max)
-  const down = nextScreen(position.top, 1, position.max)
+  if (!area) return null
+  // Disposition compacte : pas d'écrans, défilement d'une hauteur de zone
+  const up = rowStep
+    ? nextScreen(position.top, -1, position.max)
+    : position.top > 1
+      ? Math.max(0, position.top - area.clientHeight)
+      : null
+  const down = rowStep
+    ? nextScreen(position.top, 1, position.max)
+    : position.top < position.max - 1
+      ? Math.min(position.max, position.top + area.clientHeight)
+      : null
   const go = (top: number | null): void => {
     if (top !== null) area.scrollTo({ top, behavior: 'smooth' })
   }
