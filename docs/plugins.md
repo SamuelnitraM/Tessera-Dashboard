@@ -108,7 +108,7 @@ Les permissions sont vérifiées par le processus principal, à partir de son pr
 
 ## Le code
 
-`index.tsx` exporte par défaut le résultat de `definePlugin`, avec **un composant par widget du manifeste** :
+`index.tsx` exporte par défaut le résultat de `definePlugin`, avec **un composant par widget du manifeste**. Ce code est chargé au premier affichage d'un des widgets de l'extension (le manifeste, lui, est lu au démarrage) ; ses `translations` arrivent avec lui : elles ne servent que dans ses composants (`usePluginTranslation`).
 
 ```tsx
 import { definePlugin } from '@tessera/plugin-sdk'

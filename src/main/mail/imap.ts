@@ -1,5 +1,4 @@
-import { ImapFlow, type FetchMessageObject, type MessageStructureObject } from 'imapflow'
-import nodemailer from 'nodemailer'
+import type { FetchMessageObject, ImapFlow, MessageStructureObject } from 'imapflow'
 import {
   INBOX as DEFAULT_FOLDER,
   mailError,
@@ -52,7 +51,14 @@ function serverError(error: unknown): Error {
  */
 const isLocal = (host: string): boolean => ['localhost', '127.0.0.1', '::1'].includes(host)
 
-function createImapClient(server: MailServer, user: string, password: string): ImapFlow {
+// IMAP et SMTP : bibliothèques chargées au premier usage (plus de 200 ms au démarrage sinon)
+
+async function createImapClient(
+  server: MailServer,
+  user: string,
+  password: string
+): Promise<ImapFlow> {
+  const { ImapFlow } = await import('imapflow')
   const local = isLocal(server.host)
   return new ImapFlow({
     host: server.host,
@@ -69,7 +75,8 @@ function createImapClient(server: MailServer, user: string, password: string): I
   } as ConstructorParameters<typeof ImapFlow>[0])
 }
 
-function createSmtpTransport(server: MailServer, user: string, password: string) {
+async function createSmtpTransport(server: MailServer, user: string, password: string) {
+  const { default: nodemailer } = await import('nodemailer')
   return nodemailer.createTransport({
     host: server.host,
     port: server.port,
@@ -89,7 +96,7 @@ export async function verifyImapAccount(
   user: string,
   password: string
 ): Promise<void> {
-  const client = createImapClient(imap, user, password)
+  const client = await createImapClient(imap, user, password)
   try {
     await client.connect()
     await client.logout()
@@ -99,7 +106,7 @@ export async function verifyImapAccount(
     client.close()
   }
   try {
-    await createSmtpTransport(smtp, user, password).verify()
+    await (await createSmtpTransport(smtp, user, password)).verify()
   } catch (error) {
     throw serverError(error)
   }
@@ -239,7 +246,7 @@ export function connectImap(account: MailAccount): MailConnection {
   const connection = (): Promise<ImapFlow> => {
     if (client?.usable) return Promise.resolve(client)
     connecting ??= (async () => {
-      const next = createImapClient(imap, user, password())
+      const next = await createImapClient(imap, user, password())
       next.on('error', () => {})
       try {
         await next.connect()
@@ -441,7 +448,9 @@ export function connectImap(account: MailAccount): MailConnection {
 
     async send(raw, { recipients }) {
       try {
-        await createSmtpTransport(smtp, user, password()).sendMail({
+        await (
+          await createSmtpTransport(smtp, user, password())
+        ).sendMail({
           envelope: { from: account.address, to: recipients },
           raw
         })

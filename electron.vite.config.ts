@@ -36,7 +36,9 @@ export default defineConfig({
           // Hébergeur des cadres des applications installées (processus séparé) et son fil
           'frame-host': resolve('src/main/frame-host/index.ts'),
           'frame-worker': resolve('src/main/frame-host/worker.ts'),
-          'frame-mouse': resolve('src/main/frame-host/mouse.ts')
+          'frame-mouse': resolve('src/main/frame-host/mouse.ts'),
+          // Aide système (widgets Média, Son, Système) : processus Node séparé
+          'system-host': resolve('src/main/system-host/index.ts')
         }
       }
     }
@@ -59,6 +61,9 @@ export default defineConfig({
     }
   },
   renderer: {
+    // Interface minifiée : moins de code à lire et à compiler au démarrage (le processus
+    // principal reste lisible, pour ses journaux d'erreurs)
+    build: { minify: true },
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),

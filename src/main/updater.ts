@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import electronUpdater from 'electron-updater'
+import type { AppUpdater } from 'electron-updater'
 import { APP_NAME } from '@shared/app'
 import { interpolate } from '@shared/i18n'
 import { TESSERA_SOURCE } from '@shared/notifications'
@@ -16,7 +16,8 @@ import { notify } from './notifications'
  * une mise à jour est prête : un clic l'installe.
  */
 
-const { autoUpdater } = electronUpdater
+/** electron-updater, chargé par `initUpdater` (version installée seulement). */
+let autoUpdater: AppUpdater | null = null
 
 /** Première vérification peu après le lancement (laisser l'app se charger). */
 const FIRST_CHECK_MS = 10_000
@@ -46,7 +47,7 @@ export async function checkForUpdates(): Promise<void> {
   if (state.status === 'downloading' || state.status === 'ready') return
   setState({ status: 'checking' })
   try {
-    await autoUpdater.checkForUpdates()
+    await autoUpdater?.checkForUpdates()
   } catch {
     // L'erreur est signalée par l'événement « error »
   }
@@ -65,29 +66,37 @@ export function checkForUpdatesOnClose(): void {
 export function installUpdate(): void {
   if (state.status !== 'ready') return
   // Installation silencieuse, puis Tessera se relance
-  autoUpdater.quitAndInstall(true, true)
+  autoUpdater?.quitAndInstall(true, true)
 }
 
 export function initUpdater(): void {
   // En développement, il n'y a ni installeur ni versions à comparer
   if (!app.isPackaged) return
-  autoUpdater.autoDownload = true
-  autoUpdater.autoInstallOnAppQuit = true
-  autoUpdater.logger = null
+  // Bibliothèque chargée après le démarrage (une centaine de millisecondes)
+  void import('electron-updater').then(({ default: electronUpdater }) =>
+    startUpdater(electronUpdater.autoUpdater)
+  )
+}
 
-  autoUpdater.on('update-available', (info) =>
+function startUpdater(updater: AppUpdater): void {
+  autoUpdater = updater
+  updater.autoDownload = true
+  updater.autoInstallOnAppQuit = true
+  updater.logger = null
+
+  updater.on('update-available', (info) =>
     setState({ status: 'downloading', version: info.version, percent: 0 })
   )
-  autoUpdater.on('download-progress', (progress) => {
+  updater.on('download-progress', (progress) => {
     if (state.status === 'downloading') {
       setState({ ...state, percent: Math.round(progress.percent) })
     }
   })
-  autoUpdater.on('update-not-available', () => {
+  updater.on('update-not-available', () => {
     checkedAt = Date.now()
     setState({ status: 'idle', checkedAt })
   })
-  autoUpdater.on('update-downloaded', (info) => {
+  updater.on('update-downloaded', (info) => {
     checkedAt = Date.now()
     setState({ status: 'ready', version: info.version })
     if (notifiedVersion === info.version) return
@@ -98,7 +107,7 @@ export function initUpdater(): void {
       body: text.readyBody
     })
   })
-  autoUpdater.on('error', (error) => {
+  updater.on('error', (error) => {
     checkedAt = Date.now()
     // Aucune version publiée sur GitHub (dépôt neuf) : rien à installer, ce n'est pas une erreur
     if (/No published versions|HttpError: 404/i.test(error.message)) {

@@ -1,4 +1,6 @@
-# Aide système de Tessera (widgets Média, Son et Système de la barre des pages).
+# Aide système de Tessera, version de secours (widgets Média, Son et Système de la barre des
+# pages) : l'aide native (src/main/system-host, même protocole) est utilisée d'abord ; celle-ci la
+# remplace si elle s'arrête à répétition.
 # Lancée par Tessera (src/main/headerbar/helper.ts) ; une requête JSON par ligne sur l'entrée
 # standard, une réponse JSON par ligne sur la sortie. S'arrête quand Tessera ferme l'entrée.
 #   media.get / media.thumb / media.command  : lecture en cours (contrôles multimédias de Windows)

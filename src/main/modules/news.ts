@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { ipcMain } from 'electron'
-import { XMLParser } from 'fast-xml-parser'
+import type { XMLParser } from 'fast-xml-parser'
 import { BuiltinChannels as C } from '@shared/builtin-ipc'
 import type { NewsItem, NewsState } from '@shared/news'
 import { broadcast } from '../broadcast'
@@ -76,13 +76,22 @@ export const loadNews = (): void => {
 }
 export const flushNews = (): void => store.flush()
 
-const parser = new XMLParser({
-  ignoreAttributes: false,
-  attributeNamePrefix: '@',
-  textNodeName: '#text',
-  processEntities: true,
-  htmlEntities: true
-})
+let parser: XMLParser | null = null
+
+/** Lecteur XML, chargé au premier flux lu (inutile au démarrage). */
+async function xmlParser(): Promise<XMLParser> {
+  if (!parser) {
+    const { XMLParser } = await import('fast-xml-parser')
+    parser = new XMLParser({
+      ignoreAttributes: false,
+      attributeNamePrefix: '@',
+      textNodeName: '#text',
+      processEntities: true,
+      htmlEntities: true
+    })
+  }
+  return parser
+}
 
 const asArray = <T>(value: T | T[] | undefined): T[] =>
   value === undefined ? [] : Array.isArray(value) ? value : [value]
@@ -132,7 +141,12 @@ interface ParsedFeed {
 
 type XmlNode = Record<string, unknown>
 
-function parseFeed(xml: string, feedId: string, base: string): ParsedFeed | null {
+function parseFeed(
+  parser: XMLParser,
+  xml: string,
+  feedId: string,
+  base: string
+): ParsedFeed | null {
   // Liens relatifs (et `xml:base`) : complétés par l'adresse du flux
   const absolute = (value: string): string | null => httpsUrl(value, base)
   const doc = parser.parse(xml) as XmlNode
@@ -262,15 +276,16 @@ function discover(html: string, base: string): string | null {
 /** Télécharge et lit un flux ; une page de site est remplacée par son flux. */
 async function read(url: string, feedId: string): Promise<{ url: string; feed: ParsedFeed }> {
   const first = await download(url)
+  const parser = await xmlParser()
   let parsed =
     /xml|rss|atom/i.test(first.type) || first.text.trimStart().startsWith('<?xml')
-      ? parseFeed(first.text, feedId, url)
+      ? parseFeed(parser, first.text, feedId, url)
       : null
   if (parsed) return { url, feed: parsed }
   const found = discover(first.text, url)
   if (!found) throw new Error(errorText('news', 'noFeed'))
   const second = await download(found)
-  parsed = parseFeed(second.text, feedId, found)
+  parsed = parseFeed(parser, second.text, feedId, found)
   if (!parsed) throw new Error(errorText('news', 'unreadable'))
   return { url: found, feed: parsed }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bug,
   CircleAlert,
@@ -202,12 +202,15 @@ export function WidgetFrame({
           <WidgetErrorBoundary>
             <PluginContext.Provider value={registered.context}>
               <BlockSettingsContext.Provider value={hasSettings ? blockSettings : null}>
-                <Component
-                  instanceId={widget.id}
-                  config={config}
-                  setConfig={setConfig}
-                  editing={editing}
-                />
+                {/* Code de l'extension chargé au premier affichage (quelques millisecondes) */}
+                <Suspense fallback={null}>
+                  <Component
+                    instanceId={widget.id}
+                    config={config}
+                    setConfig={setConfig}
+                    editing={editing}
+                  />
+                </Suspense>
               </BlockSettingsContext.Provider>
             </PluginContext.Provider>
           </WidgetErrorBoundary>

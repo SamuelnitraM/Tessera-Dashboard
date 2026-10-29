@@ -1,4 +1,4 @@
-import { createElement } from 'react'
+import { createElement, lazy, useState, type ComponentType } from 'react'
 import type { i18n as I18n } from 'i18next'
 import type { InstalledModule } from '@shared/modules'
 import {
@@ -20,7 +20,9 @@ import { useModulesStore } from '../stores/modules'
  *
  * Les extensions intégrées vivent dans le dossier `plugins/` à la racine du projet : chaque
  * sous-dossier contenant un `manifest.json` et un `index.tsx` est découvert automatiquement
- * au build (aucune liste à tenir à jour).
+ * au build (aucune liste à tenir à jour). Les manifestes sont lus au démarrage (noms, tailles,
+ * réglages) ; le code d'une extension (et ses textes) n'est chargé qu'au premier affichage d'un
+ * de ses widgets (`loadPluginCode` le charge d'avance) : une extension inutilisée ne coûte rien.
  *
  * Les modules tiers, installés par l'utilisateur, viennent du processus principal (store
  * `modules`) : leurs widgets sont des cadres isolés (`ModuleFrame`). Les composants qui listent
@@ -71,14 +73,19 @@ const manifestFiles = import.meta.glob<unknown>('../../../../plugins/*/manifest.
   import: 'default'
 })
 const codeFiles = import.meta.glob<PluginModule>('../../../../plugins/*/index.tsx', {
-  eager: true,
   import: 'default'
 })
 
 const plugins: LoadedPlugin[] = []
 const widgets = new Map<string, RegisteredWidget>()
 const headerWidgets = new Map<string, RegisteredHeaderWidget>()
-const modules = new Map<string, PluginModule>()
+/** Chargement du code des extensions intégrées valides, par identifiant. */
+const loaders = new Map<string, () => Promise<PluginModule>>()
+const loading = new Map<string, Promise<PluginModule>>()
+/** Code déjà arrivé : ses widgets s'affichent tout de suite, sans passer par Suspense. */
+const loaded = new Map<string, PluginModule>()
+/** i18next, pour y ajouter les textes d'une extension quand son code arrive. */
+let translations: I18n | null = null
 
 for (const [path, rawManifest] of Object.entries(manifestFiles)) {
   const folder = path.split('/').at(-2) ?? path
@@ -94,7 +101,7 @@ plugins.sort((a, b) => a.id.localeCompare(b.id))
 function loadPlugin(
   folder: string,
   rawManifest: unknown,
-  module: PluginModule | undefined
+  loader: (() => Promise<PluginModule>) | undefined
 ): LoadedPlugin {
   const invalid = (error: string): LoadedPlugin => ({
     id: folder,
@@ -111,22 +118,10 @@ function loadPlugin(
   if (manifest.id !== folder) {
     return invalid(`Le dossier doit porter le nom de l'extension (« ${manifest.id} »).`)
   }
-  if (modules.has(manifest.id)) return invalid(`Identifiant « ${manifest.id} » déjà utilisé.`)
-  if (!module || typeof module.widgets !== 'object') {
-    return invalid('index.tsx doit exporter par défaut definePlugin({ widgets: … }).')
-  }
-  const missing = manifest.widgets.find(
-    (widget) => typeof module.widgets[widget.type] !== 'function'
-  )
-  if (missing) return invalid(`Aucun composant fourni pour le widget « ${missing.type} ».`)
-  const missingHeader = manifest.headerWidgets.find(
-    (widget) => typeof module.headerWidgets?.[widget.type] !== 'function'
-  )
-  if (missingHeader) {
-    return invalid(`Aucun composant fourni pour le widget de la barre « ${missingHeader.type} ».`)
-  }
+  if (loaders.has(manifest.id)) return invalid(`Identifiant « ${manifest.id} » déjà utilisé.`)
+  if (!loader) return invalid('index.tsx doit exporter par défaut definePlugin({ widgets: … }).')
 
-  modules.set(manifest.id, module)
+  loaders.set(manifest.id, loader)
   const context: PluginContextValue = { id: manifest.id, permissions: manifest.permissions }
   for (const widget of manifest.widgets) {
     const key = widgetKey(manifest.id, widget.type)
@@ -134,7 +129,7 @@ function loadPlugin(
       key,
       pluginId: manifest.id,
       manifest: widget,
-      component: module.widgets[widget.type],
+      component: lazyComponent(manifest.id, (module) => module.widgets?.[widget.type], widget.type),
       context,
       builtIn: true,
       category: manifest.category
@@ -146,11 +141,91 @@ function loadPlugin(
       key,
       pluginId: manifest.id,
       manifest: widget,
-      component: module.headerWidgets![widget.type],
+      component: lazyComponent(
+        manifest.id,
+        (module) => module.headerWidgets?.[widget.type],
+        widget.type
+      ),
       context
     })
   }
   return { id: manifest.id, manifest, error: null, builtIn: true, module: null }
+}
+
+/**
+ * Code d'une extension intégrée (chargé une fois) ; ses textes sont ajoutés à i18next avant
+ * qu'un de ses widgets ne s'affiche.
+ */
+function loadModule(pluginId: string): Promise<PluginModule> {
+  let promise = loading.get(pluginId)
+  if (!promise) {
+    const loader = loaders.get(pluginId)
+    promise = loader
+      ? loader().then((module) => {
+          if (!module || typeof module.widgets !== 'object') {
+            throw new Error('index.tsx doit exporter par défaut definePlugin({ widgets: … }).')
+          }
+          addTranslations(pluginId, module)
+          loaded.set(pluginId, module)
+          return module
+        })
+      : Promise.reject(new Error(`Extension « ${pluginId} » introuvable.`))
+    loading.set(pluginId, promise)
+  }
+  return promise
+}
+
+/**
+ * Composant d'un widget. Code de l'extension déjà chargé (page d'accueil, chargement d'avance) :
+ * affiché directement. Sinon chargé avec React.lazy (Suspense n'affiche rien en attendant ; une
+ * erreur arrive à la barrière d'erreur du bloc). React retarde d'environ 300 ms le contenu qui
+ * remplace une attente : d'où l'affichage direct dès que possible.
+ */
+function lazyComponent<P>(
+  pluginId: string,
+  pick: (module: PluginModule) => ComponentType<P> | undefined,
+  type: string
+): ComponentType<P> {
+  const componentOf = (module: PluginModule): ComponentType<P> => {
+    const component = pick(module)
+    if (typeof component !== 'function') {
+      throw new Error(`Aucun composant fourni pour le widget « ${type} ».`)
+    }
+    return component
+  }
+  const Lazy = lazy(async () => ({ default: componentOf(await loadModule(pluginId)) }))
+  function PluginComponent(props: P): React.JSX.Element {
+    // Choisi au premier affichage du bloc et gardé (changer de type d'élément le recréerait)
+    const [direct] = useState(() => loaded.has(pluginId))
+    const module = loaded.get(pluginId)
+    return direct && module
+      ? createElement(componentOf(module) as ComponentType<object>, props as object)
+      : createElement(Lazy as unknown as ComponentType<object>, props as object)
+  }
+  PluginComponent.displayName = `Plugin(${pluginId}/${type})`
+  return PluginComponent
+}
+
+/** Charge d'avance le code de ces extensions (celles de la page affichée au démarrage…). */
+export async function loadPluginCode(pluginIds: Iterable<string>): Promise<void> {
+  await Promise.all(
+    [...new Set(pluginIds)]
+      .filter((id) => loaders.has(id))
+      .map((id) => loadModule(id).catch(() => undefined))
+  )
+}
+
+/** Code arrivé avant l'initialisation d'i18next : ses textes sont ajoutés à ce moment-là. */
+const waitingTranslations = new Map<string, PluginModule>()
+
+function addTranslations(pluginId: string, module: PluginModule): void {
+  if (!translations) {
+    waitingTranslations.set(pluginId, module)
+    return
+  }
+  for (const [language, strings] of Object.entries(module.translations ?? {})) {
+    translations.addResourceBundle(language, pluginId, strings, true, true)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -255,11 +330,12 @@ export function getMinSize(key: string): GridSizeSpec {
   return getWidget(key)?.manifest.minSize ?? FALLBACK_MIN_SIZE
 }
 
-/** Rend les textes des extensions disponibles dans i18next (un espace de noms par extension). */
+/**
+ * Textes des extensions dans i18next (un espace de noms par extension), ajoutés quand leur code
+ * est chargé.
+ */
 export function registerPluginTranslations(i18n: I18n): void {
-  for (const [pluginId, module] of modules) {
-    for (const [language, strings] of Object.entries(module.translations ?? {})) {
-      i18n.addResourceBundle(language, pluginId, strings, true, true)
-    }
-  }
+  translations = i18n
+  for (const [pluginId, module] of waitingTranslations) addTranslations(pluginId, module)
+  waitingTranslations.clear()
 }

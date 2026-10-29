@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ArrowLeftRight,
   Calculator,
@@ -187,7 +187,9 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
       render: () => (
         <WidgetErrorBoundary>
           <PluginContext.Provider value={widget.context}>
-            <Component />
+            <Suspense fallback={null}>
+              <Component />
+            </Suspense>
           </PluginContext.Provider>
         </WidgetErrorBoundary>
       )

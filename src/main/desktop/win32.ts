@@ -28,6 +28,7 @@ const kernel32 = koffi.load('kernel32.dll')
 const dwmapi = koffi.load('dwmapi.dll')
 const gdi32 = koffi.load('gdi32.dll')
 const shell32 = koffi.load('shell32.dll')
+const advapi32 = koffi.load('advapi32.dll')
 
 koffi.struct('RECT', { left: 'int32_t', top: 'int32_t', right: 'int32_t', bottom: 'int32_t' })
 koffi.struct('POINT', { x: 'int32_t', y: 'int32_t' })
@@ -162,7 +163,20 @@ const api = {
   DwmGetWindowAttribute: fn(
     dwmapi,
     'int32_t __stdcall DwmGetWindowAttribute(intptr_t hwnd, uint32_t attr, _Out_ RECT *value, uint32_t size)'
-  )
+  ),
+  RegOpenKeyExW: fn(
+    advapi32,
+    'long __stdcall RegOpenKeyExW(intptr_t key, str16 subKey, uint32_t options, uint32_t access, _Out_ intptr_t *result)'
+  ),
+  RegEnumKeyExW: fn(
+    advapi32,
+    'long __stdcall RegEnumKeyExW(intptr_t key, uint32_t index, _Out_ uint8_t *name, _Inout_ uint32_t *length, void *reserved, void *className, void *classLength, void *lastWrite)'
+  ),
+  RegGetValueW: fn(
+    advapi32,
+    'long __stdcall RegGetValueW(intptr_t key, str16 subKey, str16 value, uint32_t flags, _Out_ uint32_t *type, _Out_ uint8_t *data, _Inout_ uint32_t *length)'
+  ),
+  RegCloseKey: fn(advapi32, 'long __stdcall RegCloseKey(intptr_t key)')
 }
 
 const GWL_STYLE = -16
@@ -353,6 +367,41 @@ export function getProcessPath(pid: number): string {
   const ok = api.QueryFullProcessImageNameW(handle, 0, buffer, size)
   api.CloseHandle(handle)
   return ok ? buffer.toString('utf16le', 0, size[0] * 2) : ''
+}
+
+/** Racines du registre (valeurs 64 bits des HKEY prédéfinis). */
+export const HKEY_CURRENT_USER = -2147483647 // 0x80000001
+export const HKEY_LOCAL_MACHINE = -2147483646 // 0x80000002
+const KEY_READ = 0x20019
+
+/** Noms des sous-clés d'une clé du registre (vide si elle n'existe pas). */
+export function registrySubkeys(root: number, path: string): string[] {
+  const key: number[] = [0]
+  if (api.RegOpenKeyExW(root, path, 0, KEY_READ, key) !== 0) return []
+  try {
+    const names: string[] = []
+    for (let index = 0; ; index++) {
+      const name = Buffer.alloc(512)
+      const length = [256]
+      if (api.RegEnumKeyExW(key[0], index, name, length, null, null, null, null) !== 0) break
+      names.push(name.toString('utf16le', 0, length[0] * 2))
+    }
+    return names
+  } finally {
+    api.RegCloseKey(key[0])
+  }
+}
+
+/** Valeur texte d'une clé du registre (`null` : valeur par défaut), ou `null` si absente. */
+export function registryString(root: number, path: string, value: string | null): string | null {
+  const data = Buffer.alloc(4096)
+  const length = [data.length]
+  // RRF_RT_REG_SZ | RRF_RT_REG_EXPAND_SZ (variables d'environnement remplacées)
+  if (api.RegGetValueW(root, path, value, 0x6, [0], data, length) !== 0) return null
+  // Le texte finit par un caractère nul
+  const text = data.toString('utf16le', 0, length[0])
+  const end = text.indexOf('\u0000')
+  return end >= 0 ? text.slice(0, end) : text
 }
 
 /** La fenêtre accepte la souris et le clavier (pas désactivée par une boîte de dialogue). */

@@ -1,4 +1,4 @@
-import { simpleParser, type AddressObject, type ParsedMail } from 'mailparser'
+import type { AddressObject, ParsedMail } from 'mailparser'
 import MailComposer from 'nodemailer/lib/mail-composer'
 import type { MailAddress, MailAttachment, MailDraft, MailMessage, MailSummary } from '@shared/mail'
 
@@ -57,8 +57,11 @@ function addresses(value: AddressObject | AddressObject[] | undefined): MailAddr
 const listedAttachments = (mail: ParsedMail): ParsedMail['attachments'] =>
   mail.attachments.filter((attachment) => !attachment.related)
 
-export const parseRaw = (raw: Buffer): Promise<ParsedMail> =>
-  simpleParser(raw, { skipTextToHtml: true })
+/** Lecture d'un mail brut (mailparser, chargé au premier mail ouvert). */
+export async function parseRaw(raw: Buffer): Promise<ParsedMail> {
+  const { simpleParser } = await import('mailparser')
+  return simpleParser(raw, { skipTextToHtml: true })
+}
 
 /** Mail brut -> mail à lire. `known` : ce que le fournisseur sait déjà (lu, fil…). */
 export async function toMessage(

@@ -7,9 +7,12 @@ import script from './system-helper.ps1?raw'
 import { POWERSHELL } from '../executables'
 
 /**
- * Aide système des widgets Média, Son et Système : un PowerShell lancé à la demande, qui parle
- * aux contrôles multimédias de Windows (WinRT) et à Core Audio, inaccessibles depuis Node sans
- * rien compiler. Une requête JSON par ligne ; arrêté après quelques minutes sans requête.
+ * Aide système des widgets Média, Son et Système (et des modules Jeux et Services locaux) : un
+ * petit processus lancé à la demande, qui parle aux contrôles multimédias de Windows (WinRT), à
+ * Core Audio et au noyau. Par défaut l'exécutable de Tessera en mode Node (src/main/system-host,
+ * appels directs à Windows via koffi) ; PowerShell (system-helper.ps1, même protocole) seulement
+ * s'il ne démarre pas ou s'arrête à répétition. Une requête JSON par ligne ; arrêté après
+ * quelques minutes sans requête.
  */
 
 const IDLE_MS = 3 * 60_000
@@ -28,6 +31,11 @@ let idleTimer: NodeJS.Timeout | null = null
 /** Arrêts inattendus récents : au-delà de 3 en une minute, l'aide n'est plus relancée un moment. */
 let crashes: number[] = []
 let pausedUntil = 0
+/**
+ * Aide utilisée : la native, ou PowerShell si la native s'est arrêtée 3 fois en une minute
+ * (jusqu'au prochain lancement de Tessera).
+ */
+let backend: 'native' | 'powershell' = 'native'
 
 /** Copie du script dans les données de Tessera (PowerShell exécute un fichier). */
 function scriptPath(): string {
@@ -49,11 +57,17 @@ function scriptPath(): string {
 }
 
 function start(): ChildProcessWithoutNullStreams {
-  const helper = spawn(
-    POWERSHELL,
-    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath()],
-    { windowsHide: true }
-  )
+  const helper =
+    backend === 'native'
+      ? spawn(process.execPath, [join(import.meta.dirname, 'system-host.js')], {
+          env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+          windowsHide: true
+        })
+      : spawn(
+          POWERSHELL,
+          ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath()],
+          { windowsHide: true }
+        )
   // Aide arrêtée avant que Tessera ne le sache : une écriture échoue (EPIPE) sans planter
   helper.stdin.on('error', () => {})
   helper.stdout.setEncoding('utf8')
@@ -72,7 +86,7 @@ function start(): ChildProcessWithoutNullStreams {
     if (message.ok) request.resolve(message.data ?? null)
     else request.reject(new Error(message.error ?? 'helper error'))
   })
-  // Erreurs de PowerShell : ignorées (chaque requête a sa propre réponse d'erreur)
+  // Erreurs de l'aide : ignorées (chaque requête a sa propre réponse d'erreur)
   helper.stderr.resume()
   helper.on('exit', () => {
     if (child === helper) child = null
@@ -84,7 +98,15 @@ function start(): ChildProcessWithoutNullStreams {
     if (!stopping) {
       const now = Date.now()
       crashes = [...crashes.filter((time) => now - time < 60_000), now]
-      if (crashes.length >= 3) pausedUntil = now + 5 * 60_000
+      if (crashes.length >= 3) {
+        if (backend === 'native') {
+          // L'aide native ne tient pas sur ce PC : PowerShell prend le relais
+          backend = 'powershell'
+          crashes = []
+        } else {
+          pausedUntil = now + 5 * 60_000
+        }
+      }
     }
     stopping = false
   })

@@ -1,4 +1,4 @@
-import { execFile, spawn } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { basename } from 'node:path'
 import { shell } from 'electron'
@@ -8,8 +8,13 @@ import { isDesktopApp } from '@shared/user-apps'
 import { normalizeWebUrl } from '@shared/web-apps'
 import { getAppStates } from './desktop/docking'
 import { addApp, iconOf } from './desktop/programs'
+import {
+  HKEY_CURRENT_USER,
+  HKEY_LOCAL_MACHINE,
+  registryString,
+  registrySubkeys
+} from './desktop/win32'
 import { getSettings } from './settings-store'
-import { POWERSHELL } from './executables'
 
 /**
  * Navigateurs installés sur le PC, pour ouvrir une application web dans le navigateur de
@@ -84,17 +89,16 @@ const KNOWN_BROWSERS: KnownBrowser[] = [
 
 /** Commandes d'ouverture déclarées par les navigateurs dans le registre de Windows. */
 function readRegisteredCommands(): Promise<string[]> {
-  // PowerShell, sortie en UTF-8 : les chemins avec accents restent lisibles
-  const script =
-    "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Clients\\StartMenuInternet\\*\\shell\\open\\command','HKCU:\\SOFTWARE\\Clients\\StartMenuInternet\\*\\shell\\open\\command' -ErrorAction SilentlyContinue | ForEach-Object { $_.'(default)' }"
-  return new Promise((resolve) => {
-    execFile(
-      POWERSHELL,
-      ['-NoProfile', '-NonInteractive', '-Command', script],
-      { windowsHide: true, encoding: 'utf8', timeout: 10_000 },
-      (_error, stdout) => resolve((stdout ?? '').split(/\r?\n/).filter(Boolean))
-    )
-  })
+  // Lues directement dans le registre (UTF-16 : les chemins avec accents restent lisibles)
+  const root = 'SOFTWARE\\Clients\\StartMenuInternet'
+  const commands: string[] = []
+  for (const hive of [HKEY_LOCAL_MACHINE, HKEY_CURRENT_USER]) {
+    for (const name of registrySubkeys(hive, root)) {
+      const command = registryString(hive, `${root}\\${name}\\shell\\open\\command`, null)
+      if (command) commands.push(command)
+    }
+  }
+  return Promise.resolve(commands)
 }
 
 /** Chemin de l'exécutable dans une commande (`"C:\…\brave.exe" --flag` -> `C:\…\brave.exe`). */
