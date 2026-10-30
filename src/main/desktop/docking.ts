@@ -21,13 +21,14 @@ import {
   setFrameMiddle,
   setFrameMiddleListener,
   setFrameOwner,
+  setTaskbarButton,
   setFramePanListener,
   setFramePannable,
   setFrameWheel,
   setFrameWheelListeners
 } from './frames'
 import { logDocking } from '../log'
-import { saveMinSize } from './programs'
+import { launchTargetExists, saveMinSize } from './programs'
 import { childStyle, isChromium, returnWindow, saveWindow, type SavedWindow } from './saved-window'
 import * as w from './win32'
 import { getMainWindow, hwndOf } from '../window'
@@ -95,6 +96,11 @@ interface DockedWindow {
   /** Dernier état noté dans le journal (affichée, ou raison du masquage), et dernière anomalie. */
   logged: string
   problem: string
+  /**
+   * Couleur unie vue à l'écran sur toute la fenêtre (elle ne se dessinait plus) : déjà relancée
+   * pour cette couleur, pas de nouvelle relance tant qu'elle reste la même (page unie voulue).
+   */
+  blank: number | null
   /** Sa molette fait défiler la page (l'hébergeur le sait), même après un clic (`always`). */
   pageWheel: boolean
   wheelAlways: boolean
@@ -179,6 +185,14 @@ const windows = new Map<string, DockedWindow>()
 const states = new Map<string, DesktopAppState>()
 /** Applications en cours d'insertion (création du cadre). */
 const docking = new Set<string>()
+/**
+ * Écrans de démarrage (fenêtres sans barre de titre) d'une application en cours de lancement,
+ * masqués dès leur apparition : rien ne passe sur le bureau. Remis si rien n'est inséré, ou si
+ * la fenêtre principale attend une réponse (voir `waitForWindow`).
+ */
+const veiled = new Map<string, Set<w.Hwnd>>()
+/** Après l'insertion : délai avant de vérifier qu'un écran masqué n'attend pas une réponse. */
+const VEIL_CHECK_MS = 3000
 /** Fermées ou sorties de Tessera pendant leur insertion : l'insertion s'arrête. */
 const cancelled = new Set<string>()
 
@@ -359,6 +373,16 @@ function place(docked: DockedWindow): void {
   const style = w.getStyle(docked.hwnd)
   if (style !== childStyle(style, docked.activatable)) {
     logDocking(`${docked.appId} : style rétabli (0x${(style >>> 0).toString(16)})`)
+    // Plein écran gardé dans le bloc : l'application quitte son plein écran en remettant sa
+    // barre de titre et ses bords
+    if (
+      docked.fullScreen &&
+      layout.fullScreen === 'block' &&
+      style & (w.WS.CAPTION | w.WS.THICKFRAME)
+    ) {
+      docked.fullScreen = false
+      logDocking(`${docked.appId} : sort du plein écran (dans le bloc)`)
+    }
     w.setStyle(docked.hwnd, childStyle(style, docked.activatable))
     w.setWindowPos(
       docked.hwnd,
@@ -375,6 +399,16 @@ function place(docked: DockedWindow): void {
   // Fenêtre de Chromium ou de Firefox : agrandie de la place de son bord redimensionnable
   // (bande noire), que le cadre cache. Sa zone utile remplit le bloc.
   const insets = docked.borderBand ? w.clientInsets(docked.hwnd) : null
+  // Plein écran gardé dans le bloc : sa bande de bord revient quand l'application en sort
+  if (
+    docked.fullScreen &&
+    layout.fullScreen === 'block' &&
+    insets &&
+    insets.left + insets.top + insets.right + insets.bottom > 0
+  ) {
+    docked.fullScreen = false
+    logDocking(`${docked.appId} : sort du plein écran (dans le bloc)`)
+  }
   const window = insets
     ? {
         x: layout.window.x - insets.left,
@@ -431,6 +465,11 @@ function place(docked: DockedWindow): void {
   if (!docked.shown) {
     docked.shown = true
     w.showWindow(docked.frame, w.SW.SHOWNA)
+    // Jamais dans la barre des tâches tant qu'elle est dans un bloc (l'application peut l'y
+    // remettre d'elle-même en se réaffichant)
+    setTaskbarButton(docked.hwnd, false)
+    // Réaffichée : l'application se redessine-t-elle ? (sinon relancée)
+    setTimeout(() => checkPainted(docked), PAINT_CHECK_MS)
   }
   if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) w.showWindowAsync(docked.hwnd, w.SW.SHOWNA)
   docked.hiddenByUs = false
@@ -474,6 +513,8 @@ function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
       logDocking(`${docked.appId} : ne répond plus, fenêtre laissée à l'hébergeur des cadres`)
     } else {
       returnWindow(docked.hwnd, docked.saved, mode === 'restore' && !docked.hiddenByApp)
+      // Rendue au bureau : son bouton revient dans la barre des tâches
+      if (mode === 'restore' && !docked.hiddenByApp) setTaskbarButton(docked.hwnd, true)
     }
     if (mode === 'close') w.postMessage(docked.hwnd, w.WM_CLOSE)
   }
@@ -574,6 +615,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       borderBand: activatable || w.getClassName(hwnd) === 'MozillaWindowClass',
       logged: '',
       problem: '',
+      blank: null,
       unwatch: () => {}
     }
     docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
@@ -712,6 +754,10 @@ function followFullScreen(docked: DockedWindow): boolean {
   // changement de taille (elle le remplit, sans ses barres d'outils)
   const hostId = activeHosts.get(docked.appId)
   const inBlock = (hostId && hosts.get(hostId)?.rect?.fullScreen) === 'block'
+  // Gardée dans le bloc : Tessera lui impose la taille du bloc, ce n'est pas une sortie du plein
+  // écran (la sortie se voit à son style, voir `place`). Sans cela, la taille du bloc n'était
+  // plus imposée et la fenêtre reprenait celle de l'écran dès que le bloc perdait le focus.
+  if (inBlock && docked.fullScreen && !full) return false
   if (full === docked.fullScreen) return docked.fullScreen && !inBlock
   docked.fullScreen = full
   const wheelMode = full && !inBlock ? `, molette : ${getSettings().window.videoWheel}` : ''
@@ -947,13 +993,14 @@ function findMainWindow(desktopApp: DesktopApp, allowUnframed = true): w.TopWind
       const min = candidate.framed ? MIN_FRAMED_WINDOW : MIN_MAIN_WINDOW
       return candidate.width >= min.width && candidate.height >= min.height
     })
-  let candidates = usable(w.findTopWindows(desktopApp.processName))
+  const hidden = veiled.get(desktopApp.id)
+  let candidates = usable(w.findTopWindows(desktopApp.processName, undefined, hidden))
   // Rien sous ce nom : un lanceur (swriter.exe) peut ouvrir la fenêtre d'un autre programme de
   // son dossier (soffice.bin). Jamais pour un dossier de Windows (System32…), partagé.
   const folder = dirname(desktopApp.path).toLowerCase()
   const windowsFolder = (process.env.SystemRoot ?? 'C:\\Windows').toLowerCase()
   if (candidates.length === 0 && !folder.startsWith(windowsFolder)) {
-    candidates = usable(w.findTopWindows(desktopApp.processName, folder))
+    candidates = usable(w.findTopWindows(desktopApp.processName, folder, hidden))
   }
   // Un écran de démarrage (sans barre de titre ni bord : GIMP…) n'est pris que s'il n'y a rien
   // d'autre et que l'application a eu le temps de s'ouvrir (`allowUnframed`)
@@ -987,11 +1034,26 @@ async function waitForWindow(
   const appId = desktopApp.id
   const name = `\\${desktopApp.processName.toLowerCase()}`
   const folder = `${dirname(desktopApp.path).toLowerCase()}\\`
+  // Jamais les fenêtres d'un dossier de Windows (Explorateur…), partagé avec d'autres programmes
+  const windowsFolder = `${(process.env.SystemRoot ?? 'C:\\Windows').toLowerCase()}\\`
+  const ownFolder = !folder.startsWith(windowsFolder)
+  const hidden = new Set<w.Hwnd>()
+  veiled.set(appId, hidden)
   let wake: (() => void) | null = null
   const unwatch = w.watchShownWindows((hwnd) => {
-    if (!wake) return
     const path = w.getProcessPath(w.getProcessId(hwnd)).toLowerCase()
-    if (path.endsWith(name) || path.startsWith(folder)) wake()
+    if (!path.endsWith(name) && !(ownFolder && path.startsWith(folder))) return
+    // Fenêtre de l'application (écran de démarrage, fenêtre principale) : masquée tout de suite,
+    // elle ne passe pas sur le bureau avant d'être insérée
+    if (!windows.has(appId) && w.isTopLevelWindow(hwnd) && !hidden.has(hwnd)) {
+      // Demande postée : une application occupée ne bloque pas Tessera
+      w.showWindowAsync(hwnd, w.SW.HIDE)
+      hidden.add(hwnd)
+      logDocking(
+        `${appId} : ${w.isUnframedTopLevel(hwnd) ? 'écran de démarrage' : 'fenêtre'} masqué(e) pendant le lancement`
+      )
+    }
+    wake?.()
   })
   const start = Date.now()
   try {
@@ -1017,7 +1079,33 @@ async function waitForWindow(
     return windows.has(appId) || docking.has(appId)
   } finally {
     unwatch()
+    releaseVeiled(appId, hidden)
   }
+}
+
+/**
+ * Fin du lancement : rien d'inséré, les écrans masqués reviennent sur le bureau ; inséré, ils
+ * restent masqués (un écran de démarrage se ferme de lui-même), sauf si la fenêtre insérée est
+ * désactivée un instant plus tard (elle attend la réponse à l'un d'eux).
+ */
+function releaseVeiled(appId: string, hidden: Set<w.Hwnd>): void {
+  const show = (reason: string): void => {
+    const alive = [...hidden].filter(
+      (hwnd) => w.isWindow(hwnd) && windows.get(appId)?.hwnd !== hwnd
+    )
+    for (const hwnd of alive) w.showWindow(hwnd, w.SW.SHOWNA)
+    if (alive.length > 0)
+      logDocking(`${appId} : ${alive.length} fenêtre(s) masquée(s) remise(s) (${reason})`)
+  }
+  if (veiled.get(appId) === hidden) veiled.delete(appId)
+  if (hidden.size === 0) return
+  if (!windows.has(appId) && !docking.has(appId)) return show('rien n’a été inséré')
+  setTimeout(() => {
+    const docked = windows.get(appId)
+    if (docked && w.isWindow(docked.hwnd) && !w.isEnabled(docked.hwnd)) {
+      show('la fenêtre insérée attend une réponse')
+    }
+  }, VEIL_CHECK_MS)
 }
 
 /** Insère la fenêtre de l'application si elle est déjà ouverte. */
@@ -1045,6 +1133,13 @@ export async function launchApp(appId: string): Promise<void> {
   if (docked && !docked.hiddenByApp) return place(docked)
   if (!docked && connect(desktopApp)) return
 
+  // Désinstallée, ou réinstallée ailleurs : rien n'est lancé (l'Explorateur s'ouvrirait sur
+  // Documents pour une application du Store disparue)
+  if (!launchTargetExists(desktopApp)) {
+    logDocking(`${appId} : programme introuvable (${desktopApp.path} ${desktopApp.args})`)
+    setState(appId, { status: 'error', error: 'not-installed' })
+    return
+  }
   setState(appId, { status: 'starting', error: null })
   // Lancé comme un double-clic : l'application n'hérite d'aucune ressource de Tessera
   if (!w.shellExecute(desktopApp.path, desktopApp.args, dirname(desktopApp.path))) {
@@ -1181,12 +1276,77 @@ export function refreshApp(appId: string): void {
   docked.target = null
   hideFrame(docked)
   place(docked)
-  if (!docked.shown) return
+  nudge(docked)
+}
+
+/* ---------- Fenêtre qui ne se dessine plus (grise) ---------- */
+
+/** Délai entre un réaffichage et la vérification de ce qui est à l'écran. */
+const PAINT_CHECK_MS = 700
+/** Points relevés sur la fenêtre. */
+const PAINT_COLUMNS = 12
+const PAINT_ROWS = 8
+/** Écart de couleur toléré entre deux points « de la même couleur ». */
+const PAINT_TOLERANCE = 6
+
+const sameColor = (a: number, b: number): boolean =>
+  Math.abs(((a >> 16) & 255) - ((b >> 16) & 255)) <= PAINT_TOLERANCE &&
+  Math.abs(((a >> 8) & 255) - ((b >> 8) & 255)) <= PAINT_TOLERANCE &&
+  Math.abs((a & 255) - (b & 255)) <= PAINT_TOLERANCE
+
+/**
+ * Une application Chromium (navigateur, Discord) peut cesser de se dessiner après un
+ * masquage, un changement de focus ou un nouvel onglet : sa fenêtre est en place mais grise.
+ * Quelques points de l'écran sont relevés sur elle (seulement si c'est bien elle qui est
+ * dessous) ; tous de la même couleur, elle est relancée comme par « Rafraîchir », une seule fois
+ * pour cette couleur (une page unie voulue n'est pas relancée en boucle).
+ */
+function checkPainted(docked: DockedWindow): void {
+  if (windows.get(docked.appId) !== docked || !docked.shown || docked.tabDrop) return
+  if (docked.fullScreen || !w.isWindow(docked.hwnd) || !w.isVisible(docked.frame)) return
+  const frame = w.getWindowRect(docked.frame)
+  const inset = 6
+  const rect = {
+    left: frame.left + inset,
+    top: frame.top + inset,
+    right: frame.right - inset,
+    bottom: frame.bottom - inset
+  }
+  if (rect.right - rect.left < 40 || rect.bottom - rect.top < 40) return
+  // Rien par-dessus (menu de l'application, autre fenêtre) : le centre et les quatre coins
+  const points = [
+    [(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2],
+    [rect.left, rect.top],
+    [rect.right - 1, rect.top],
+    [rect.left, rect.bottom - 1],
+    [rect.right - 1, rect.bottom - 1]
+  ]
+  if (!points.every(([x, y]) => w.rootWindowAt(x, y) === docked.frame)) return
+  const colors = w.sampleScreen(rect, PAINT_COLUMNS, PAINT_ROWS)
+  if (!colors) return
+  if (!colors.every((color) => sameColor(color, colors[0]))) {
+    docked.blank = null
+    return
+  }
+  if (docked.blank !== null && sameColor(docked.blank, colors[0])) return
+  docked.blank = colors[0]
+  logDocking(
+    `${docked.appId} : fenêtre unie à l'écran (#${colors[0].toString(16).padStart(6, '0')}), redessinée`
+  )
+  nudge(docked)
+}
+
+/**
+ * Force l'application à se redessiner sans la masquer : sa taille change d'un pixel le temps
+ * d'un instant, puis la fenêtre et son cadre sont redessinés.
+ */
+function nudge(docked: DockedWindow): void {
+  if (!docked.shown || !w.isWindow(docked.hwnd)) return
   const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
   const { width, height } = docked.size
   w.setWindowPos(docked.hwnd, 0, 0, width - 1, height, quiet | w.SWP.NOMOVE)
   setTimeout(() => {
-    if (windows.get(appId) !== docked || !w.isWindow(docked.hwnd)) return
+    if (windows.get(docked.appId) !== docked || !w.isWindow(docked.hwnd)) return
     docked.target = null
     place(docked)
     w.redrawWindow(docked.frame)
@@ -1300,7 +1460,10 @@ function watch(docked: DockedWindow): void {
         : `${docked.appId} : de nouveau normale`
     )
   }
-  if (!repair) return
+  if (!repair) {
+    if (layout) checkPainted(docked)
+    return
+  }
   if (!layout) {
     docked.shown = true
     return hideFrame(docked)

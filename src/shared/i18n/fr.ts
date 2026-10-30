@@ -317,6 +317,8 @@ export const fr = {
     elsewhere: 'Cette application est affichée ailleurs (autre bloc ou onglet).',
     showHere: 'L’afficher ici',
     timeout: '{{name}} ne s’est pas ouvert à temps.',
+    notInstalled:
+      '{{name}} n’est plus installé à l’emplacement enregistré (désinstallé ou réinstallé ailleurs).',
     error: 'Impossible d’ouvrir {{name}} ({{error}}).',
     retry: 'Réessayer',
     closeTab: 'Fermer l’onglet (l’application est fermée)',

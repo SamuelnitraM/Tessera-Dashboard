@@ -648,7 +648,9 @@ export function DesktopAppHost({
         text={
           state.error === 'timeout'
             ? t('desktopApps.timeout', { name: app.name })
-            : t('desktopApps.error', { name: app.name, error: state.error ?? '' })
+            : state.error === 'not-installed'
+              ? t('desktopApps.notInstalled', { name: app.name })
+              : t('desktopApps.error', { name: app.name, error: state.error ?? '' })
         }
       >
         <Button icon={RotateCw} onClick={launch}>

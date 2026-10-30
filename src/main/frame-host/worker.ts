@@ -117,6 +117,7 @@ const HrInit = koffi.proto('long __stdcall HrInit(void *self)')
 const MarkFullscreenWindow = koffi.proto(
   'long __stdcall MarkFullscreenWindow(void *self, intptr_t hwnd, int fullScreen)'
 )
+const TabProc = koffi.proto('long __stdcall TaskbarTab(void *self, intptr_t hwnd)')
 
 /** `{56FDF344-…}` → structure GUID. */
 function guid(text: string): { a: number; b: number; c: number; d: number[] } {
@@ -130,13 +131,11 @@ function guid(text: string): { a: number; b: number; c: number; d: number[] } {
   }
 }
 
-let taskbar: { self: unknown; mark: unknown } | null | undefined
+let taskbar:
+  { self: unknown; mark: unknown; addTab: unknown; deleteTab: unknown } | null | undefined
 
-/**
- * Indique à la barre des tâches qu'un cadre, ou une fenêtre insérée qui peut être active (voir
- * `childStyle`), est (ou n'est plus) une fenêtre plein écran.
- */
-function markFullScreen(frame: number, value: boolean): void {
+/** Barre des tâches (ITaskbarList2), créée au premier usage. */
+function getTaskbar(): typeof taskbar {
   if (taskbar === undefined) {
     taskbar = null
     try {
@@ -152,16 +151,44 @@ function markFullScreen(frame: number, value: boolean): void {
       if (created >= 0 && object[0]) {
         const methods = koffi.decode(koffi.decode(object[0], 'void *'), 'void *', 9) as unknown[]
         koffi.call(methods[3], HrInit, object[0])
-        taskbar = { self: object[0], mark: methods[8] }
+        taskbar = {
+          self: object[0],
+          addTab: methods[4],
+          deleteTab: methods[5],
+          mark: methods[8]
+        }
       }
     } catch {
       // Sans barre des tâches (Explorateur arrêté…) : rien à signaler
     }
   }
+  return taskbar
+}
+
+/**
+ * Indique à la barre des tâches qu'un cadre, ou une fenêtre insérée qui peut être active (voir
+ * `childStyle`), est (ou n'est plus) une fenêtre plein écran.
+ */
+function markFullScreen(frame: number, value: boolean): void {
+  const bar = getTaskbar()
   try {
-    if (taskbar) koffi.call(taskbar.mark, MarkFullscreenWindow, taskbar.self, frame, value ? 1 : 0)
+    if (bar) koffi.call(bar.mark, MarkFullscreenWindow, bar.self, frame, value ? 1 : 0)
   } catch {
     // Facultatif : la barre des tâches resterait seulement visible par-dessus Tessera
+  }
+}
+
+/**
+ * Bouton de la fenêtre dans la barre des tâches : retiré tant qu'elle est dans un bloc (certaines
+ * applications, comme Spotify, le gardent même dans leur cadre), remis quand elle retourne sur le
+ * bureau.
+ */
+function setTaskbarTab(window: number, visible: boolean): void {
+  const bar = getTaskbar()
+  try {
+    if (bar) koffi.call(visible ? bar.addTab : bar.deleteTab, TabProc, bar.self, window)
+  } catch {
+    // Facultatif : le bouton resterait seulement dans la barre des tâches
   }
 }
 
@@ -349,6 +376,9 @@ function run(command: FrameCommand): boolean {
     case 'owner':
       api.SetWindowLongPtrW(command.frame, GWLP_HWNDPARENT, command.owner)
       markFrame(command.frame)
+      return true
+    case 'taskbar':
+      setTaskbarTab(command.window, command.visible)
       return true
     case 'adopt':
       adopted.set(command.window, { frame: command.frame, saved: command.saved })

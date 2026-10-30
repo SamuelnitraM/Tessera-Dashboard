@@ -310,6 +310,8 @@ export const en: Translation = {
     elsewhere: 'This app is shown somewhere else (another block or tab).',
     showHere: 'Show it here',
     timeout: '{{name}} did not open in time.',
+    notInstalled:
+      '{{name}} is no longer installed where it was (uninstalled or reinstalled elsewhere).',
     error: 'Could not open {{name}} ({{error}}).',
     retry: 'Try again',
     closeTab: 'Close the tab (the app is closed)',

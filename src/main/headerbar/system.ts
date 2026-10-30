@@ -12,6 +12,7 @@ import type {
   TopProcess
 } from '@shared/header-bar'
 import { helperRequest } from './helper'
+import type { MediaTimeline } from '@shared/spotify'
 
 /**
  * Widgets Média, Son et Système de la barre des pages : lecture en cours, volume et
@@ -91,6 +92,17 @@ const MEDIA_COMMANDS: MediaCommand[] = ['play-pause', 'next', 'previous']
 export async function sendMediaCommand(action: MediaCommand, app = ''): Promise<void> {
   if (!MEDIA_COMMANDS.includes(action)) return
   await helperRequest('media.command', { action, app })
+}
+
+/** Position et durée du titre en cours (session d'une application), ou `null`. */
+export function getMediaTimeline(app: string): Promise<MediaTimeline | null> {
+  return helperRequest<MediaTimeline | null>('media.timeline', { app })
+}
+
+/** Déplace la lecture du titre en cours (ms). */
+export async function seekMedia(app: string, position: number): Promise<void> {
+  if (!Number.isFinite(position) || position < 0) return
+  await helperRequest('media.seek', { app, position: Math.round(position) })
 }
 
 /* ---------- Son ---------- */

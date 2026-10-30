@@ -24,6 +24,19 @@ export interface SpotifyItem {
 }
 
 /** Lecture en cours sur le compte (titre ou épisode). */
+/**
+ * Position du titre en cours : `position` (ms) valait à `updatedAt` (ms depuis 1970) ; elle avance
+ * depuis si `playing`.
+ */
+export interface MediaTimeline {
+  position: number
+  duration: number
+  updatedAt: number
+  playing: boolean
+  /** L'application accepte qu'on déplace la lecture. */
+  canSeek: boolean
+}
+
 export interface SpotifyPlayback {
   playing: boolean
   title: string

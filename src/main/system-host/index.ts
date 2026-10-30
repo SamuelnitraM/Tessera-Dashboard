@@ -9,7 +9,7 @@ import {
   setSessions,
   setVolume
 } from './audio'
-import { getMedia, getThumbnail, mediaCommand } from './media'
+import { getMedia, getThumbnail, getTimeline, mediaCommand, seekMedia } from './media'
 import { cpuUsage, networkTotals, processesUnder, processInfos, topProcesses } from './processes'
 
 /**
@@ -33,6 +33,8 @@ const commands: Record<string, (args: Args) => unknown> = {
   'media.get': (args) => getMedia(text(args.app)),
   'media.thumb': (args) => getThumbnail(text(args.app)),
   'media.command': (args) => mediaCommand(text(args.action), text(args.app)),
+  'media.timeline': (args) => getTimeline(text(args.app)),
+  'media.seek': (args) => seekMedia(text(args.app), Number(args.position) || 0),
   'audio.get': () => getAudio(),
   'audio.volume': (args) => (setVolume(flowOf(args), Number(args.value) || 0), true),
   'audio.mute': (args) => (setMute(flowOf(args), args.value === true), true),

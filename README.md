@@ -82,7 +82,7 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 | **Actualités**                         | Tes flux RSS (une adresse de site suffit), lu / non lu, recherche, notifications                                                                                                                                         |
 | **Services locaux**                    | Les programmes qui écoutent sur un port, leur projet, les arrêter ; tes conteneurs Docker                                                                                                                                |
 | **Surveillance de sites**              | Tes sites en ligne ou en panne, temps de réponse, certificat HTTPS, notification en cas de panne                                                                                                                         |
-| **Spotify**                            | La vraie application Spotify dans le bloc (compte gratuit accepté), ou le lecteur de Tessera : lecture en cours, volume, et avec un compte playlists, titres likés, écoutes récentes et recherche                        |
+| **Spotify**                            | La vraie application Spotify dans le bloc (compte gratuit accepté), ou le lecteur de Tessera : lecture en cours, barre de lecture, volume, et avec un compte playlists, titres likés, écoutes récentes et recherche      |
 | **DevLauncher**, **Prospect Solution** | Des blocs dédiés à ces applications : projets, services, prospection                                                                                                                                                     |
 
 ### Des modules pour aller plus loin

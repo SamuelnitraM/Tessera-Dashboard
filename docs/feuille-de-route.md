@@ -198,6 +198,25 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Tableau de bord tenu à jour dans toutes les fenêtres (un changement fait dans l'une n'est jamais effacé par l'autre).
   - [x] Applications installées dans les blocs de n'importe quelle fenêtre : le cadre suit la fenêtre de son bloc (il change de propriétaire avant qu'une fenêtre ne se ferme, sans quoi Windows le détruirait avec l'application) ; masquage pendant un dialogue, plein écran et onglets de navigateur tirés propres à chaque fenêtre. Une application ouverte en onglet dans une fenêtre n'est pas fermée par une autre.
   - [x] Son des notifications joué une seule fois (par la fenêtre principale).
+- [x] **Étape 31 : fenêtres insérées fiables.**
+  - [x] Fenêtre grise : enquête (journal, banc avec une copie de Chrome, captures de l'écran réel) ; ni le calcul d'occlusion de Chromium ni les gestes décrits (nouvel onglet, menu, focus) ne la reproduisent, elle suit les masquages faits par Tessera (mode édition, panneaux, menus). Protection : la fenêtre est vérifiée à l'écran après chaque réaffichage et toutes les 2 s ; entièrement d'une seule couleur, elle est relancée comme par « Rafraîchir », une fois par couleur (une page unie voulue n'est pas relancée en boucle). L'étape 32 supprimera la plupart des masquages.
+  - [x] Vidéo en plein écran « Dans le bloc » : elle reste à la taille du bloc quand le bloc ou Tessera perd le focus (la taille imposée par Tessera n'est plus prise pour une sortie du plein écran ; la sortie se voit au retour de la bande de bord).
+  - [x] Barre des tâches : le bouton d'une fenêtre insérée est retiré explicitement (Spotify et d'autres le gardaient), et remis quand elle retourne sur le bureau.
+  - [x] Lancement : les fenêtres de l'application qui s'affichent pendant son lancement sont masquées tout de suite, puis insérées ; un écran de démarrage sans barre de titre (GIMP, LibreOffice…) ne reste plus jusqu'à 12 s sur le bureau (2,9 s → 30 ms mesurés). Rien d'inséré au bout du délai, ou fenêtre insérée qui attend une réponse : les fenêtres masquées reviennent. Le lancement réduit a été essayé et écarté (ignoré par Electron et les navigateurs) ; l'éclair de 1 à 3 images avant l'insertion reste, le supprimer demanderait des moyens lourds.
+  - [x] Spotify : une entrée créée pour la version du Microsoft Store suit Spotify réinstallé depuis son site (même identifiant, les blocs continuent de l'afficher) ; une application du Store désinstallée n'ouvre plus l'Explorateur sur Documents (message « n'est plus installé ») ; le dossier de données restant après une désinstallation ne fait plus croire à un Spotify du Store.
+  - [x] Widget Spotify : barre de lecture dans son panneau (temps écoulé, durée), qu'on fait glisser pour avancer ou reculer.
+- [ ] **Étape 32 : par-dessus tout.**
+  - [ ] Panneaux des widgets de la barre, menus du clic droit, fenêtres de dialogue et centre de notifications au-dessus de tous les blocs (vidéos Twitch, YouTube, vidéo locale, applications insérées), sans figer les applications.
+  - [ ] Notifications dans Tessera quand sa fenêtre est affichée (visible, rien par-dessus) : bulles qui s'enchaînent dans un coin au choix (en bas à droite par défaut), croix, clic vers le bloc concerné, « Marquer comme lu » et « Répondre » pour les mails, « Ne pas déranger » respecté. Sinon, les notifications de Windows.
+- [ ] **Étape 33 : mode édition et grille.**
+  - [ ] Mode édition : contenu des blocs flouté et grisé, sans aucune interaction (sauf le réglage d'un bloc qui vient d'être ajouté) ; vérifié bloc par bloc.
+  - [ ] Croix plus facile à atteindre ; retirer un bloc (croix ou clic droit) demande une confirmation dans le bloc.
+  - [ ] Bloc tenu ou étiré qui suit la souris de près ; emplacement futur animé ; blocs écartés à la place la plus proche de leur place d'origine.
+  - [ ] Interrupteur « Aimantation » (calage du défilement sur les lignes d'écran, propre à chaque page), icône d'aimant sur chaque ligne.
+  - [ ] « Taille : écran entier » réversible (« Taille précédente » : le bloc et ceux qu'il a écartés reprennent leur place).
+  - [ ] Nouveau bloc placé le plus haut possible, à une taille adaptée à la place libre (jamais sous son minimum).
+- [ ] **Étape 34 : barre propre à chaque page.** Disposition des widgets propre à chaque page (copiée de la page principale pour une nouvelle page), contenu des widgets et alignement communs ; ajout, rangement et glisser vers la page hors du mode édition ; retrait par le clic droit.
+- [ ] **Étape 35 : liens entre blocs.** Un fichier ouvert depuis Tessera (fichiers, pièces jointes…) met en avant le bloc qui l'affiche ; réglage « prioritaire pour ouvrir les fichiers » sur un bloc ; un bloc Navigateur passe au navigateur demandé ; toutes les interactions entre blocs revues.
 
 ## Mise en ligne (en attente)
 

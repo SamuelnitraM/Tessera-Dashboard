@@ -31,14 +31,22 @@ const Manager = { GetCurrentSession: 6, GetSessions: 7 }
 const Session = {
   SourceAppUserModelId: 6,
   TryGetMediaPropertiesAsync: 7,
+  GetTimelineProperties: 8,
   GetPlaybackInfo: 9,
   TrySkipNextAsync: 16,
   TrySkipPreviousAsync: 17,
-  TryTogglePlayPauseAsync: 20
+  TryTogglePlayPauseAsync: 20,
+  TryChangePlaybackPositionAsync: 24
 }
+const Timeline = { StartTime: 6, EndTime: 7, Position: 10, LastUpdatedTime: 11 }
 const Properties = { Title: 6, Artist: 9, AlbumTitle: 10, Thumbnail: 15 }
 const PlaybackInfo = { Controls: 6, PlaybackStatus: 7 }
-const Controls = { IsNextEnabled: 12, IsPreviousEnabled: 13 }
+const Controls = { IsNextEnabled: 12, IsPreviousEnabled: 13, IsPlaybackPositionEnabled: 20 }
+
+/** Durées de WinRT (TimeSpan, en 100 ns) → ms. */
+const ticksToMs = (value: number | bigint): number => Number(value) / 10_000
+/** Dates de WinRT (100 ns depuis 1601) → ms depuis 1970. */
+const dateToMs = (value: number | bigint): number => (Number(value) - 116_444_736e9) / 10_000
 const VectorView = { GetAt: 6, Size: 7 }
 
 let manager: Pointer | null = null
@@ -169,6 +177,69 @@ export function getThumbnail(app: string): Promise<{ type: string; data: string 
     }
     if (total === 0) return null
     return { type, data: Buffer.concat(chunks).toString('base64') }
+  })
+}
+
+/**
+ * Position du titre en cours (ms) à l'instant `updatedAt` (ms depuis 1970 : l'application ne la
+ * met à jour que de temps en temps), durée, lecture en cours, et si on peut la déplacer.
+ */
+export function getTimeline(app: string): Promise<{
+  position: number
+  duration: number
+  updatedAt: number
+  playing: boolean
+  canSeek: boolean
+} | null> {
+  return scopedAsync(async (scope) => {
+    const session = await findSession(scope, app)
+    if (!session) return null
+    const timeline = scope.add(
+      getObject(session, Session.GetTimelineProperties, 'GetTimelineProperties')
+    )
+    if (!timeline) return null
+    const start = ticksToMs(
+      get<number | bigint>(timeline, Timeline.StartTime, 'int64_t', 'StartTime')
+    )
+    const end = ticksToMs(get<number | bigint>(timeline, Timeline.EndTime, 'int64_t', 'EndTime'))
+    const info = scope.add(getObject(session, Session.GetPlaybackInfo, 'GetPlaybackInfo'))
+    const controls = info ? scope.add(getObject(info, PlaybackInfo.Controls, 'Controls')) : null
+    return {
+      position:
+        ticksToMs(get<number | bigint>(timeline, Timeline.Position, 'int64_t', 'Position')) - start,
+      duration: Math.max(0, end - start),
+      updatedAt: dateToMs(
+        get<number | bigint>(timeline, Timeline.LastUpdatedTime, 'int64_t', 'LastUpdatedTime')
+      ),
+      playing:
+        !!info &&
+        get<number>(info, PlaybackInfo.PlaybackStatus, 'int32_t', 'PlaybackStatus') === PLAYING,
+      canSeek:
+        !!controls &&
+        get<number>(
+          controls,
+          Controls.IsPlaybackPositionEnabled,
+          'uint8_t',
+          'IsPlaybackPositionEnabled'
+        ) !== 0
+    }
+  })
+}
+
+/** Déplace la lecture du titre en cours à `position` (ms). `false` si refusé. */
+export function seekMedia(app: string, position: number): Promise<boolean> {
+  return scopedAsync(async (scope) => {
+    const session = await findSession(scope, app)
+    if (!session) return false
+    const out: unknown[] = [null]
+    call(
+      session,
+      Session.TryChangePlaybackPositionAsync,
+      ['int64_t', '_Out_ void **'],
+      [BigInt(Math.max(0, Math.round(position))) * 10_000n, out],
+      'TryChangePlaybackPositionAsync'
+    )
+    return (await awaitOperation<number>(out[0], 'uint8_t')) !== 0
   })
 }
 

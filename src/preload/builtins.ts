@@ -32,7 +32,8 @@ import type {
   SpotifyItem,
   SpotifyKind,
   SpotifyPlayback,
-  SpotifyState
+  SpotifyState,
+  MediaTimeline
 } from '@shared/spotify'
 import type { TaskInput, TasksState } from '@shared/tasks'
 import type { TerminalShell } from '@shared/terminal'
@@ -261,6 +262,10 @@ export const builtinsApi = {
      * Application installée de Tessera qui affiche Spotify (ajoutée au besoin), ou `null` si
      * Spotify n'est pas installé sur ce PC.
      */
-    app: (): Promise<string | null> => ipcRenderer.invoke(C.spotifyApp)
+    app: (): Promise<string | null> => ipcRenderer.invoke(C.spotifyApp),
+    /** Position et durée du titre en cours dans l'application Spotify de ce PC, ou `null`. */
+    timeline: (): Promise<MediaTimeline | null> => ipcRenderer.invoke(C.spotifyTimeline),
+    /** Déplace la lecture (ms). */
+    seek: (position: number): Promise<void> => ipcRenderer.invoke(C.spotifySeek, position)
   }
 }

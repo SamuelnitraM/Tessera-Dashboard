@@ -12,6 +12,7 @@ import type { SettingsPatch } from '@shared/settings'
 import { isDesktopApp } from '@shared/user-apps'
 import { getTranslation } from '../i18n'
 import { getSettings, updateSettings } from '../settings-store'
+import { shellItemExists } from './win32'
 
 /**
  * Applications installées que l'utilisateur ajoute à Tessera : depuis la liste des programmes
@@ -187,6 +188,41 @@ export function protectDesktopApps(patch: SettingsPatch): SettingsPatch {
       })
     }
   }
+}
+
+/** Application du Microsoft Store lancée par son adresse (`explorer.exe shell:AppsFolder\…`). */
+const storeTarget = (desktopApp: Pick<DesktopApp, 'args'>): string | null =>
+  /^shell:AppsFolder\\[^\s]+$/i.test(desktopApp.args.trim()) ? desktopApp.args.trim() : null
+
+/**
+ * Le programme lancé par l'application existe encore (désinstallé, ou réinstallé ailleurs :
+ * Spotify passé du Microsoft Store à la version du site…).
+ */
+export function launchTargetExists(desktopApp: Pick<DesktopApp, 'path' | 'args'>): boolean {
+  const store = storeTarget(desktopApp)
+  if (store) return shellItemExists(store)
+  return existsSync(desktopApp.path)
+}
+
+/**
+ * Le programme d'une application a changé de place (réinstallé) : son lancement est mis à jour,
+ * sous le même identifiant (ses blocs continuent de l'afficher).
+ */
+export function updateAppLaunch(
+  appId: string,
+  launch: Pick<DesktopApp, 'path' | 'args' | 'icon'>
+): void {
+  const items = getSettings().apps.items
+  if (!items.some((item) => item.id === appId && isDesktopApp(item))) return
+  updateSettings({
+    apps: {
+      items: items.map((item) =>
+        item.id === appId && isDesktopApp(item)
+          ? { ...item, path: launch.path, args: launch.args, icon: launch.icon ?? item.icon }
+          : item
+      )
+    }
+  })
 }
 
 /** Taille minimale mesurée par le gestionnaire de fenêtres : enregistrée avec l'application. */

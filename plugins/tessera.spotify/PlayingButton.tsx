@@ -17,7 +17,7 @@ import {
   HeaderWidgetButton,
   usePluginTranslation
 } from '@tessera/plugin-sdk'
-import type { SpotifyCommand, SpotifyPlayback } from '@shared/spotify'
+import type { MediaTimeline, SpotifyCommand, SpotifyPlayback } from '@shared/spotify'
 import styles from './PlayingButton.module.css'
 import { usePlayback } from './usePlayback'
 
@@ -138,6 +138,7 @@ export function NowPlaying({
           <SkipForward size={16} aria-hidden />
         </button>
       </div>
+      <SpotifyProgress />
       <SpotifyVolume />
       {error && <p className={styles.error}>{error}</p>}
     </div>
@@ -145,6 +146,83 @@ export function NowPlaying({
 }
 
 /** Relecture du volume (un réglage fait dans Spotify ou le widget Son apparaît ici). */
+/** Relecture de la position (Spotify ne la donne que de temps en temps : elle avance entre-temps). */
+const TIMELINE_REFRESH_MS = 1_000
+/** Rafraîchissement de la barre pendant la lecture. */
+const PROGRESS_TICK_MS = 250
+
+const clock = (ms: number): string => {
+  const seconds = Math.max(0, Math.floor(ms / 1000))
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+}
+
+/**
+ * Barre de lecture du titre en cours dans l'application Spotify de ce PC (temps écoulé, durée) ;
+ * on la fait glisser pour avancer ou reculer, la lecture se déplace au relâchement. Rien si
+ * Spotify ne donne pas la durée du titre.
+ */
+function SpotifyProgress(): React.JSX.Element | null {
+  const t = usePluginTranslation()
+  const [timeline, setTimeline] = useState<MediaTimeline | null>(null)
+  const [now, setNow] = useState(() => Date.now())
+  /** Position choisie en faisant glisser la barre (ms), envoyée au relâchement. */
+  const [dragging, setDragging] = useState<number | null>(null)
+
+  useEffect(() => {
+    const load = (): void =>
+      void window.tessera.spotify
+        .timeline()
+        .then(setTimeline)
+        .catch(() => setTimeline(null))
+    load()
+    const reload = window.setInterval(() => !document.hidden && load(), TIMELINE_REFRESH_MS)
+    const tick = window.setInterval(() => setNow(Date.now()), PROGRESS_TICK_MS)
+    return () => {
+      window.clearInterval(reload)
+      window.clearInterval(tick)
+    }
+  }, [])
+
+  if (!timeline || timeline.duration <= 0) return null
+  const elapsed = timeline.playing ? Math.max(0, now - timeline.updatedAt) : 0
+  const position = Math.min(timeline.duration, timeline.position + elapsed)
+  const shown = dragging ?? position
+  const seek = (): void => {
+    if (dragging === null) return
+    const target = dragging
+    setDragging(null)
+    // Affichée tout de suite à la nouvelle place, puis relue
+    setTimeline({ ...timeline, position: target, updatedAt: Date.now() })
+    void window.tessera.spotify
+      .seek(target)
+      .then(() => window.tessera.spotify.timeline())
+      .then((next) => next && setTimeline(next))
+      .catch(() => {})
+  }
+
+  return (
+    <div className={styles.progress}>
+      <span className={styles.time}>{clock(shown)}</span>
+      <input
+        type="range"
+        className={styles.slider}
+        min={0}
+        max={Math.round(timeline.duration)}
+        step={1000}
+        value={Math.round(shown)}
+        disabled={!timeline.canSeek}
+        aria-label={t('header.position')}
+        aria-valuetext={`${clock(shown)} / ${clock(timeline.duration)}`}
+        onChange={(event) => setDragging(Number(event.target.value))}
+        onPointerUp={seek}
+        onKeyUp={seek}
+        onBlur={seek}
+      />
+      <span className={styles.time}>{clock(timeline.duration)}</span>
+    </div>
+  )
+}
+
 const VOLUME_REFRESH_MS = 3_000
 /** Après un réglage, la valeur lue dans Windows est ignorée un instant (elle arrive en retard). */
 const LOCAL_MS = 1_500

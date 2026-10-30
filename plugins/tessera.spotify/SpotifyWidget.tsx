@@ -150,16 +150,19 @@ function SpotifyApp({
   // Une demande à la fois : l'application ajoutée arrive dans les réglages un instant après
   const asked = useRef(-1)
 
+  // Demandée à chaque ouverture du bloc, même si elle est déjà là : Spotify a pu être réinstallé
+  // autrement (Microsoft Store ↔ site), son lancement est alors mis à jour
   useEffect(() => {
-    if (app || asked.current === attempt) return
+    if (asked.current === attempt) return
     asked.current = attempt
     window.tessera.spotify
       .app()
-      .then((id) =>
-        id ? setConfig({ embeddedAppId: id, offset: { x: 0, y: 0 } }) : setMissing(true)
-      )
-      .catch(() => setMissing(true))
-  }, [app, attempt, setConfig])
+      .then((id) => {
+        if (!id) setMissing(!app)
+        else if (id !== appId) setConfig({ embeddedAppId: id, offset: { x: 0, y: 0 } })
+      })
+      .catch(() => setMissing(!app))
+  }, [app, appId, attempt, setConfig])
 
   if (app) {
     return (

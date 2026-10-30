@@ -29,9 +29,16 @@ const dwmapi = koffi.load('dwmapi.dll')
 const gdi32 = koffi.load('gdi32.dll')
 const shell32 = koffi.load('shell32.dll')
 const advapi32 = koffi.load('advapi32.dll')
+const ole32 = koffi.load('ole32.dll')
 
 koffi.struct('RECT', { left: 'int32_t', top: 'int32_t', right: 'int32_t', bottom: 'int32_t' })
 koffi.struct('POINT', { x: 'int32_t', y: 'int32_t' })
+koffi.struct('W32_GUID', {
+  a: 'uint32_t',
+  b: 'uint16_t',
+  c: 'uint16_t',
+  d: koffi.array('uint8_t', 8)
+})
 koffi.struct('WINDOWPLACEMENT', {
   length: 'uint32_t',
   flags: 'uint32_t',
@@ -144,6 +151,11 @@ const api = {
   SelectObject: fn(gdi32, 'intptr_t __stdcall SelectObject(intptr_t dc, intptr_t obj)'),
   DeleteObject: fn(gdi32, 'bool __stdcall DeleteObject(intptr_t obj)'),
   DeleteDC: fn(gdi32, 'bool __stdcall DeleteDC(intptr_t dc)'),
+  SetStretchBltMode: fn(gdi32, 'int __stdcall SetStretchBltMode(intptr_t dc, int mode)'),
+  StretchBlt: fn(
+    gdi32,
+    'bool __stdcall StretchBlt(intptr_t dest, int x, int y, int w, int h, intptr_t src, int sx, int sy, int sw, int sh, uint32_t rop)'
+  ),
   GetDIBits: fn(
     gdi32,
     'int __stdcall GetDIBits(intptr_t dc, intptr_t bm, uint32_t start, uint32_t lines, _Out_ uint8_t *bits, BITMAPINFOHEADER *bmi, uint32_t usage)'
@@ -177,7 +189,12 @@ const api = {
     advapi32,
     'long __stdcall RegGetValueW(intptr_t key, str16 subKey, str16 value, uint32_t flags, _Out_ uint32_t *type, _Out_ uint8_t *data, _Inout_ uint32_t *length)'
   ),
-  RegCloseKey: fn(advapi32, 'long __stdcall RegCloseKey(intptr_t key)')
+  RegCloseKey: fn(advapi32, 'long __stdcall RegCloseKey(intptr_t key)'),
+  CoInitializeEx: fn(ole32, 'long __stdcall CoInitializeEx(void *reserved, uint32_t flags)'),
+  SHCreateItemFromParsingName: fn(
+    shell32,
+    'long __stdcall SHCreateItemFromParsingName(str16 path, void *bindContext, W32_GUID *iid, _Out_ void **item)'
+  )
 }
 
 const GWL_STYLE = -16
@@ -213,7 +230,7 @@ export const SWP = {
   ASYNCWINDOWPOS: 0x4000
 } as const
 
-export const SW = { HIDE: 0, SHOWNOACTIVATE: 4, SHOWNA: 8 } as const
+export const SW = { HIDE: 0, SHOWNORMAL: 1, SHOWNOACTIVATE: 4, SHOWNA: 8 } as const
 
 /** Premier plan, parmi les fenêtres du même propriétaire (SetWindowPos). */
 export const HWND_TOP = 0
@@ -411,6 +428,32 @@ export function registryString(root: number, path: string, value: string | null)
   return end >= 0 ? text.slice(0, end) : text
 }
 
+const ReleaseItem = koffi.proto('uint32_t __stdcall W32ReleaseItem(void *self)')
+const IID_SHELL_ITEM = {
+  a: 0x43826d1e,
+  b: 0xe718,
+  c: 0x42ee,
+  d: [0xbc, 0x55, 0xa1, 0xe2, 0x61, 0xc3, 0x7b, 0xfe]
+}
+let comReady = false
+
+/**
+ * L'élément du Shell existe (`shell:AppsFolder\<famille>!<application>` : application du Store
+ * installée). Une application désinstallée ouvrirait sinon l'Explorateur sur Documents.
+ */
+export function shellItemExists(name: string): boolean {
+  if (!comReady) {
+    api.CoInitializeEx(null, 2 /* COINIT_APARTMENTTHREADED, déjà fait par Electron en général */)
+    comReady = true
+  }
+  const item: unknown[] = [null]
+  const hr = api.SHCreateItemFromParsingName(name, null, IID_SHELL_ITEM, item) as number
+  if (item[0]) {
+    koffi.call(koffi.decode(koffi.decode(item[0], 'void *'), 16, 'void *'), ReleaseItem, item[0])
+  }
+  return hr >= 0
+}
+
 /** La fenêtre accepte la souris et le clavier (pas désactivée par une boîte de dialogue). */
 export const isEnabled = (hwnd: Hwnd): boolean => api.IsWindowEnabled(hwnd)
 
@@ -477,13 +520,19 @@ export interface TopWindow {
  * de la plus grande à la plus petite. `folder` : aussi celles des programmes de ce dossier
  * (LibreOffice : `swriter.exe` lance `soffice.bin`, qui affiche la fenêtre).
  */
-export function findTopWindows(processName: string, folder?: string): TopWindow[] {
+export function findTopWindows(
+  processName: string,
+  folder?: string,
+  /** Fenêtres masquées par Tessera (écran de démarrage pendant un lancement), comptées aussi. */
+  hidden?: ReadonlySet<Hwnd>
+): TopWindow[] {
   const wanted = processName.toLowerCase()
   const inFolder = folder ? `${folder.toLowerCase().replace(/\\$/, '')}\\` : null
   const paths = new Map<number, string>()
   const found: TopWindow[] = []
   api.EnumWindows((hwnd: Hwnd) => {
-    if (!api.IsWindowVisible(hwnd) || api.GetWindow(hwnd, GW_OWNER)) return true
+    if (!api.IsWindowVisible(hwnd) && !hidden?.has(Number(hwnd))) return true
+    if (api.GetWindow(hwnd, GW_OWNER)) return true
     if (getExStyle(hwnd) & WS_EX_TOOLWINDOW) return true
     const pid = getProcessId(hwnd)
     if (!paths.has(pid)) paths.set(pid, getProcessPath(pid).toLowerCase())
@@ -506,15 +555,31 @@ export function findTopWindows(processName: string, folder?: string): TopWindow[
   return found.sort((a, b) => b.width * b.height - a.width * a.height)
 }
 
+/** Fenêtre de premier niveau visible, sans propriétaire (pas une bulle ni un menu). */
+export function isTopLevelWindow(hwnd: Hwnd): boolean {
+  if (!api.IsWindowVisible(hwnd) || api.GetWindow(hwnd, GW_OWNER)) return false
+  if (getExStyle(hwnd) & WS_EX_TOOLWINDOW) return false
+  return (getStyle(hwnd) & WS.CHILD) === 0
+}
+
+/**
+ * Fenêtre de premier niveau visible, sans propriétaire ni barre de titre ni bord : un écran de
+ * démarrage, en général (une boîte de dialogue a une barre de titre).
+ */
+export function isUnframedTopLevel(hwnd: Hwnd): boolean {
+  if (!api.IsWindowVisible(hwnd) || api.GetWindow(hwnd, GW_OWNER)) return false
+  if (getExStyle(hwnd) & WS_EX_TOOLWINDOW) return false
+  const style = getStyle(hwnd)
+  return (style & (WS.CHILD | WS.CAPTION | WS.THICKFRAME)) === 0
+}
+
 /**
  * Lance un programme comme un double-clic (Shell Windows). Contrairement au lancement par Node,
  * le programme n'hérite d'aucune ressource de Tessera (connexions, canaux…). Renvoie
  * en cas d'échec.
  */
 export function shellExecute(path: string, args: string, directory: string): boolean {
-  return (
-    Number(api.ShellExecuteW(0, 'open', path, args || null, directory, 1 /* SW_SHOWNORMAL */)) > 32
-  )
+  return Number(api.ShellExecuteW(0, 'open', path, args || null, directory, SW.SHOWNORMAL)) > 32
 }
 
 // ---------------------------------------------------------------------------
@@ -566,6 +631,70 @@ export function captureWindow(hwnd: Hwnd): { width: number; height: number; bits
   if (!ok) return null
   for (let index = 3; index < bits.length; index += 4) bits[index] = 255 // opaque
   return { width, height, bits }
+}
+
+/**
+ * Couleurs (0xRRGGBB) de `columns` × `rows` points répartis sur un rectangle de l'écran, tels
+ * qu'affichés (ce que voit l'utilisateur), en une seule copie réduite. `null` si la copie échoue.
+ */
+export function sampleScreen(rect: Rect, columns: number, rows: number): number[] | null {
+  const width = rect.right - rect.left
+  const height = rect.bottom - rect.top
+  if (width <= 0 || height <= 0) return null
+  const screen = api.GetDC(0)
+  const dc = api.CreateCompatibleDC(screen)
+  const bitmap = api.CreateCompatibleBitmap(screen, columns, rows)
+  const previous = api.SelectObject(dc, bitmap)
+  // Un point par case (pas de mélange de couleurs : une page unie reste unie)
+  api.SetStretchBltMode(dc, 3 /* COLORONCOLOR */)
+  const ok = api.StretchBlt(
+    dc,
+    0,
+    0,
+    columns,
+    rows,
+    screen,
+    rect.left,
+    rect.top,
+    width,
+    height,
+    0x00cc0020
+  )
+  const bits = Buffer.alloc(columns * rows * 4)
+  const lines = ok
+    ? api.GetDIBits(
+        dc,
+        bitmap,
+        0,
+        rows,
+        bits,
+        {
+          biSize: 40,
+          biWidth: columns,
+          biHeight: -rows,
+          biPlanes: 1,
+          biBitCount: 32,
+          biCompression: 0,
+          biSizeImage: 0,
+          biXPelsPerMeter: 0,
+          biYPelsPerMeter: 0,
+          biClrUsed: 0,
+          biClrImportant: 0
+        },
+        0
+      )
+    : 0
+  api.SelectObject(dc, previous)
+  api.DeleteObject(bitmap)
+  api.DeleteDC(dc)
+  api.ReleaseDC(0, screen)
+  if (!lines) return null
+  const colors: number[] = []
+  // Pixels BGRA
+  for (let index = 0; index < bits.length; index += 4) {
+    colors.push((bits[index + 2] << 16) | (bits[index + 1] << 8) | bits[index])
+  }
+  return colors
 }
 
 // ---------------------------------------------------------------------------

@@ -14,11 +14,14 @@ import {
 import { isDesktopApp } from '@shared/user-apps'
 import {
   getMediaSession,
+  getMediaTimeline,
   getProgramVolume,
+  seekMedia,
   sendMediaCommand,
   setProgramVolume
 } from '../headerbar/system'
-import { addApp, iconOf } from '../desktop/programs'
+import { addApp, iconOf, launchTargetExists, updateAppLaunch } from '../desktop/programs'
+import { shellItemExists } from '../desktop/win32'
 import { getSettings } from '../settings-store'
 import { builtInSpotifyClientId } from '../auth/clients'
 import { apiFetch, createTokenSource, type TokenSource } from '../auth/http'
@@ -398,10 +401,12 @@ function findSpotify(): { path: string; args: string; iconPath: string } | null 
   } catch {
     return null
   }
-  if (!family) return null
+  // Le dossier de données reste après une désinstallation : le paquet doit être installé
+  const args = family ? `shell:AppsFolder\\${family}!Spotify` : ''
+  if (!family || !shellItemExists(args)) return null
   return {
     path: join(process.env.SystemRoot ?? 'C:\\Windows', 'explorer.exe'),
-    args: `shell:AppsFolder\\${family}!Spotify`,
+    args,
     // Alias d'exécution créé par le Store : il donne l'icône de Spotify
     iconPath: join(local, 'Microsoft', 'WindowsApps', SPOTIFY_PROCESS)
   }
@@ -416,8 +421,19 @@ export async function spotifyApp(): Promise<string | null> {
   const existing = getSettings().apps.items.find(
     (item) => isDesktopApp(item) && item.processName.toLowerCase() === SPOTIFY_PROCESS.toLowerCase()
   )
-  if (existing) return existing.id
   const found = findSpotify()
+  if (existing) {
+    // Spotify réinstallé autrement (Microsoft Store ↔ site) : l'entrée suit, même identifiant
+    if (
+      isDesktopApp(existing) &&
+      found &&
+      !launchTargetExists(existing) &&
+      (found.path !== existing.path || found.args !== existing.args)
+    ) {
+      updateAppLaunch(existing.id, { ...found, icon: await iconOf(found.iconPath) })
+    }
+    return existing.id
+  }
   if (!found) return null
   return addApp({
     name: 'Spotify',
@@ -430,6 +446,11 @@ export async function spotifyApp(): Promise<string | null> {
 
 export function registerSpotifyHandlers(): void {
   ipcMain.handle(C.spotifyApp, () => spotifyApp())
+  // Barre de lecture : application Spotify de ce PC (session de Windows)
+  ipcMain.handle(C.spotifyTimeline, () => getMediaTimeline('Spotify').catch(() => null))
+  ipcMain.handle(C.spotifySeek, (_event, position: unknown) =>
+    seekMedia('Spotify', typeof position === 'number' ? position : -1)
+  )
   ipcMain.handle(C.spotifyState, () => spotifyState())
   ipcMain.handle(C.spotifySetClientId, (_event, id: unknown) => setClientId(id))
   ipcMain.handle(C.spotifyConnect, () => connectSpotify())

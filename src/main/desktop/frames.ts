@@ -121,6 +121,11 @@ export function setFramesFullScreen(owner: Hwnd, value: boolean): void {
   if (host) send({ cmd: 'fullScreen', owner, value })
 }
 
+/** Bouton de la fenêtre dans la barre des tâches : retiré (insérée) ou remis (sur le bureau). */
+export function setTaskbarButton(window: Hwnd, visible: boolean): void {
+  send({ cmd: 'taskbar', window, visible })
+}
+
 /** Le bloc du cadre est passé dans une autre fenêtre de Tessera : elle en devient propriétaire. */
 export function setFrameOwner(frame: Hwnd, owner: Hwnd): void {
   if (host) send({ cmd: 'owner', frame, owner })

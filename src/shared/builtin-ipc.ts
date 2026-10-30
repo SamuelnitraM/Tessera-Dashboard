@@ -97,5 +97,7 @@ export const BuiltinChannels = {
   spotifyControl: 'spotify:control',
   spotifyVolume: 'spotify:volume',
   spotifySetVolume: 'spotify:set-volume',
-  spotifyApp: 'spotify:app'
+  spotifyApp: 'spotify:app',
+  spotifyTimeline: 'spotify:timeline',
+  spotifySeek: 'spotify:seek'
 } as const

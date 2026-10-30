@@ -24,6 +24,8 @@ export type FrameCommand =
    * insérée a le clavier (le cadre est alors la fenêtre active de Windows).
    */
   | { cmd: 'fullScreen'; owner: number; value: boolean }
+  /** Bouton de la fenêtre dans la barre des tâches : retiré (insérée) ou remis (sur le bureau). */
+  | { cmd: 'taskbar'; window: number; visible: boolean }
   /** Le bloc du cadre est passé dans une autre fenêtre de Tessera : elle devient sa propriétaire. */
   | { cmd: 'owner'; frame: number; owner: number }
   /** La fenêtre `window` est insérée dans `frame` : à rendre si Tessera disparaît. */
