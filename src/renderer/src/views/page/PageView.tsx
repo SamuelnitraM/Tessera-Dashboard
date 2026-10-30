@@ -93,6 +93,7 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
   }, [editing, pickerOpen, setEditing])
 
   const measured = size !== null
+  const snapping = page.snap
   // Hors édition, la molette fait défiler la page, pas l'intérieur des blocs (sauf le bloc
   // actif, où l'on a cliqué). Les pages web et les applications installées envoient leur
   // molette par PAGE_WHEEL_EVENT.
@@ -128,8 +129,8 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
     const onPointerDown = (event: PointerEvent): void => {
       if (!(event.target as HTMLElement).closest('[data-block-id]')) setActiveBlock(null)
     }
-    // Aimantation légère, à la molette seulement : la page arrêtée à moins de 2 lignes d'une
-    // limite d'écran s'y cale doucement
+    // Aimantation légère, à la molette seulement (réglage « Aimantation » de la page) : la page
+    // arrêtée à moins de 2 lignes d'une limite d'écran s'y cale doucement
     let lastWheel = 0
     let snapTimer = 0
     const onAnyWheel = (): void => {
@@ -145,7 +146,7 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
       if (stop !== undefined) area.scrollTo({ top: stop, behavior: 'smooth' })
     }
     const onScroll = (): void => {
-      if (performance.now() - lastWheel > WHEEL_SCROLL_MS) return
+      if (!snapping || performance.now() - lastWheel > WHEEL_SCROLL_MS) return
       window.clearTimeout(snapTimer)
       snapTimer = window.setTimeout(snap, SNAP_AFTER_MS)
     }
@@ -165,7 +166,7 @@ export function PageView({ pageId }: PageViewProps): React.JSX.Element {
       window.removeEventListener(PAGE_WHEEL_EVENT, onPageWheel)
       window.removeEventListener('pointerdown', onPointerDown, true)
     }
-  }, [editing, page.id, measured])
+  }, [editing, page.id, measured, snapping])
 
   const openPicker = (): void => {
     setEditing(true)

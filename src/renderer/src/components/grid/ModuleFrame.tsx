@@ -6,7 +6,7 @@ import { resolveWidgetConfig, type PluginPermission } from '@shared/plugins'
 import type { WidgetProps } from '../../plugin-sdk'
 import { connectBridgeHost } from '../../plugins/bridge-host'
 import { useThemeTokens } from '../../hooks/useThemeTokens'
-import { useContextMenuStore, type MenuItem } from '../../stores/contextMenu'
+import { useContextMenuStore, withBlockItems, type MenuItem } from '../../stores/contextMenu'
 import { useDashboardStore } from '../../stores/dashboard'
 import { useModulesStore } from '../../stores/modules'
 import { useResolvedLanguage } from '../../stores/settings'
@@ -134,7 +134,10 @@ export function ModuleFrame({
                   onSelect: () => select(item.id)
                 }
           )
-          useContextMenuStore.getState().open(rect.left + x, rect.top + y, menu)
+          // Dans un bloc : « Retirer le bloc » en plus
+          useContextMenuStore
+            .getState()
+            .open(rect.left + x, rect.top + y, withBlockItems(menu, frame.current))
         },
         crash: setCrash,
         pong: (id) => {

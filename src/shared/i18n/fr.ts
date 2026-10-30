@@ -368,6 +368,10 @@ export const fr = {
       label: 'Automatique',
       hint: 'Garder la page toujours rangée vers le haut, après chaque déplacement, ajout ou retrait'
     },
+    snap: {
+      label: 'Aimantation',
+      hint: 'À la molette, la page se cale sur la limite d’écran la plus proche (icône d’aimant sur chaque limite)'
+    },
     emptyTitle: 'Cette page est vide',
     emptyText:
       'Ajoute tes premiers blocs (widgets, applications, modules), puis déplace-les et redimensionne-les à ta guise.',
@@ -770,6 +774,12 @@ export const fr = {
   },
   blocks: {
     fillScreen: 'Taille : écran entier',
+    restoreSize: 'Taille précédente',
+    removeConfirm: {
+      title: 'Retirer « {{name}} » ?',
+      confirm: 'Retirer',
+      cancel: 'Annuler'
+    },
     picker: {
       title: 'Ajouter un bloc',
       widgets: 'Widgets',

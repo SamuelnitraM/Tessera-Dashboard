@@ -360,6 +360,10 @@ export const en: Translation = {
       label: 'Automatic',
       hint: 'Keep the page always tidied upward, after every move, addition or removal'
     },
+    snap: {
+      label: 'Snapping',
+      hint: 'When scrolling with the wheel, the page settles on the nearest screen limit (magnet icon on each limit)'
+    },
     emptyTitle: 'This page is empty',
     emptyText:
       'Add your first blocks (widgets, apps, modules), then move and resize them however you like.',
@@ -761,6 +765,12 @@ export const en: Translation = {
   },
   blocks: {
     fillScreen: 'Size: full screen',
+    restoreSize: 'Previous size',
+    removeConfirm: {
+      title: 'Remove “{{name}}”?',
+      confirm: 'Remove',
+      cancel: 'Cancel'
+    },
     picker: {
       title: 'Add a block',
       widgets: 'Widgets',

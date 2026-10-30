@@ -110,7 +110,7 @@ You can use any React or CSS library, and the icons of your choice (for example 
 
 ## Right-click menus
 
-- `openContextMenu(items)` shows **Tessera's menu**, which can extend beyond the block.
+- `openContextMenu(items)` shows **Tessera's menu**, which can extend beyond the block; Tessera adds “Remove block” at the end.
 - A right-click your module does not use opens the **block menu** (Block settings, Edit page, Remove block; in developer mode, Reload and Inspect). Don't block it without a reason: it is the usual way to the settings.
 - In text fields, Windows' menu (copy, paste…) is kept.
 
@@ -125,7 +125,7 @@ You can use any React or CSS library, and the icons of your choice (for example 
 
 When the user clicks **Edit**, they move and resize blocks. Meanwhile:
 
-- your block is covered by a transparent veil and **no longer gets the mouse** (otherwise it could not be grabbed and moved);
+- your block is covered by a veil and **no longer gets the mouse** (otherwise it could not be grabbed and moved); its content is slightly blurred and greyed out;
 - `editing` is `true` (and `data-editing="true"` on `<html>`): you can, for example, hide a toolbar or show a simpler preview.
 
 ## Errors and crashes

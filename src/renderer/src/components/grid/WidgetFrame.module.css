@@ -23,7 +23,7 @@
 
 /* Mode édition : le contenu des blocs ne réagit plus (clic, molette, survol) ; la souris
    déplace et redimensionne les blocs, la molette fait défiler la page. Seuls les réglages
-   prévus pour ce mode (`data-edit-active` : titre d'un bloc Titre, choix du programme…)
+   prévus pour ce mode (`data-edit-active` : choix du programme, connexion d'un compte…)
    restent utilisables. */
 .frame[data-editing='true'] .content {
   pointer-events: none;
@@ -31,6 +31,21 @@
 
 .frame[data-editing='true'] .content [data-edit-active] {
   pointer-events: auto;
+}
+
+/* Contenu légèrement flouté et grisé, pour qu'on ne cherche pas à s'en servir ; un bloc qui
+   montre un réglage prévu pour ce mode reste net tant qu'il le montre (une fois l'application
+   choisie, son contenu est flouté à son tour). `data-edit-veiled` : réglage qui reste flouté
+   (partie affichée d'une application rognée, que l'on glisse). */
+.content {
+  transition:
+    filter var(--motion-normal) var(--ease-out),
+    opacity var(--motion-normal) var(--ease-out);
+}
+
+.frame[data-editing='true'] .content:not(:has([data-edit-active]:not([data-edit-veiled]))) {
+  filter: blur(1.5px) grayscale(0.85);
+  opacity: 0.55;
 }
 
 /* Réglages du bloc hors mode édition (widget sans barre à lui) : au survol du bloc */
@@ -69,10 +84,10 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: 0.25rem;
   flex-shrink: 0;
-  height: 28px;
-  padding: 0 0.25rem 0 0.5rem;
+  height: 32px;
+  padding: 0 0.375rem 0 0.5rem;
   background: var(--color-accent-soft);
   font-size: 0.75rem;
   font-weight: 600;
@@ -93,11 +108,14 @@
   white-space: nowrap;
 }
 
+/* Au-dessus des poignées de redimensionnement (celle du coin était posée sur la croix) */
 .toolbarButton {
+  position: relative;
+  z-index: 3;
   display: grid;
   place-items: center;
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   background: none;
   border: none;
@@ -108,6 +126,11 @@
 .toolbarButton:hover {
   background: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+/* Croix : plus large, plus facile à atteindre */
+.remove {
+  width: 34px;
 }
 
 .remove:hover {

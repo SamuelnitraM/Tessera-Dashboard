@@ -110,7 +110,7 @@ Tu peux utiliser n'importe quelle bibliothèque React ou CSS, et les icônes de 
 
 ## Menus du clic droit
 
-- `openContextMenu(items)` affiche **le menu de Tessera**, qui peut déborder du bloc.
+- `openContextMenu(items)` affiche **le menu de Tessera**, qui peut déborder du bloc ; Tessera y ajoute « Retirer le bloc » à la fin.
 - Un clic droit que ton module n'utilise pas ouvre le **menu du bloc** (Réglages du bloc, Modifier la page, Retirer le bloc ; en mode développeur, Recharger et Inspecter). Ne le bloque pas sans raison : c'est le chemin habituel vers les réglages.
 - Dans les champs de saisie, le menu de Windows (copier, coller…) est conservé.
 
@@ -125,7 +125,7 @@ Tu peux utiliser n'importe quelle bibliothèque React ou CSS, et les icônes de 
 
 Quand l'utilisateur clique sur **Modifier**, il déplace et redimensionne les blocs. Pendant ce temps :
 
-- ton bloc est couvert d'un voile transparent et **ne reçoit plus la souris** (sinon, on ne pourrait pas le saisir pour le déplacer) ;
+- ton bloc est couvert d'un voile et **ne reçoit plus la souris** (sinon, on ne pourrait pas le saisir pour le déplacer) ; son contenu est légèrement flouté et grisé ;
 - `editing` vaut `true` (et `data-editing="true"` sur `<html>`) : tu peux, par exemple, masquer une barre d'outils ou afficher un aperçu plus simple.
 
 ## Erreurs et plantages

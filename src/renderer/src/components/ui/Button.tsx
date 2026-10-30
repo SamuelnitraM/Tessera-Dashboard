@@ -5,6 +5,7 @@ import styles from './Button.module.css'
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   icon?: LucideIcon
+  ref?: React.Ref<HTMLButtonElement>
 }
 
 export function Button({

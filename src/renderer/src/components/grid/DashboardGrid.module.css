@@ -13,10 +13,13 @@
   pointer-events: none;
 }
 
-.screenLine span {
+.screenLine > span {
   position: absolute;
   top: -0.625rem;
   right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   padding: 0 0.375rem;
   background: var(--color-bg);
   border-radius: var(--radius-sm);
@@ -24,6 +27,28 @@
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1.25rem;
+}
+
+/* Aimant : la molette se cale sur cette limite ; barré sans « Aimantation » (ou limite coupée) */
+.magnet {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.magnet[data-off='true'] {
+  opacity: 0.7;
+}
+
+.magnet[data-off='true']::after {
+  position: absolute;
+  inset: 50% -1px auto;
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+  box-shadow: 0 0 0 1px var(--color-bg);
+  content: '';
+  rotate: -45deg;
 }
 
 /* Coupée par un bloc : elle clignote (la page ne s'y calera pas) */
@@ -57,11 +82,17 @@
 
 /* ---------- Surcharges des styles de react-grid-layout ---------- */
 
-/* Emplacement où le widget va se poser pendant un déplacement */
-.grid :global(.react-grid-item.react-grid-placeholder) {
+/* Emplacement où le widget va se poser pendant un déplacement : il glisse d'une case à l'autre
+   (aussi pendant un redimensionnement, que react-grid-layout n'anime pas) */
+.grid :global(.react-grid-item.react-grid-placeholder),
+.grid :global(.react-grid-item.react-grid-placeholder.placeholder-resizing) {
   background: var(--color-accent);
   opacity: 0.18;
   border-radius: var(--radius-lg);
+  transition:
+    transform var(--motion-normal) var(--ease-out),
+    width var(--motion-normal) var(--ease-out),
+    height var(--motion-normal) var(--ease-out);
 }
 
 .grid :global(.react-grid-item > .react-resizable-handle) {
@@ -70,6 +101,18 @@
 
 .grid :global(.react-grid-item > .react-resizable-handle::after) {
   border-color: var(--color-accent);
+}
+
+/* Coins hauts : à cheval sur l'espace entre les blocs, pour laisser la place aux boutons de la
+   barre du bloc (la croix) */
+.grid :global(.react-grid-item > .react-resizable-handle.react-resizable-handle-ne) {
+  top: -6px;
+  right: -6px;
+}
+
+.grid :global(.react-grid-item > .react-resizable-handle.react-resizable-handle-nw) {
+  top: -6px;
+  left: -6px;
 }
 
 /* Poignée de coin toujours visible en mode édition */
@@ -175,7 +218,22 @@
   pointer-events: none;
 }
 
-/* Future place d'un bloc qui va s'écarter */
+/* Future place d'un bloc qui va s'écarter (elle glisse quand le plan change, et apparaît en
+   fondu) */
+.futureSpot,
+.finalSpot {
+  transition:
+    left var(--motion-normal) var(--ease-out),
+    top var(--motion-normal) var(--ease-out),
+    width var(--motion-normal) var(--ease-out),
+    height var(--motion-normal) var(--ease-out),
+    opacity var(--motion-normal) var(--ease-out);
+
+  @starting-style {
+    opacity: 0;
+  }
+}
+
 .futureSpot {
   position: absolute;
   border: 2px dashed var(--color-accent);

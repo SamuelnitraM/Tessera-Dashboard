@@ -669,8 +669,10 @@ export function DesktopAppHost({
       className={`${styles.host} ${panOnImage ? 'no-drag' : ''}`}
       data-status={state.status}
       data-pan={panOnImage}
-      // Mode édition : l'image d'une fenêtre rognée reste glissable (partie affichée)
+      // Mode édition : l'image d'une fenêtre rognée reste glissable (partie affichée), floutée
+      // comme le reste des blocs
       data-edit-active={panOnImage ? '' : undefined}
+      data-edit-veiled={panOnImage ? '' : undefined}
       onPointerDown={panOnImage ? startPan : undefined}
     >
       {content}

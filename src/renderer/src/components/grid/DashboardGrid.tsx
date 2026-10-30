@@ -1,4 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState
+} from 'react'
+import { Magnet } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import ReactGridLayout, { getCompactor, type Layout, type LayoutItem } from 'react-grid-layout'
 import { GridBackground } from 'react-grid-layout/extras'
@@ -7,10 +16,12 @@ import { GRID, type DashboardPage, type GridItem, type LayoutMode } from '@share
 import { HEADER_WIDGET_DRAG } from '@shared/header-bar'
 import {
   colsFor,
+  fillsWholeScreen,
   layoutBottom,
   normalizeLayout,
   planMove,
   resolveLayout,
+  restoreSaved,
   sameLayout,
   toCompactMinSize,
   type MovePlan
@@ -93,6 +104,13 @@ export function DashboardGrid({
   )
 
   const [moving, setMoving] = useState<Moving | null>(null)
+  // Chaque mouvement de la souris redessine la grille : react-grid-layout garde la position exacte
+  // du bloc tenu (au pixel près) hors de son état et ne redessine un bloc que lorsque sa case
+  // change ; sans cela, le bloc restait sur place puis sautait d'une case à l'autre. Les blocs
+  // eux-mêmes ne sont pas redessinés (WidgetFrame est mémorisé).
+  const [, redraw] = useReducer((count: number) => count + 1, 0)
+  // Distances mesurées comme à l'écran : une ligne vaut tant de colonnes
+  const rowWeight = (rowHeight + gap) / (colWidth + gap)
   /** Widget de la barre des pages glissé sur la grille : case où il serait posé. */
   const [dropSpot, setDropSpot] = useState<GridItem | null>(null)
   /** Change après un déplacement : la grille reprend la disposition enregistrée. */
@@ -138,25 +156,57 @@ export function DashboardGrid({
     })
   }, [mode, layout, lines, rowHeight, gap, cols, bottom, screenRows])
 
-  /** Taille « écran entier » : toute la largeur, 12 lignes, au début de son écran. */
-  const fillScreen = (id: string): void => {
-    const item = layout.find((entry) => entry.i === id)
-    if (!item || mode !== 'wide') return
-    const y = Math.floor(item.y / screenRows) * screenRows
-    const target: GridItem = { i: id, x: 0, y, w: cols, h: screenRows }
-    const next = normalizeLayout(planMove(layout, id, target, cols, page.autoArrange).layout)
-    if (!sameLayout(next, layout)) setLayout(page.id, mode, next)
-  }
+  /**
+   * Taille « écran entier » : toute la largeur, 12 lignes, au début de son écran ; les places du
+   * bloc et de ceux qu'il écarte sont gardées. Bloc déjà agrandi ainsi : « Taille précédente »,
+   * tous reprennent leur place.
+   */
+  const latest = useRef({ layout, page, mode, cols, screenRows, rowWeight })
+  useLayoutEffect(() => {
+    latest.current = { layout, page, mode, cols, screenRows, rowWeight }
+  })
+  const fillScreen = useCallback(
+    (id: string): void => {
+      const { layout, page, mode, cols, screenRows, rowWeight } = latest.current
+      const item = layout.find((entry) => entry.i === id)
+      if (!item || mode !== 'wide') return
+      const saved = page.fillRestore[id]
+      if (saved && fillsWholeScreen(item, cols, screenRows)) {
+        const next = normalizeLayout(restoreSaved(layout, saved, cols, rowWeight))
+        setLayout(page.id, mode, next, { id, items: null })
+        return
+      }
+      const y = Math.floor(item.y / screenRows) * screenRows
+      const target: GridItem = { i: id, x: 0, y, w: cols, h: screenRows }
+      const next = normalizeLayout(
+        planMove(layout, id, target, cols, page.autoArrange, rowWeight).layout
+      )
+      if (sameLayout(next, layout)) return
+      const after = new Map(next.map((entry) => [entry.i, entry]))
+      const changed = layout.filter((entry) => !sameCell(entry, after.get(entry.i) ?? entry))
+      setLayout(page.id, mode, next, { id, items: normalizeLayout(changed) })
+    },
+    [setLayout]
+  )
+  /** Blocs agrandis à l'écran entier qui peuvent reprendre leur taille précédente. */
+  const restorable = new Set(
+    mode === 'wide'
+      ? layout
+          .filter((item) => page.fillRestore[item.i] && fillsWholeScreen(item, cols, screenRows))
+          .map((item) => item.i)
+      : []
+  )
 
   /** Case visée par le bloc tenu : plan au relâchement (recalculé seulement si elle change). */
   const preview = (item: LayoutItem | null): void => {
     if (!item) return
+    redraw()
     const target: GridItem = { i: item.i, x: item.x, y: item.y, w: item.w, h: item.h }
     if (moving && moving.id === item.i && sameCell(moving.target, target)) return
     setMoving({
       id: item.i,
       target,
-      plan: planMove(layout, item.i, target, cols, page.autoArrange)
+      plan: planMove(layout, item.i, target, cols, page.autoArrange, rowWeight)
     })
   }
 
@@ -166,7 +216,9 @@ export function DashboardGrid({
     setRevision((value) => value + 1)
     if (!item) return
     const target: GridItem = { i: item.i, x: item.x, y: item.y, w: item.w, h: item.h }
-    const next = normalizeLayout(planMove(layout, item.i, target, cols, page.autoArrange).layout)
+    const next = normalizeLayout(
+      planMove(layout, item.i, target, cols, page.autoArrange, rowWeight).layout
+    )
     if (!sameLayout(next, layout)) setLayout(page.id, mode, next)
   }
 
@@ -285,7 +337,8 @@ export function DashboardGrid({
           borderRadius={6}
         />
       )}
-      {/* Limites d'écran : la hauteur de la zone visible ; clignote si un bloc la coupe */}
+      {/* Limites d'écran : la hauteur de la zone visible ; clignote si un bloc la coupe. L'aimant
+          (barré sans « Aimantation ») : la molette s'y cale. */}
       {editing &&
         lines.map((line) => (
           <div
@@ -296,6 +349,9 @@ export function DashboardGrid({
             aria-hidden
           >
             <span>
+              <span className={styles.magnet} data-off={!page.snap || line.cut}>
+                <Magnet size={12} strokeWidth={2.25} />
+              </span>
               {line.cut
                 ? t('pages.screenLineCut', { n: line.row / screenRows + 1 })
                 : t('pages.screenLine', { n: line.row / screenRows + 1 })}
@@ -334,7 +390,8 @@ export function DashboardGrid({
               pageId={page.id}
               widget={widget}
               editing={editing}
-              onFillScreen={mode === 'wide' ? () => fillScreen(widget.id) : undefined}
+              onFillScreen={mode === 'wide' ? fillScreen : undefined}
+              restorable={restorable.has(widget.id)}
             />
           </div>
         ))}

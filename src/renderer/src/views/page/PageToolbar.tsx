@@ -36,6 +36,7 @@ export function PageToolbar({
   const name = usePageName(page)
   const renamePage = useDashboardStore((state) => state.renamePage)
   const setAutoArrange = useDashboardStore((state) => state.setAutoArrange)
+  const setSnap = useDashboardStore((state) => state.setSnap)
   const arrangePage = useDashboardStore((state) => state.arrangePage)
   const deletePage = useDashboardStore((state) => state.deletePage)
   const navigate = useNavigationStore((state) => state.navigate)
@@ -92,13 +93,22 @@ export function PageToolbar({
       >
         {t('pages.arrange.label')}
       </Button>
-      <label className={styles.autoArrange} title={t('pages.autoArrange.hint')}>
+      {/* Interrupteurs de la page : libellé au-dessus */}
+      <label className={styles.switchSetting} title={t('pages.autoArrange.hint')}>
+        <span>{t('pages.autoArrange.label')}</span>
         <Switch
           aria-label={t('pages.autoArrange.label')}
           checked={page.autoArrange}
           onChange={(value) => setAutoArrange(page.id, value)}
         />
-        {t('pages.autoArrange.label')}
+      </label>
+      <label className={styles.switchSetting} title={t('pages.snap.hint')}>
+        <span>{t('pages.snap.label')}</span>
+        <Switch
+          aria-label={t('pages.snap.label')}
+          checked={page.snap}
+          onChange={(value) => setSnap(page.id, value)}
+        />
       </label>
       <Button icon={Plus} onClick={onAddWidget}>
         {t('pages.addBlock')}

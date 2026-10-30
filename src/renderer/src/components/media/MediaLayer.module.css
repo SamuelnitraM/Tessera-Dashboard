@@ -14,9 +14,18 @@
   background: #000000;
 }
 
-/* Mode édition : la souris va au bloc (déplacer, redimensionner) */
+/* Mode édition : la souris va au bloc (déplacer, redimensionner), et la vidéo est floutée et
+   grisée comme le contenu des blocs */
+.player {
+  transition:
+    filter var(--motion-normal) var(--ease-out),
+    opacity var(--motion-normal) var(--ease-out);
+}
+
 .layer[data-editing='true'] .player:not([data-mini='true']) {
   pointer-events: none;
+  filter: blur(1.5px) grayscale(0.85);
+  opacity: 0.55;
 }
 
 /* Fichier glissé sur la fenêtre : il est déposé sur le bloc, sous le lecteur */

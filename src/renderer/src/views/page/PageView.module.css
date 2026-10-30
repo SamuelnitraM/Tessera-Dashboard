@@ -80,11 +80,17 @@
 }
 
 /* Interrupteur « Automatique » de la barre d'édition */
-.autoArrange {
+/* « Automatique », « Aimantation » : libellé au-dessus de l'interrupteur */
+.switchSetting {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
+  gap: 0.1875rem;
+  color: var(--color-text-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
 }
 

@@ -64,6 +64,109 @@ export function findFreeSpot(
   return null
 }
 
+/**
+ * Place d'un nouveau bloc : la ligne la plus haute où il tient, à sa taille par défaut si possible,
+ * sinon à la plus grande taille qui y tient sans descendre sous son minimum (à gauche d'abord). Sans
+ * place nulle part, sous les autres blocs, à sa taille par défaut.
+ */
+export function placeNewBlock(
+  layout: readonly GridItem[],
+  size: GridSize,
+  min: GridSize,
+  cols: number
+): GridItem {
+  const w = Math.min(size.w, cols)
+  const minW = Math.min(min.w, w)
+  const minH = Math.min(min.h, size.h)
+  // Tailles possibles, de la plus grande à la plus petite (la taille par défaut d'abord)
+  const sizes: GridSize[] = []
+  for (let width = w; width >= minW; width--) {
+    for (let height = size.h; height >= minH; height--) sizes.push({ w: width, h: height })
+  }
+  sizes.sort((a, b) => b.w * b.h - a.w * a.h || b.w - a.w)
+  const bottom = layoutBottom(layout)
+  for (let y = 0; y < bottom; y++) {
+    let best: GridItem | null = null
+    for (let x = 0; x <= cols - minW; x++) {
+      const fit = sizes.find(
+        (candidate) =>
+          x + candidate.w <= cols &&
+          !layout.some((item) => collides(item, { i: '', x, y, ...candidate }))
+      )
+      if (fit && (!best || fit.w * fit.h > best.w * best.h)) best = { i: '', x, y, ...fit }
+      if (best && best.w === w && best.h === size.h) break
+    }
+    if (best) return best
+  }
+  return { i: '', x: 0, y: bottom, w, h: size.h }
+}
+
+/** Taille « écran entier » : toute la largeur, `screenRows` lignes, au début d'un écran. */
+export function fillsWholeScreen(item: GridItem, cols: number, screenRows: number): boolean {
+  return item.x === 0 && item.w === cols && item.h === screenRows && item.y % screenRows === 0
+}
+
+/**
+ * « Taille précédente » : le bloc agrandi et ceux qu'il avait écartés reprennent leur place
+ * (`saved`) ; un bloc posé depuis sur l'une de ces places va à la place libre la plus proche.
+ */
+export function restoreSaved(
+  layout: readonly GridItem[],
+  saved: readonly GridItem[],
+  cols: number,
+  rowWeight = 1
+): GridItem[] {
+  const ids = new Set(layout.map((item) => item.i))
+  const restored = saved
+    .filter((item) => ids.has(item.i))
+    .map((item) => ({
+      ...item,
+      w: Math.min(item.w, cols),
+      x: Math.min(item.x, cols - Math.min(item.w, cols))
+    }))
+  const back = new Set(restored.map((item) => item.i))
+  const fixed: GridItem[] = [...restored]
+  const others = layout.filter((item) => !back.has(item.i))
+  for (const item of others) if (!fixed.some((other) => collides(other, item))) fixed.push(item)
+  for (const item of others) {
+    if (fixed.some((other) => other.i === item.i)) continue
+    fixed.push(nearestFreeSpot(item, fixed, cols, rowWeight))
+  }
+  return fixed
+}
+
+/**
+ * Place libre la plus proche de la place d'un bloc (distance à vol d'oiseau, `rowWeight` : hauteur
+ * d'une ligne comptée en colonnes). Il y en a toujours une, au besoin sous les autres blocs.
+ */
+function nearestFreeSpot(
+  item: GridItem,
+  fixed: readonly GridItem[],
+  cols: number,
+  rowWeight: number
+): GridItem {
+  const w = Math.min(item.w, cols)
+  const lastRow = Math.max(layoutBottom(fixed), item.y)
+  let best: GridItem | null = null
+  let bestScore = Infinity
+  for (let y = 0; y <= lastRow; y++) {
+    const dy = (y - item.y) * rowWeight
+    // Plus loin en hauteur que la meilleure place trouvée : inutile de chercher sur cette ligne
+    if (dy * dy >= bestScore && y > item.y) break
+    for (let x = 0; x <= cols - w; x++) {
+      const dx = x - item.x
+      // À égalité, la place la plus haute, puis la moins décalée sur le côté
+      const score = dx * dx + dy * dy
+      if (score >= bestScore) continue
+      const candidate = { ...item, x, y, w }
+      if (fixed.some((other) => collides(other, candidate))) continue
+      best = candidate
+      bestScore = score
+    }
+  }
+  return best ?? { ...item, x: Math.min(item.x, cols - w), y: lastRow, w }
+}
+
 /** Ne garde que x, y, w, h (la grille ajoute ses propres champs : minW, moved…). */
 export function normalizeLayout(layout: readonly GridItem[]): GridItem[] {
   return layout.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))
@@ -167,9 +270,6 @@ export function packLayout(layout: readonly GridItem[], cols: number, first?: st
   return packed
 }
 
-/** Un bloc ne s'écarte que de quelques cases (au-delà, il prend la place libérée). */
-const MAX_SHIFT = 3
-
 /** Résultat d'un déplacement : disposition au relâchement, et blocs qui bougeront. */
 export interface MovePlan {
   layout: GridItem[]
@@ -177,10 +277,10 @@ export interface MovePlan {
 }
 
 /**
- * Où vont les blocs gênés quand `id` est posé sur `target` (déplacement ou redimensionnement).
- * Chacun monte d'abord, sinon s'écarte sur un côté (de quelques cases au plus) ; sinon il prend,
- * dans la place libérée par le bloc déplacé, l'endroit le plus proche de sa place d'origine ; en
- * dernier recours, il descend à la place libre la plus proche. Rien ne bouge avant le
+ * Où vont les blocs gênés quand `id` est posé sur `target` (déplacement ou redimensionnement) :
+ * chacun, du plus grand au plus petit, va à la place libre la plus proche de sa place d'origine
+ * (la place libérée par le bloc déplacé en fait partie). `rowWeight` : hauteur d'une ligne
+ * comptée en colonnes, pour mesurer les distances comme à l'écran. Rien ne bouge avant le
  * relâchement : la grille affiche ce plan en aperçu.
  */
 export function planMove(
@@ -188,9 +288,9 @@ export function planMove(
   id: string,
   target: GridItem,
   cols: number,
-  auto: boolean
+  auto: boolean,
+  rowWeight = 1
 ): MovePlan {
-  const previous = layout.find((item) => item.i === id)
   const others = layout.filter((item) => item.i !== id)
   const placedTarget = { ...target, i: id, w: Math.min(target.w, cols) }
 
@@ -202,62 +302,7 @@ export function planMove(
     const blocked = others
       .filter((o) => collides(o, placedTarget))
       .sort((a, b) => b.w * b.h - a.w * a.h)
-    const free = (candidate: GridItem): boolean =>
-      candidate.x >= 0 &&
-      candidate.y >= 0 &&
-      candidate.x + candidate.w <= cols &&
-      !fixed.some((item) => collides(item, candidate))
-
-    const distance = (a: GridItem, b: GridItem): number => Math.abs(a.x - b.x) + Math.abs(a.y - b.y)
-    const near = (candidate: GridItem, item: GridItem): boolean =>
-      distance(candidate, item) <= MAX_SHIFT
-
-    for (const item of blocked) {
-      // 1. Monter au-dessus du bloc posé (de quelques cases au plus)
-      const up = { ...item, y: placedTarget.y - item.h }
-      let spot: GridItem | undefined = near(up, item) && free(up) ? up : undefined
-
-      // 2. Sinon s'écarter sur un côté, le plus proche d'abord
-      if (!spot) {
-        spot = [
-          { ...item, x: placedTarget.x - item.w },
-          { ...item, x: placedTarget.x + placedTarget.w }
-        ]
-          .filter((candidate) => near(candidate, item))
-          .sort((a, b) => distance(a, item) - distance(b, item))
-          .find(free)
-      }
-
-      // 3. Sinon prendre la place libérée par le bloc déplacé, à l'endroit le plus proche de sa
-      // place d'origine (l'échange de places en fait partie)
-      if (!spot && previous) {
-        const candidates: GridItem[] = [
-          {
-            ...item,
-            x: item.x + previous.x - placedTarget.x,
-            y: item.y + previous.y - placedTarget.y
-          }
-        ]
-        for (let y = previous.y; y <= previous.y + Math.max(0, previous.h - item.h); y++) {
-          for (let x = previous.x; x <= previous.x + Math.max(0, previous.w - item.w); x++) {
-            candidates.push({ ...item, x: Math.min(x, cols - item.w), y })
-          }
-        }
-        spot = candidates.filter(free).sort((a, b) => distance(a, item) - distance(b, item))[0]
-      }
-
-      // 4. En dernier recours, descendre à la place libre la plus proche (ligne par ligne, la
-      // colonne la plus proche de la sienne d'abord)
-      if (!spot) {
-        const columns = Array.from({ length: Math.max(1, cols - item.w + 1) }, (_, x) => x).sort(
-          (a, b) => Math.abs(a - item.x) - Math.abs(b - item.x) || a - b
-        )
-        for (let y = item.y + 1; !spot; y++) {
-          spot = columns.map((x) => ({ ...item, x, y })).find(free)
-        }
-      }
-      fixed.push(spot)
-    }
+    for (const item of blocked) fixed.push(nearestFreeSpot(item, fixed, cols, rowWeight))
     next = fixed
   }
 

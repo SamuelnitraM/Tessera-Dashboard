@@ -1,9 +1,10 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Bug,
   CircleAlert,
   GripVertical,
   Maximize,
+  Minimize,
   PlugZap,
   RotateCw,
   Settings2,
@@ -17,12 +18,13 @@ import { localize, resolveWidgetConfig } from '@shared/plugins'
 import { BlockSettingsContext } from '../../plugin-sdk/blockSettingsContext'
 import { PluginContext } from '../../plugin-sdk/context'
 import { getWidget } from '../../plugins/registry'
-import { openContextMenu, type MenuItem } from '../../stores/contextMenu'
+import { openContextMenu, registerBlockMenu, type MenuItem } from '../../stores/contextMenu'
 import { useDashboardStore } from '../../stores/dashboard'
 import { useActiveBlockStore } from '../../stores/activeBlock'
 import { useModules } from '../../stores/modules'
 import { useNavigationStore } from '../../stores/navigation'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
+import { BlockRemoveConfirm } from './BlockRemoveConfirm'
 import { WidgetErrorBoundary } from './WidgetErrorBoundary'
 import { WidgetSettingsDialog } from './WidgetSettingsDialog'
 import styles from './WidgetFrame.module.css'
@@ -31,19 +33,26 @@ interface WidgetFrameProps {
   pageId: string
   widget: WidgetInstance
   editing: boolean
-  /** Taille « écran entier » (disposition large) : toute la largeur, 12 lignes. */
-  onFillScreen?: () => void
+  /**
+   * Taille « écran entier » (disposition large) : toute la largeur, 12 lignes ; ou « Taille
+   * précédente » si le bloc est `restorable`. Reçoit l'identifiant du bloc (fonction stable).
+   */
+  onFillScreen?: (id: string) => void
+  /** Agrandi à l'écran entier : « Taille précédente » lui rend sa place (et aux blocs écartés). */
+  restorable?: boolean
 }
 
 /**
  * Cadre commun à tous les widgets : fond, bordure, barre d'outils en mode édition.
- * Il fait le lien entre la page et le composant fourni par l'extension.
+ * Il fait le lien entre la page et le composant fourni par l'extension. Mémorisé : la grille se
+ * redessine à chaque mouvement de la souris pendant un déplacement, pas les blocs.
  */
-export function WidgetFrame({
+export const WidgetFrame = memo(function WidgetFrame({
   pageId,
   widget,
   editing,
-  onFillScreen
+  onFillScreen,
+  restorable = false
 }: WidgetFrameProps): React.JSX.Element {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
@@ -70,6 +79,11 @@ export function WidgetFrame({
   // Bloc qui a le focus (dernier cliqué) : bordure et barre du haut colorées
   const focused = useActiveBlockStore((state) => !editing && state.activeId === widget.id)
   const contentRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLElement>(null)
+  // Retrait (croix ou clic droit) : confirmé dans le bloc
+  const [confirmingRemove, setConfirmingRemove] = useState(false)
+  const askRemove = useCallback(() => setConfirmingRemove(true), [])
+  const cancelRemove = useCallback(() => setConfirmingRemove(false), [])
 
   // Mode édition : le contenu ne réagit pas à la souris (CSS) ni au clavier (Tab, Suppr dans
   // le bloc Fichiers…), sauf ses parties prévues pour ce mode (`data-edit-active`)
@@ -106,15 +120,32 @@ export function WidgetFrame({
 
   const hasSettings = !disabled && (registered?.manifest.settings.length ?? 0) > 0
   const Component = registered?.component
+  const fillScreen = onFillScreen ? (): void => onFillScreen(widget.id) : undefined
+  const fillLabel = restorable ? t('blocks.restoreSize') : t('blocks.fillScreen')
+  const FillIcon = restorable ? Minimize : Maximize
+  const removeItem: MenuItem = {
+    label: t('blocks.remove'),
+    icon: Trash2,
+    danger: true,
+    onSelect: askRemove
+  }
+
+  // Menus propres au contenu du bloc (Fichiers, Mails, Notes…) : « Retirer le bloc » à la fin
+  const removeLabel = removeItem.label
+  useEffect(
+    () =>
+      registerBlockMenu(widget.id, () => [
+        { label: removeLabel, icon: Trash2, danger: true, onSelect: askRemove }
+      ]),
+    [widget.id, removeLabel, askRemove]
+  )
 
   // Clic droit sur le bloc : réglages et retrait, sans passer par le mode édition
   const contextMenu: MenuItem[] = [
     ...(hasSettings
       ? [{ label: t('blocks.settings'), icon: Settings2, onSelect: () => setSettingsOpen(true) }]
       : []),
-    ...(onFillScreen
-      ? [{ label: t('blocks.fillScreen'), icon: Maximize, onSelect: onFillScreen }]
-      : []),
+    ...(fillScreen ? [{ label: fillLabel, icon: FillIcon, onSelect: fillScreen }] : []),
     { label: t('nav.pageMenu.edit'), icon: SquarePen, onSelect: () => setEditing(true) },
     // Mode développeur : outils pour les blocs des modules tiers
     ...(developerMode && registered && !registered.builtIn
@@ -133,16 +164,12 @@ export function WidgetFrame({
         ]
       : []),
     'separator',
-    {
-      label: t('blocks.remove'),
-      icon: Trash2,
-      danger: true,
-      onSelect: () => removeWidget(pageId, widget.id)
-    }
+    removeItem
   ]
 
   return (
     <article
+      ref={frameRef}
       className={styles.frame}
       data-editing={editing}
       data-focused={focused}
@@ -153,15 +180,15 @@ export function WidgetFrame({
         <header className={styles.toolbar}>
           <GripVertical size={14} aria-hidden />
           <span className={styles.toolbarName}>{name}</span>
-          {onFillScreen && (
+          {fillScreen && (
             <button
               type="button"
               className={`${styles.toolbarButton} no-drag`}
-              title={t('blocks.fillScreen')}
-              aria-label={t('blocks.fillScreen')}
-              onClick={onFillScreen}
+              title={fillLabel}
+              aria-label={fillLabel}
+              onClick={fillScreen}
             >
-              <Maximize size={14} aria-hidden />
+              <FillIcon size={15} aria-hidden />
             </button>
           )}
           {hasSettings && (
@@ -172,7 +199,7 @@ export function WidgetFrame({
               aria-label={t('blocks.settingsOf', { name })}
               onClick={() => setSettingsOpen(true)}
             >
-              <Settings2 size={14} aria-hidden />
+              <Settings2 size={15} aria-hidden />
             </button>
           )}
           <button
@@ -180,9 +207,9 @@ export function WidgetFrame({
             className={`${styles.toolbarButton} ${styles.remove} no-drag`}
             title={t('blocks.remove')}
             aria-label={t('blocks.removeOf', { name })}
-            onClick={() => removeWidget(pageId, widget.id)}
+            onClick={askRemove}
           >
-            <X size={14} aria-hidden />
+            <X size={18} aria-hidden />
           </button>
         </header>
       )}
@@ -230,6 +257,17 @@ export function WidgetFrame({
         </button>
       )}
 
+      <BlockRemoveConfirm
+        block={frameRef}
+        name={name}
+        open={confirmingRemove}
+        onCancel={cancelRemove}
+        onConfirm={() => {
+          setConfirmingRemove(false)
+          removeWidget(pageId, widget.id)
+        }}
+      />
+
       {hasSettings && registered && (
         <WidgetSettingsDialog
           title={t('blocks.settingsOf', { name })}
@@ -242,7 +280,7 @@ export function WidgetFrame({
       )}
     </article>
   )
-}
+})
 
 /** Partie d'un bloc qui reste utilisable en mode édition. */
 const isEditActive = (element: Element): boolean => element.closest('[data-edit-active]') !== null

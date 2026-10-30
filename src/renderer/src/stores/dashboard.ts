@@ -12,11 +12,12 @@ import {
   findFreeSpot,
   normalizeLayout,
   packLayout,
+  placeNewBlock,
   planMove,
   resolveLayout,
   toCompactSize
 } from '../lib/grid'
-import { getDefaultSize } from '../plugins/registry'
+import { getDefaultSize, getMinSize } from '../plugins/registry'
 
 interface DashboardState {
   dashboard: Dashboard
@@ -27,6 +28,7 @@ interface DashboardState {
   movePage: (pageId: string, targetId: string, after: boolean) => void
   /** « Automatique » : la page reste rangée vers le haut (rangée tout de suite à l'activation). */
   setAutoArrange: (pageId: string, value: boolean) => void
+  setSnap: (pageId: string, value: boolean) => void
   /** « Ajuster » : remonte les blocs et comble les trous, sans changer leur taille. */
   arrangePage: (pageId: string, mode: LayoutMode) => void
   /** La page principale ne peut pas être supprimée. */
@@ -46,7 +48,16 @@ interface DashboardState {
   ) => string | null
   removeWidget: (pageId: string, widgetId: string) => void
   updateWidgetConfig: (pageId: string, widgetId: string, config: Record<string, unknown>) => void
-  setLayout: (pageId: string, mode: LayoutMode, layout: GridItem[]) => void
+  /**
+   * `fillRestore` (disposition large) : places à rendre plus tard à ce bloc et à ceux qu'il écarte
+   * (« Taille : écran entier »), ou `null` pour les oublier (« Taille précédente »).
+   */
+  setLayout: (
+    pageId: string,
+    mode: LayoutMode,
+    layout: GridItem[],
+    fillRestore?: { id: string; items: GridItem[] | null }
+  ) => void
   /** Oublie la disposition compacte modifiée : elle sera de nouveau générée automatiquement. */
   resetCompactLayout: (pageId: string) => void
 }
@@ -100,6 +111,8 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
         name,
         isMain: false,
         autoArrange: false,
+        snap: true,
+        fillRestore: {},
         widgets: [],
         layouts: { wide: [], compact: null }
       }
@@ -125,6 +138,8 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
     setAutoArrange: (pageId, value) =>
       updatePage(pageId, (page) => arranged({ ...page, autoArrange: value })),
 
+    setSnap: (pageId, value) => updatePage(pageId, (page) => ({ ...page, snap: value })),
+
     arrangePage: (pageId, mode) =>
       updatePage(pageId, (page) => ({
         ...page,
@@ -146,15 +161,14 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
       const page = get().dashboard.pages.find((candidate) => candidate.id === pageId)
       if (!page) return null
 
-      // Position dans la disposition large : première place libre (la page défile : il y en
-      // a toujours une, au besoin sous les autres blocs)
+      // Position dans la disposition large : la ligne la plus haute où il tient, à une taille
+      // qui s'adapte à la place libre sans descendre sous son minimum (la page défile : il y a
+      // toujours une place, au besoin sous les autres blocs). Taille imposée : telle quelle.
       const wide = resolveLayout(page, 'wide', defaultSizeOf)
-      const size = blockSize ?? getDefaultSize(type)
-      const wideItem: GridItem = {
-        i: '',
-        ...findFreeSpot(wide, size, GRID.wideCols)!,
-        ...size
-      }
+      const wideItem = blockSize
+        ? { i: '', ...findFreeSpot(wide, blockSize, GRID.wideCols)!, ...blockSize }
+        : placeNewBlock(wide, getDefaultSize(type), getMinSize(type), GRID.wideCols)
+      const size = { w: wideItem.w, h: wideItem.h }
 
       const id = crypto.randomUUID()
       const placed: GridItem = { ...wideItem, i: id }
@@ -198,6 +212,11 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
         arranged({
           ...page,
           widgets: page.widgets.filter((widget) => widget.id !== widgetId),
+          fillRestore: Object.fromEntries(
+            Object.entries(page.fillRestore)
+              .filter(([id]) => id !== widgetId)
+              .map(([id, items]) => [id, items.filter((item) => item.i !== widgetId)])
+          ),
           layouts: {
             wide: page.layouts.wide.filter((item) => item.i !== widgetId),
             compact: page.layouts.compact?.filter((item) => item.i !== widgetId) ?? null
@@ -213,11 +232,13 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
         )
       })),
 
-    setLayout: (pageId, mode, layout) =>
-      updatePage(pageId, (page) => ({
-        ...page,
-        layouts: { ...page.layouts, [mode]: layout }
-      })),
+    setLayout: (pageId, mode, layout, fillRestore) =>
+      updatePage(pageId, (page) => {
+        const restore = { ...page.fillRestore }
+        if (fillRestore?.items) restore[fillRestore.id] = fillRestore.items
+        else if (fillRestore) delete restore[fillRestore.id]
+        return { ...page, fillRestore: restore, layouts: { ...page.layouts, [mode]: layout } }
+      }),
 
     resetCompactLayout: (pageId) =>
       updatePage(pageId, (page) => ({ ...page, layouts: { ...page.layouts, compact: null } }))

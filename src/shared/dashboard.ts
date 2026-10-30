@@ -45,6 +45,13 @@ export interface DashboardPage {
   isMain: boolean
   /** « Automatique » : la page reste rangée vers le haut après chaque changement. */
   autoArrange: boolean
+  /** « Aimantation » : à la molette, la page se cale sur les limites d'écran proches. */
+  snap: boolean
+  /**
+   * Places d'avant « Taille : écran entier » (disposition large), par bloc agrandi : le bloc et
+   * ceux qu'il a écartés, rendues par « Taille précédente ».
+   */
+  fillRestore: Record<string, GridItem[]>
   widgets: WidgetInstance[]
   layouts: {
     wide: GridItem[]
@@ -95,6 +102,8 @@ export const DEFAULT_DASHBOARD: Dashboard = {
       name: '',
       isMain: true,
       autoArrange: false,
+      snap: true,
+      fillRestore: {},
       widgets: [{ id: 'welcome-clock', type: 'tessera.clock/clock', config: {} }],
       layouts: {
         wide: [{ i: 'welcome-clock', x: 0, y: 0, w: 6, h: 3 }],
@@ -162,12 +171,19 @@ function sanitizePage(input: unknown, usedIds: Set<string>): DashboardPage | nul
   }
 
   const layouts = asRecord(page.layouts)
+  const fillRestore: Record<string, GridItem[]> = {}
+  for (const [blockId, items] of Object.entries(asRecord(page.fillRestore))) {
+    const saved = widgetIds.has(blockId) ? sanitizeLayout(items, GRID.wideCols, widgetIds) : []
+    if (saved.some((item) => item.i === blockId)) fillRestore[blockId] = saved
+  }
   return {
     id,
     name: asString(page.name).slice(0, 60),
     isMain: page.isMain === true,
     // L'ancien choix « Ajuster / Défiler » (fitMode) a disparu : toutes les pages défilent
     autoArrange: page.autoArrange === true,
+    snap: page.snap !== false,
+    fillRestore,
     widgets,
     layouts: {
       wide: sanitizeLayout(layouts.wide, GRID.wideCols, widgetIds),
