@@ -302,21 +302,37 @@ export async function spotifyPlayback(): Promise<SpotifyPlayback | null> {
       title: local.title,
       artist: local.artist,
       image: local.thumbnail,
-      uri: null
+      uri: null,
+      // Une publicité n'a pas d'artiste (un titre, une émission en ont toujours un)
+      ad: !local.artist.trim()
     }
   }
   if (!store.get().user) return null
-  const data = await get<{ is_playing?: boolean; item?: Track | Episode | null }>(
-    '/me/player?additional_types=episode'
-  ).catch(() => null)
+  const data = await get<{
+    is_playing?: boolean
+    currently_playing_type?: string
+    item?: Track | Episode | null
+  }>('/me/player?additional_types=episode').catch(() => null)
   return data ? playbackOf(data) : null
 }
 
 function playbackOf(data: {
   is_playing?: boolean
+  currently_playing_type?: string
   item?: Track | Episode | null
 }): SpotifyPlayback | null {
   const item = data.item
+  // Publicité : Spotify n'en donne pas le détail
+  if (data.currently_playing_type === 'ad') {
+    return {
+      playing: data.is_playing === true,
+      title: '',
+      artist: '',
+      image: null,
+      uri: null,
+      ad: true
+    }
+  }
   if (!item) return null
   const episode = 'show' in item
   return {
@@ -326,7 +342,8 @@ function playbackOf(data: {
       ? (item.show?.name ?? '')
       : ((item as Track).artists?.map((artist) => artist.name).join(', ') ?? ''),
     image: episode ? image(item.images) : image((item as Track).album?.images),
-    uri: item.uri ?? null
+    uri: item.uri ?? null,
+    ad: false
   }
 }
 

@@ -50,6 +50,7 @@ import {
   setProcessListeners,
   stopCapturedProcesses
 } from './plugins/processes'
+import { applyGlobalShortcut } from './shortcuts'
 import { flushSettings, getSettings, loadSettings, onSettingsChange } from './settings-store'
 import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshAppIcons, refreshTrayMenu } from './tray'
@@ -180,6 +181,8 @@ if (!app.requestSingleInstanceLock()) {
     openStartupWindows(isLaunchedHidden())
     createTray()
 
+    // Raccourci de Windows « Afficher ou masquer Tessera »
+    applyGlobalShortcut()
     onSettingsChange((next, previous) => {
       if (next.appearance.theme !== previous.appearance.theme) applyTheme(next.appearance.theme)
       if (
@@ -196,6 +199,7 @@ if (!app.requestSingleInstanceLock()) {
       }
       if (next.apps.items !== previous.apps.items) closeRemovedApps()
       if (next.window.launchAtStartup !== previous.window.launchAtStartup) applyLaunchAtStartup()
+      if (next.shortcuts !== previous.shortcuts) applyGlobalShortcut()
       broadcast(IpcChannels.settingsChanged, next)
     })
 

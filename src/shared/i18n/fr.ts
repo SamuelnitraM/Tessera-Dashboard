@@ -896,6 +896,75 @@ export const fr = {
       results: 'Résultats : {{count}}',
       none: 'Aucun réglage ne correspond à la recherche.'
     },
+    shortcuts: {
+      intro:
+        'Raccourcis clavier de la fenêtre de Tessera, aussi dans une page web intégrée (sauf ceux qui servent à écrire, comme Ctrl + lettre ou Pg suiv). La fenêtre d’une application installée garde ses propres raccourcis. Les chiffres sont ceux de la rangée du haut (& é " \' ( …) ou du pavé numérique. Clique sur un raccourci puis appuie sur les touches voulues : Échap annule, Retour arrière le retire.',
+      groups: {
+        pagesTitle: 'Pages',
+        pagesHint: 'Page suivante, précédente, pages 1 à 9 (la dernière s’il y en a moins)',
+        screensTitle: 'Écrans',
+        screensHint:
+          'Écran suivant, précédent, écrans 1 à 9 de la page : chaque limite en pointillés du mode édition, aimantée ou non',
+        viewTitle: 'Affichage',
+        viewHint: 'Menu latéral, mode édition, nouvelle page, notifications, paramètres…',
+        windowsTitle: 'Depuis Windows',
+        windowsHint: 'Afficher Tessera depuis n’importe quelle application'
+      },
+      actions: {
+        nextPage: { label: 'Page suivante' },
+        previousPage: { label: 'Page précédente' },
+        page: 'Page {{n}}',
+        nextScreen: {
+          label: 'Écran suivant',
+          description: 'Descend jusqu’à la limite d’écran suivante, aimantée ou non.'
+        },
+        previousScreen: { label: 'Écran précédent' },
+        screen: 'Écran {{n}}',
+        toggleSidebar: { label: 'Rabattre ou déplier le menu latéral' },
+        toggleEdit: {
+          label: 'Mode édition',
+          description: 'Entrer dans le mode édition de la page, ou en sortir.'
+        },
+        newPage: { label: 'Nouvelle page' },
+        closeApp: { label: 'Fermer l’onglet d’application affiché' },
+        notifications: { label: 'Ouvrir ou fermer les notifications' },
+        settings: {
+          label: 'Paramètres',
+          description: 'Ouvrir les paramètres, ou revenir à la page d’accueil.'
+        },
+        showTessera: {
+          label: 'Afficher ou masquer Tessera',
+          description:
+            'Marche aussi depuis une autre application, avec Ctrl, Alt ou Windows. Aucun par défaut : choisis une combinaison qu’aucune autre application n’utilise.'
+        }
+      },
+      press: 'Appuie sur les touches…',
+      none: 'Aucun',
+      clear: 'Retirer le raccourci',
+      reset: 'Raccourci par défaut',
+      taken: 'Retiré de « {{action}} », qui l’avait.',
+      needsModifier: 'Un raccourci de Windows a besoin de Ctrl, Alt ou Windows.',
+      keys: {
+        Ctrl: 'Ctrl',
+        Alt: 'Alt',
+        Shift: 'Maj',
+        Meta: 'Win',
+        Space: 'Espace',
+        Plus: '+',
+        Tab: 'Tab',
+        Enter: 'Entrée',
+        Escape: 'Échap',
+        Delete: 'Suppr',
+        Home: 'Début',
+        End: 'Fin',
+        PageUp: 'Pg préc',
+        PageDown: 'Pg suiv',
+        ArrowLeft: '←',
+        ArrowRight: '→',
+        ArrowUp: '↑',
+        ArrowDown: '↓'
+      }
+    },
     sections: {
       general: 'Général',
       extensions: 'Widgets et modules',
@@ -903,6 +972,7 @@ export const fr = {
       notifications: 'Notifications',
       accounts: 'Comptes',
       applications: 'Applications',
+      shortcuts: 'Raccourcis',
       about: 'À propos'
     },
     language: {
@@ -1062,17 +1132,18 @@ export const fr = {
         'Les applications s’ouvrent dans un onglet de Tessera ou dans un bloc. Une application web (site) a sa propre connexion, conservée entre deux lancements. Une application installée (programme du PC) s’affiche avec sa vraie fenêtre.',
       installed: 'Application installée',
       onQuit: {
-        label: 'À la fermeture de Tessera',
+        label: 'Fermeture par défaut',
         description:
-          'Ce que deviennent les applications installées affichées dans Tessera quand tu quittes l’app.',
-        close: 'Les fermer',
-        restore: 'Les rendre au bureau'
+          'Ce que deviennent les applications installées et les navigateurs affichés dans Tessera quand il se ferme complètement : fermés, ou gardés ouverts sur le bureau. Chaque application peut avoir son propre réglage (Fermeture).',
+        close: 'Fermer',
+        restore: 'Garder ouvert'
       },
       appOnQuit: {
-        label: 'À la fermeture de Tessera : {{name}}',
-        default: 'À la fermeture de Tessera : comme les autres ({{choice}})',
-        close: 'À la fermeture de Tessera : la fermer',
-        restore: 'À la fermeture de Tessera : la laisser ouverte sur le bureau'
+        label: 'Fermeture :',
+        aria: 'Fermeture de {{name}} avec Tessera',
+        default: 'Défaut ({{choice}})',
+        close: 'Fermer',
+        restore: 'Garder ouvert'
       },
       addInstalledTitle: 'Ajouter une application installée',
       installedIntro:

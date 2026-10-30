@@ -44,6 +44,8 @@ export interface SpotifyPlayback {
   artist: string
   image: string | null
   uri: string | null
+  /** Publicité (compte gratuit) : affichée « [PUB] titre ». */
+  ad: boolean
 }
 
 export type SpotifyCommand = 'play-pause' | 'next' | 'previous'

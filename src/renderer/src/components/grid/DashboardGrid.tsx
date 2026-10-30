@@ -142,7 +142,7 @@ export function DashboardGrid({
   )
   useEffect(() => {
     if (mode !== 'wide') {
-      usePageScreensStore.setState({ rowStep: 0, rows: [], screenBlocks: {} })
+      usePageScreensStore.setState({ rowStep: 0, rows: [], allRows: [], screenBlocks: {} })
       return
     }
     const screenBlocks: Record<string, number> = {}
@@ -152,6 +152,7 @@ export function DashboardGrid({
     usePageScreensStore.setState({
       rowStep: rowHeight + gap,
       rows: lines.filter((line) => !line.cut && line.row < bottom).map((line) => line.row),
+      allRows: lines.filter((line) => line.row < bottom).map((line) => line.row),
       screenBlocks
     })
   }, [mode, layout, lines, rowHeight, gap, cols, bottom, screenRows])

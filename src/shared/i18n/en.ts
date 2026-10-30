@@ -886,6 +886,69 @@ export const en: Translation = {
       results: 'Results: {{count}}',
       none: 'No setting matches the search.'
     },
+    shortcuts: {
+      intro:
+        'Keyboard shortcuts of the Tessera window, also in an embedded web page (except those used for typing, like Ctrl + letter or PgDn). An installed app’s window keeps its own shortcuts. Digits are those of the top row or the numeric keypad. Click a shortcut then press the keys you want: Esc cancels, Backspace removes it.',
+      groups: {
+        pagesTitle: 'Pages',
+        pagesHint: 'Next page, previous page, pages 1 to 9 (the last one if there are fewer)',
+        screensTitle: 'Screens',
+        screensHint:
+          'Next screen, previous screen, screens 1 to 9 of the page: every dotted line of edit mode, snapping or not',
+        viewTitle: 'View',
+        viewHint: 'Side menu, edit mode, new page, notifications, settings…',
+        windowsTitle: 'From Windows',
+        windowsHint: 'Show Tessera from any app'
+      },
+      actions: {
+        nextPage: { label: 'Next page' },
+        previousPage: { label: 'Previous page' },
+        page: 'Page {{n}}',
+        nextScreen: {
+          label: 'Next screen',
+          description: 'Goes down to the next screen line, snapping or not.'
+        },
+        previousScreen: { label: 'Previous screen' },
+        screen: 'Screen {{n}}',
+        toggleSidebar: { label: 'Collapse or expand the side menu' },
+        toggleEdit: { label: 'Edit mode', description: 'Enter or leave the page’s edit mode.' },
+        newPage: { label: 'New page' },
+        closeApp: { label: 'Close the shown app tab' },
+        notifications: { label: 'Open or close notifications' },
+        settings: { label: 'Settings', description: 'Open settings, or go back to the home page.' },
+        showTessera: {
+          label: 'Show or hide Tessera',
+          description:
+            'Also works from another app, with Ctrl, Alt or Windows. None by default: pick a combination no other app uses.'
+        }
+      },
+      press: 'Press the keys…',
+      none: 'None',
+      clear: 'Remove the shortcut',
+      reset: 'Default shortcut',
+      taken: 'Removed from “{{action}}”, which had it.',
+      needsModifier: 'A Windows shortcut needs Ctrl, Alt or Windows.',
+      keys: {
+        Ctrl: 'Ctrl',
+        Alt: 'Alt',
+        Shift: 'Shift',
+        Meta: 'Win',
+        Space: 'Space',
+        Plus: '+',
+        Tab: 'Tab',
+        Enter: 'Enter',
+        Escape: 'Esc',
+        Delete: 'Del',
+        Home: 'Home',
+        End: 'End',
+        PageUp: 'PgUp',
+        PageDown: 'PgDn',
+        ArrowLeft: '←',
+        ArrowRight: '→',
+        ArrowUp: '↑',
+        ArrowDown: '↓'
+      }
+    },
     sections: {
       general: 'General',
       extensions: 'Widgets and modules',
@@ -893,6 +956,7 @@ export const en: Translation = {
       notifications: 'Notifications',
       accounts: 'Accounts',
       applications: 'Apps',
+      shortcuts: 'Shortcuts',
       about: 'About'
     },
     language: {
@@ -1052,16 +1116,18 @@ export const en: Translation = {
         'Apps open in a Tessera tab or in a block. A web app (website) has its own sign-in, kept between launches. An installed app (program on your PC) is shown with its real window.',
       installed: 'Installed app',
       onQuit: {
-        label: 'When Tessera quits',
-        description: 'What happens to the installed apps shown in Tessera when you quit the app.',
-        close: 'Close them',
-        restore: 'Give them back to the desktop'
+        label: 'Default closing',
+        description:
+          'What happens to the installed apps and browsers shown in Tessera when it quits completely: closed, or kept open on the desktop. Each app can have its own setting (Closing).',
+        close: 'Close',
+        restore: 'Keep open'
       },
       appOnQuit: {
-        label: 'When Tessera closes: {{name}}',
-        default: 'When Tessera closes: like the others ({{choice}})',
-        close: 'When Tessera closes: close it',
-        restore: 'When Tessera closes: leave it open on the desktop'
+        label: 'Closing:',
+        aria: 'Closing {{name}} with Tessera',
+        default: 'Default ({{choice}})',
+        close: 'Close',
+        restore: 'Keep open'
       },
       addInstalledTitle: 'Add an installed app',
       installedIntro:

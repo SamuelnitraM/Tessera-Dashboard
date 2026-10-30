@@ -183,6 +183,8 @@ export const IpcChannels = {
   openOutside: 'open:outside',
   /** Événement main -> renderer : page à ouvrir dans un bloc (lien d'une page web, d'un mail…). */
   openRequest: 'open:request',
+  /** Raccourci pressé dans une page web intégrée, pour l'interface. */
+  shortcutRun: 'shortcut:run',
   headerBarSearchPlaces: 'header-bar:search-places',
   headerBarWeather: 'header-bar:weather',
   headerBarRates: 'header-bar:rates',

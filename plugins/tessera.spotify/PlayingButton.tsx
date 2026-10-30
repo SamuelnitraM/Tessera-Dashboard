@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   ExternalLink,
   Music2,
@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import {
   errorMessage,
-  HeaderButtonText,
   HeaderPanelTitle,
   HeaderWidgetButton,
   usePluginTranslation
@@ -20,6 +19,47 @@ import {
 import type { MediaTimeline, SpotifyCommand, SpotifyPlayback } from '@shared/spotify'
 import styles from './PlayingButton.module.css'
 import { usePlayback } from './usePlayback'
+
+/** Titre affiché : « [PUB] titre » pour une publicité. */
+function titleOf(playback: SpotifyPlayback, t: ReturnType<typeof usePluginTranslation>): string {
+  return playback.ad ? t('header.ad', { title: playback.title }).trim() : playback.title
+}
+
+/** Titres de plus de 25 caractères : la barre en montre 25 et le reste défile. */
+const MAX_CHARS = 25
+const SCROLL_PX_PER_S = 30
+
+/** Texte de la barre : 25 caractères au plus ; plus long, il défile jusqu'au bout puis revient. */
+function ScrollingTitle({ text }: { text: string }): React.JSX.Element {
+  const box = useRef<HTMLSpanElement>(null)
+  const inner = useRef<HTMLSpanElement>(null)
+  const [shift, setShift] = useState(0)
+  const long = text.length > MAX_CHARS
+  useLayoutEffect(() => {
+    if (!box.current || !inner.current) return
+    setShift(Math.max(0, inner.current.scrollWidth - box.current.clientWidth))
+  }, [long, text])
+  // Arrêt au début et à la fin (15 % du temps chacun), défilement entre les deux
+  const duration = shift / SCROLL_PX_PER_S / 0.7
+  return (
+    <span ref={box} className={styles.title} data-long={long || undefined}>
+      <span
+        ref={inner}
+        className={shift > 0 ? styles.scrolling : undefined}
+        style={
+          shift > 0
+            ? ({
+                '--shift': `-${shift}px`,
+                animationDuration: `${Math.max(4, duration)}s`
+              } as React.CSSProperties)
+            : undefined
+        }
+      >
+        {text}
+      </span>
+    </span>
+  )
+}
 
 /** Barre des pages : titre en cours sur Spotify ; le panneau a la pochette et les commandes. */
 export function PlayingButton(): React.JSX.Element {
@@ -31,7 +71,10 @@ export function PlayingButton(): React.JSX.Element {
     <HeaderWidgetButton
       label={
         playback
-          ? t('header.label', { title: playback.title, artist: playback.artist })
+          ? t('header.label', {
+              title: titleOf(playback, t),
+              artist: playback.ad ? t('header.adArtist') : playback.artist
+            })
           : t('header.name')
       }
       open={open}
@@ -42,7 +85,7 @@ export function PlayingButton(): React.JSX.Element {
           {/* En pause : le titre reste, estompé */}
           {playback && (
             <span className={playing ? undefined : styles.paused}>
-              <HeaderButtonText text>{playback.title}</HeaderButtonText>
+              <ScrollingTitle text={titleOf(playback, t)} />
             </span>
           )}
         </>
@@ -98,8 +141,10 @@ export function NowPlaying({
             </span>
           )}
           <span className={styles.text}>
-            <strong>{playback.title}</strong>
-            <span className={styles.muted}>{playback.artist}</span>
+            <strong>{titleOf(playback, t)}</strong>
+            <span className={styles.muted}>
+              {playback.ad ? t('header.adArtist') : playback.artist}
+            </span>
           </span>
           {playback.uri && (
             <button

@@ -11,9 +11,9 @@ import { PageDialogs } from './components/PageDialogs'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
 import { ContextMenuHost } from './components/ui/ContextMenuHost'
+import { useShortcuts } from './hooks/useShortcuts'
 import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
-import { setSidebarMode } from './lib/layoutTransition'
 import { showBlock } from './lib/windows'
 import { openInTessera, revealInstalledApp } from './plugin-sdk/apps'
 import { useDashboardStore } from './stores/dashboard'
@@ -40,18 +40,8 @@ export function App(): React.JSX.Element {
   // Bloc Terminal retiré : ses sessions sont fermées
   useEffect(() => watchTerminalSessions(), [])
 
-  // Ctrl+B : rabattre / déplier le menu latéral (sauf dans un champ : Ctrl+B y met en gras)
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (!event.ctrlKey || event.key.toLowerCase() !== 'b' || event.altKey || event.shiftKey)
-        return
-      if ((event.target as HTMLElement).closest('input, textarea, [contenteditable="true"]')) return
-      event.preventDefault()
-      setSidebarMode(sidebar === 'collapsed' ? 'expanded' : 'collapsed')
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [sidebar])
+  // Raccourcis clavier (Ctrl+B : menu latéral, Ctrl+1 à 9 : pages…)
+  useShortcuts()
 
   // Une application installée demande à s'afficher (clic sur sa notification, son icône…) :
   // on va vers son onglet s'il est ouvert, sinon vers son bloc (navigateur mis de côté

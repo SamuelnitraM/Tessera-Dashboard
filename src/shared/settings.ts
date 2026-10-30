@@ -19,6 +19,7 @@ import { QUIT_MODES, type QuitMode } from './desktop-apps'
 import { DEFAULT_HEADER_BAR, sanitizeHeaderBar, type HeaderBarSettings } from './header-bar'
 import { DEFAULT_MAIL_SETTINGS, sanitizeMailSettings, type MailSettings } from './mail'
 import { DEFAULT_MEDIA_SETTINGS, sanitizeMediaSettings, type MediaSettings } from './media'
+import { DEFAULT_SHORTCUTS, sanitizeShortcuts, type ShortcutSettings } from './shortcuts'
 import { sanitizeUserApps, type UserApp } from './user-apps'
 
 export const LANGUAGES = ['fr', 'en'] as const
@@ -123,6 +124,8 @@ export interface Settings {
   tasks: TasksSettings
   /** Barre des pages : petits widgets affichés (dans l'ordre) et leurs réglages. */
   headerBar: HeaderBarSettings
+  /** Raccourcis clavier (Paramètres → Raccourcis). */
+  shortcuts: ShortcutSettings
 }
 
 type SettingsSections = Omit<Settings, 'schemaVersion'>
@@ -179,7 +182,8 @@ export const DEFAULT_SETTINGS: Settings = {
   media: DEFAULT_MEDIA_SETTINGS,
   calendar: { accounts: [] },
   tasks: { accounts: [] },
-  headerBar: DEFAULT_HEADER_BAR
+  headerBar: DEFAULT_HEADER_BAR,
+  shortcuts: DEFAULT_SHORTCUTS
 }
 
 export function isHexColor(value: unknown): value is HexColor {
@@ -265,7 +269,8 @@ export function sanitizeSettings(input: unknown): Settings {
     media: sanitizeMediaSettings(root.media),
     calendar: sanitizeCalendarSettings(root.calendar),
     tasks: sanitizeTasksSettings(root.tasks),
-    headerBar: sanitizeHeaderBar(root.headerBar)
+    headerBar: sanitizeHeaderBar(root.headerBar),
+    shortcuts: sanitizeShortcuts(root.shortcuts)
   }
 }
 
@@ -283,7 +288,12 @@ export function applySettingsPatch(current: Settings, patch: SettingsPatch): Set
     media: { ...current.media, ...patch.media },
     calendar: { ...current.calendar, ...patch.calendar },
     tasks: { ...current.tasks, ...patch.tasks },
-    headerBar: { ...current.headerBar, ...patch.headerBar }
+    headerBar: { ...current.headerBar, ...patch.headerBar },
+    shortcuts: {
+      ...current.shortcuts,
+      ...patch.shortcuts,
+      keys: { ...current.shortcuts.keys, ...patch.shortcuts?.keys }
+    }
   })
 }
 

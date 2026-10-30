@@ -21,7 +21,12 @@ export function useOwnPages(): DashboardPage[] {
   )
 }
 
-/** Page d'accueil de cette fenêtre : la page principale si elle l'affiche, sinon sa première. */
+/** Pages affichées par cette fenêtre, lues une fois (hors d'un composant). */
+export function ownPages(): DashboardPage[] {
+  return useDashboardStore.getState().dashboard.pages.filter((page) => ownsPage(page.id))
+}
+
+/** Page d'accueil de cette fenêtre :la page principale si elle l'affiche, sinon sa première. */
 export function homePageId(): string {
   if (ownsPage(MAIN_PAGE_ID)) return MAIN_PAGE_ID
   return (

@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { SpotifyPlayback } from '@shared/spotify'
 
-/** Lecture en cours relue toutes les 15 s (toutes les 3 s quand elle est affichée en grand). */
-const REFRESH_MS = 15_000
+/**
+ * Lecture en cours relue toutes les 5 s (une publicité d'une demi-minute s'affiche à temps),
+ * toutes les 3 s quand elle est affichée en grand.
+ */
+const REFRESH_MS = 5_000
 const OPEN_REFRESH_MS = 3_000
 
 /**

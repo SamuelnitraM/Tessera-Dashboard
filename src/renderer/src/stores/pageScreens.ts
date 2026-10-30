@@ -39,6 +39,8 @@ interface PageScreensState {
   rowStep: number
   /** Limites d'écran où la page peut se caler (en lignes), sans les limites coupées. */
   rows: number[]
+  /** Toutes les limites d'écran (pointillés du mode édition), coupées par un bloc comprises. */
+  allRows: number[]
   /** Blocs qui occupent un écran entier : ligne où l'écran suivant commence. */
   screenBlocks: Record<string, number>
 }
@@ -46,6 +48,7 @@ interface PageScreensState {
 export const usePageScreensStore = create<PageScreensState>(() => ({
   rowStep: 0,
   rows: [],
+  allRows: [],
   screenBlocks: {}
 }))
 
@@ -53,6 +56,38 @@ export const usePageScreensStore = create<PageScreensState>(() => ({
 export function screenStops(): number[] {
   const { rowStep, rows } = usePageScreensStore.getState()
   return rowStep ? [0, ...rows.map((row) => row * rowStep)] : []
+}
+
+/**
+ * Débuts des écrans de la zone qui défile (px), pour les raccourcis : chaque limite d'écran,
+ * aimantée ou non, puis le bas de la page. Disposition compacte : une hauteur de zone à la fois.
+ */
+function allScreenStops(area: HTMLElement): number[] {
+  const { rowStep, allRows } = usePageScreensStore.getState()
+  const max = Math.max(0, area.scrollHeight - area.clientHeight)
+  const stops: number[] = []
+  if (rowStep) stops.push(0, ...allRows.map((row) => row * rowStep))
+  else for (let top = 0; top < max; top += area.clientHeight || max) stops.push(top)
+  const inside = stops.filter((stop) => stop < max - 1)
+  return [...(inside.length ? inside : [0]), ...(max > 1 ? [max] : [])]
+}
+
+/**
+ * Raccourci d'écran : suivant (`next`), précédent (`previous`) ou écran `n` (1 à 9, le dernier
+ * s'il y en a moins) de la page affichée.
+ */
+export function goToScreen(target: 'next' | 'previous' | number): void {
+  const area = document.querySelector<HTMLElement>('[data-page-scroller]')
+  if (!area) return
+  const stops = allScreenStops(area)
+  const top = area.scrollTop
+  const next =
+    target === 'next'
+      ? stops.find((stop) => stop > top + 1)
+      : target === 'previous'
+        ? [...stops].reverse().find((stop) => stop < top - 1)
+        : stops[Math.min(target, stops.length) - 1]
+  if (next !== undefined) area.scrollTo({ top: next, behavior: 'smooth' })
 }
 
 /** Écran suivant (`1`) ou précédent (`-1`) de la page, depuis la position `top` (px). */

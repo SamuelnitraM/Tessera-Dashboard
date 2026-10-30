@@ -9,6 +9,7 @@ export const SETTINGS_SECTIONS = [
   'accounts',
   'applications',
   'extensions',
+  'shortcuts',
   'about'
 ] as const
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]

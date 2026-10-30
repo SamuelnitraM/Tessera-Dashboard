@@ -22,6 +22,7 @@ const SECTION_OF: Record<string, SettingsSection> = {
   applications: 'applications',
   accounts: 'accounts',
   extensions: 'extensions',
+  shortcuts: 'shortcuts',
   about: 'about'
 }
 

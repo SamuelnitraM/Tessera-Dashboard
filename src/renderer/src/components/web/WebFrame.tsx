@@ -27,6 +27,74 @@ interface WebviewElement extends HTMLElement {
 /** Message de console d'une page dont la vidéo est terminée. */
 const ENDED_SIGNAL = '__tessera_media_ended__'
 
+/**
+ * Script injecté dans chaque page : retient le dernier élément mis en plein écran (la vidéo, pour
+ * y revenir) et, en plein écran « dans le bloc » (`window.__tesseraInBlock`), remplace le vrai
+ * plein écran par un plein écran dans la page : l'élément remplit la page (donc le bloc), et la
+ * page reçoit les mêmes réponses et événements qu'en vrai (`fullscreenElement`,
+ * `fullscreenchange`), sans quoi un lecteur (Twitch) se croit en plein écran sans l'être : vidéo
+ * grisée, rognée.
+ */
+const FULL_SCREEN_SCRIPT = `(() => {
+  if (window.__tesseraFullScreenReady) return
+  window.__tesseraFullScreenReady = true
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) window.__tesseraFullScreen = document.fullscreenElement
+  })
+  let inBlock = null
+  const ATTRIBUTE = 'data-tessera-in-block'
+  const style = document.createElement('style')
+  style.textContent = '[' + ATTRIBUTE + '] { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; max-width: none !important; max-height: none !important; margin: 0 !important; transform: none !important; z-index: 2147483647 !important; background: #000 !important; }'
+  const fire = (target) => {
+    for (const type of ['fullscreenchange', 'webkitfullscreenchange']) {
+      target.dispatchEvent(new Event(type, { bubbles: true }))
+    }
+  }
+  const enter = (element) => {
+    if (inBlock === element) return
+    inBlock?.removeAttribute(ATTRIBUTE)
+    inBlock = element
+    if (!style.isConnected) (document.head ?? document.documentElement).appendChild(style)
+    element.setAttribute(ATTRIBUTE, '')
+    fire(element)
+  }
+  const leave = () => {
+    const element = inBlock
+    if (!element) return
+    inBlock = null
+    element.removeAttribute(ATTRIBUTE)
+    fire(element.isConnected ? element : document)
+  }
+  window.__tesseraLeaveInBlock = leave
+  const real = Object.getOwnPropertyDescriptor(Document.prototype, 'fullscreenElement').get
+  const current = () => inBlock ?? real.call(document)
+  for (const name of ['fullscreenElement', 'webkitFullscreenElement', 'webkitCurrentFullScreenElement']) {
+    Object.defineProperty(document, name, { configurable: true, get: current })
+  }
+  for (const name of ['fullscreen', 'webkitIsFullScreen']) {
+    Object.defineProperty(document, name, { configurable: true, get: () => !!current() })
+  }
+  for (const name of ['requestFullscreen', 'webkitRequestFullscreen', 'webkitRequestFullScreen']) {
+    const request = Element.prototype[name]
+    if (!request) continue
+    Element.prototype[name] = function (...args) {
+      if (!window.__tesseraInBlock) return request.apply(this, args)
+      enter(this)
+      return Promise.resolve()
+    }
+  }
+  for (const name of ['exitFullscreen', 'webkitExitFullscreen', 'webkitCancelFullScreen']) {
+    const exit = Document.prototype[name]
+    if (!exit) continue
+    Document.prototype[name] = function (...args) {
+      if (!inBlock) return exit.apply(this, args)
+      leave()
+      return Promise.resolve()
+    }
+  }
+  document.addEventListener('keydown', (event) => event.key === 'Escape' && leave(), true)
+})()`
+
 /** Commandes d'une page web, pour les barres d'outils. */
 export interface WebFrameHandle {
   reload: () => void
@@ -200,16 +268,10 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
           updateWheel()
           webview.send(WebviewChannels.stageMode, stageRef.current)
           webview.setZoomFactor(zoomRef.current)
-          // Dernier élément mis en plein écran par la page (la vidéo) : il pourra y revenir.
-          // Plein écran « dans le bloc » : la demande de la page est ignorée.
+          // Plein écran : dernier élément retenu, et plein écran « dans le bloc » dans la page
           void webview
             .executeJavaScript(
-              `document.addEventListener('fullscreenchange', () => { if (document.fullscreenElement) window.__tesseraFullScreen = document.fullscreenElement });
-              for (const name of ['requestFullscreen', 'webkitRequestFullscreen']) {
-                const real = Element.prototype[name]
-                if (real) Element.prototype[name] = function (...args) { return window.__tesseraInBlock ? Promise.resolve() : real.apply(this, args) }
-              }
-              window.__tesseraInBlock = ${inBlockRef.current}`
+              `${FULL_SCREEN_SCRIPT}; window.__tesseraInBlock = ${inBlockRef.current}`
             )
             .catch(() => {})
           // Fin d'une vidéo : la page le signale par un message de console (aucun accès à Tessera)
@@ -301,8 +363,11 @@ export const WebFrame = forwardRef<WebFrameHandle, WebFrameProps>(function WebFr
   useEffect(() => {
     inBlockRef.current = fullScreenInBlock
     if (!readyRef.current) return
+    // Retour au vrai plein écran : celui dans le bloc s'arrête
     void webviewRef.current
-      ?.executeJavaScript(`window.__tesseraInBlock = ${fullScreenInBlock}`)
+      ?.executeJavaScript(
+        `window.__tesseraInBlock = ${fullScreenInBlock}; ${fullScreenInBlock ? '' : 'window.__tesseraLeaveInBlock?.()'}`
+      )
       .catch(() => {})
   }, [fullScreenInBlock])
 

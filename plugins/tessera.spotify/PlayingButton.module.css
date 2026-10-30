@@ -118,6 +118,50 @@
   font-size: 0.8125rem;
 }
 
+/* Titre dans la barre : 25 caractères au plus, le reste défile */
+.title {
+  display: block;
+  max-width: 25ch;
+  overflow: hidden;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.title > span {
+  display: inline-block;
+}
+
+.title[data-long] {
+  width: 25ch;
+}
+
+.scrolling {
+  animation: scroll-title linear infinite;
+}
+
+@keyframes scroll-title {
+  0%,
+  15% {
+    transform: translateX(0);
+  }
+  85%,
+  100% {
+    transform: translateX(var(--shift));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrolling {
+    animation: none;
+  }
+
+  .title > span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
 /* En pause : le titre reste dans la barre, estompé */
 .paused {
   display: contents;

@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Bell, Info, LayoutGrid, Palette, Puzzle, SlidersHorizontal, UserRound } from 'lucide-react'
+import {
+  Bell,
+  Info,
+  Keyboard,
+  LayoutGrid,
+  Palette,
+  Puzzle,
+  SlidersHorizontal,
+  UserRound
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { PageHeader } from '../../components/PageHeader'
@@ -16,6 +25,7 @@ import { ExtensionsSection } from './sections/ExtensionsSection'
 import { GeneralSection } from './sections/GeneralSection'
 import { AccountsSection } from './sections/AccountsSection'
 import { NotificationsSection } from './sections/NotificationsSection'
+import { ShortcutsSection } from './sections/ShortcutsSection'
 import { searchSettings, settingsEntries, type SettingsEntry } from './settingsSearch'
 import styles from './settings.module.css'
 
@@ -26,6 +36,7 @@ const SECTION_ICONS: Record<SettingsSection, LucideIcon> = {
   applications: LayoutGrid,
   accounts: UserRound,
   extensions: Puzzle,
+  shortcuts: Keyboard,
   about: Info
 }
 
@@ -63,6 +74,9 @@ export function SettingsView({ section }: SettingsViewProps): React.JSX.Element 
       const text = [...(content?.querySelectorAll('span, h3, button, p') ?? [])].find(
         (element) => element.textContent?.trim() === target.label
       )
+      // Réglage dans un groupe replié (Raccourcis) : le groupe s'ouvre
+      const group = text?.closest('details')
+      if (group && !group.open) group.open = true
       const place = text?.closest(`.${styles.row}, .${styles.card}`) ?? text
       if (place instanceof HTMLElement) {
         place.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -167,6 +181,7 @@ export function SettingsView({ section }: SettingsViewProps): React.JSX.Element 
             {section === 'applications' && <ApplicationsSection />}
             {section === 'accounts' && <AccountsSection />}
             {section === 'extensions' && <ExtensionsSection />}
+            {section === 'shortcuts' && <ShortcutsSection />}
             {section === 'about' && <AboutSection />}
           </div>
         )}

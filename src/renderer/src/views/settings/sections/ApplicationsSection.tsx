@@ -143,30 +143,32 @@ export function ApplicationsSection(): React.JSX.Element {
                       {t('settings.applications.installed')} · {app.path}
                     </p>
                     {/* Ce qu'elle devient à la fermeture de Tessera (sinon le réglage commun) */}
-                    <select
-                      className={styles.input}
-                      value={app.onQuit ?? 'default'}
-                      aria-label={t('settings.applications.appOnQuit.label', { name: app.name })}
-                      title={t('settings.applications.appOnQuit.label', { name: app.name })}
-                      onChange={(event) =>
-                        patchApp(app.id, {
-                          onQuit:
-                            event.target.value === 'default'
-                              ? undefined
-                              : (event.target.value as QuitMode)
-                        })
-                      }
-                    >
-                      <option value="default">
-                        {t('settings.applications.appOnQuit.default', {
-                          choice: t(`settings.applications.onQuit.${onQuit}`)
-                        })}
-                      </option>
-                      <option value="close">{t('settings.applications.appOnQuit.close')}</option>
-                      <option value="restore">
-                        {t('settings.applications.appOnQuit.restore')}
-                      </option>
-                    </select>
+                    <label className={styles.appQuit}>
+                      <span>{t('settings.applications.appOnQuit.label')}</span>
+                      <select
+                        className={styles.input}
+                        value={app.onQuit ?? 'default'}
+                        aria-label={t('settings.applications.appOnQuit.aria', { name: app.name })}
+                        onChange={(event) =>
+                          patchApp(app.id, {
+                            onQuit:
+                              event.target.value === 'default'
+                                ? undefined
+                                : (event.target.value as QuitMode)
+                          })
+                        }
+                      >
+                        <option value="default">
+                          {t('settings.applications.appOnQuit.default', {
+                            choice: t(`settings.applications.onQuit.${onQuit}`)
+                          })}
+                        </option>
+                        <option value="close">{t('settings.applications.appOnQuit.close')}</option>
+                        <option value="restore">
+                          {t('settings.applications.appOnQuit.restore')}
+                        </option>
+                      </select>
+                    </label>
                   </>
                 )}
               </div>

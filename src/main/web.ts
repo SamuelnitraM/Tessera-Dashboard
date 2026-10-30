@@ -14,6 +14,7 @@ import {
   type WebContents
 } from 'electron'
 import { openPageFrom } from './open-in-tessera'
+import { forwardShortcuts } from './shortcuts'
 import { interpolate } from '@shared/i18n'
 import { appPartition, isWebPartition, isWebUrl, MAX_APP_ICON_LENGTH } from '@shared/web-apps'
 import { getTranslation } from './i18n'
@@ -63,7 +64,10 @@ export function secureWebviews(host: WebContents): void {
 export function watchWebContents(): void {
   app.on('web-contents-created', (_event, contents) => {
     attachContextMenu(contents)
-    if (contents.getType() === 'webview') applyWebRules(contents)
+    if (contents.getType() === 'webview') {
+      applyWebRules(contents)
+      forwardShortcuts(contents)
+    }
   })
 }
 

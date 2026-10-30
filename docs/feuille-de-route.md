@@ -220,7 +220,7 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] « Prochain événement » renommé « Agenda ».
 - [x] **Fermeture de Tessera.**
   - [x] Fermer la fenêtre demande s'il faut fermer complètement Tessera (plus rien ne tourne, son icône quitte la zone de notification) ou le garder en arrière-plan, avec « Ne plus demander » ; réglage « À la fermeture de la fenêtre » (Demander, Garder en arrière-plan, Fermer complètement) à la place de « Garder en arrière-plan ».
-  - [x] Réglage propre à chaque application installée et navigateur (Paramètres → Applications) : la fermer ou la laisser ouverte sur le bureau à la fermeture de Tessera, sinon le réglage commun.
+  - [x] Réglage propre à chaque application installée et navigateur (Paramètres → Applications, « Fermeture : Défaut, Fermer, Garder ouvert »), sinon le réglage « Fermeture par défaut » (Fermer, Garder ouvert).
   - Icônes des applications dans les icônes cachées de la barre des tâches : écarté, Windows ne laisse que l'application elle-même retirer son icône (voir les limites connues).
 - [x] **Étape 34 : barre propre à chaque page.** Disposition des widgets propre à chaque page (une nouvelle page copie celle de la page principale), contenu des widgets et alignement communs ; « + », rangement par glisser et glisser vers la page pour en faire un bloc, aussi hors du mode édition ; retrait par le clic droit (et la croix en mode édition).
 - [x] **Étape 35 : liens entre blocs.**
@@ -228,6 +228,15 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Réglage du bloc « Prioritaire pour ouvrir les fichiers et les pages web » (blocs Application installée et Navigateur) ; sans bloc prioritaire, celui qui affiche déjà le programme, sinon un bloc Navigateur (celui de la page affichée d'abord). Sans bloc qui puisse l'afficher, Windows l'ouvre comme avant.
   - [x] Un bloc Navigateur passe au navigateur demandé (fichier dont le programme habituel est un autre navigateur) ; le précédent reste ouvert, mis de côté.
   - [x] Pièces jointes des mails : un clic les ouvre (copie temporaire marquée comme venue d'Internet, effacée au lancement suivant), le bouton à côté les enregistre ; un programme ou un script n'est jamais ouvert depuis un mail.
+- [x] **Raccourcis clavier.** Section Paramètres → Raccourcis, en accordéon (Pages, Écrans, Affichage, Depuis Windows ; un groupe ouvert à la fois, la recherche ouvre le sien) : chaque raccourci se change (un clic, puis les touches), se retire ou revient à sa valeur par défaut ; une combinaison ne sert qu'à une action.
+  - [x] Pages : suivante et précédente (Ctrl+Tab, Ctrl+Maj+Tab), pages 1 à 9 chacune avec son raccourci (Ctrl+1 à 9 par défaut, la dernière page s'il y en a moins). Les chiffres sont ceux de la rangée du haut (& é " ' ( … sur un clavier français) ou du pavé numérique.
+  - [x] Écrans de la page : suivant et précédent (Pg suiv, Pg préc), écrans 1 à 9 (Alt+1 à 9) ; chaque limite en pointillés du mode édition compte, aimantée ou non (coupée par un bloc comprise), puis le bas de la page.
+  - [x] Menu latéral (Ctrl+B), mode édition (Ctrl+E), nouvelle page (Ctrl+T), fermer l'onglet d'application (Ctrl+W), notifications (Ctrl+Maj+N), paramètres (Ctrl+,).
+  - [x] « Afficher ou masquer Tessera » depuis n'importe quelle application (raccourci de Windows, aucun par défaut).
+  - [x] Aussi dans une page web intégrée (onglet d'application, bloc Page web, lecteurs), sauf les raccourcis qui servent à écrire ; dans un champ de texte, ceux-là restent au champ (Ctrl+B : gras).
+- [x] **Corrections.**
+  - [x] Widget Spotify : les publicités d'un compte gratuit s'affichent « [PUB] titre » ; la barre montre 25 caractères au plus, un titre plus long défile jusqu'au bout puis revient au début ; lecture relue toutes les 5 s.
+  - [x] Plein écran « dans le bloc » (YouTube, Twitch) : la vidéo remplit son bloc du premier coup, sans être grisée ni rognée (la page reçoit un vrai plein écran, limité à sa page) ; un second clic ou Échap le quitte.
 
 ## Mise en ligne (en attente)
 

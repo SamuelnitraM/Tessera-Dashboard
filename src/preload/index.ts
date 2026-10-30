@@ -1,3 +1,4 @@
+import type { ShortcutHit } from '@shared/shortcuts'
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type LogName, type SystemPreferences } from '@shared/ipc'
 import type { OpenTarget } from '@shared/open'
@@ -497,6 +498,10 @@ const api = {
     outside: (target: string): Promise<void> => ipcRenderer.invoke(IpcChannels.openOutside, target),
     /** Page à montrer dans un bloc (lien d'une page web intégrée, d'un mail…). */
     onRequest: (callback: (url: string) => void) => subscribe(IpcChannels.openRequest, callback)
+  },
+  shortcuts: {
+    /** Raccourci de Tessera pressé dans une page web intégrée. */
+    onRun: (callback: (hit: ShortcutHit) => void) => subscribe(IpcChannels.shortcutRun, callback)
   },
   /** Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`). */
   integrations: integrationsApi,
