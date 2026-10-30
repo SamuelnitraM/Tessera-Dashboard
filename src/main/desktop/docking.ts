@@ -104,6 +104,12 @@ interface DockedWindow {
   blank: number | null
   /** Trous découpés dans le cadre (éléments de l'interface par-dessus), pour ne pas les refaire. */
   holes: string
+  /**
+   * Dernière image de la fenêtre (prise quand elle est masquée, ou par `captureApps`) : montrée
+   * en mode édition par un bloc hors de la vue, dont la fenêtre ne peut plus être photographiée.
+   */
+  lastShot: DesktopAppSnapshot | null
+  lastShotAt: number
   /** Sa molette fait défiler la page (l'hébergeur le sait), même après un clic (`always`). */
   pageWheel: boolean
   wheelAlways: boolean
@@ -339,6 +345,9 @@ function layoutFor(docked: DockedWindow): Layout | null {
  */
 function hideFrame(docked: DockedWindow): void {
   if (!docked.shown) return
+  // Image gardée avant de masquer (au plus une toutes les 2 s : rien en plus quand le mode
+  // édition vient de photographier toutes les fenêtres)
+  if (Date.now() - docked.lastShotAt > SHOT_REUSE_MS && !w.isHung(docked.hwnd)) snapshot(docked)
   docked.shown = false
   docked.hiddenByUs = true
   docked.hiddenByUsAt = Date.now()
@@ -677,6 +686,8 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       problem: '',
       blank: null,
       holes: '',
+      lastShot: null,
+      lastShotAt: 0,
       unwatch: () => {}
     }
     docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
@@ -1535,22 +1546,36 @@ function watch(docked: DockedWindow): void {
 }
 
 /** Images des fenêtres affichées (taille réelle), montrées à leur place pendant qu'elles sont masquées. */
+/** Une image de moins de 2 s n'est pas reprise en masquant la fenêtre. */
+const SHOT_REUSE_MS = 2000
+
+/** Photographie la fenêtre (gardée dans `lastShot`), `null` si elle ne peut pas l'être. */
+function snapshot(docked: DockedWindow): DesktopAppSnapshot | null {
+  const scale = scaleOf(docked.owner)
+  const capture = w.captureWindow(docked.hwnd)
+  if (!capture) return null
+  const image = nativeImage.createFromBitmap(capture.bits, {
+    width: capture.width,
+    height: capture.height
+  })
+  docked.lastShot = {
+    url: `data:image/jpeg;base64,${image.toJPEG(85).toString('base64')}`,
+    width: capture.width / scale,
+    height: capture.height / scale
+  }
+  docked.lastShotAt = Date.now()
+  return docked.lastShot
+}
+
+/**
+ * Images des fenêtres (mode édition, fenêtre de dialogue…) : celles qui sont affichées sont
+ * photographiées ; les autres (bloc hors de la vue, autre page) donnent leur dernière image.
+ */
 export function captureApps(): Record<string, DesktopAppSnapshot> {
   const images: Record<string, DesktopAppSnapshot> = {}
   for (const docked of windows.values()) {
-    if (!docked.shown) continue
-    const scale = scaleOf(docked.owner)
-    const capture = w.captureWindow(docked.hwnd)
-    if (!capture) continue
-    const image = nativeImage.createFromBitmap(capture.bits, {
-      width: capture.width,
-      height: capture.height
-    })
-    images[docked.appId] = {
-      url: `data:image/jpeg;base64,${image.toJPEG(85).toString('base64')}`,
-      width: capture.width / scale,
-      height: capture.height / scale
-    }
+    const image = docked.shown ? snapshot(docked) : docked.lastShot
+    if (image) images[docked.appId] = image
   }
   return images
 }

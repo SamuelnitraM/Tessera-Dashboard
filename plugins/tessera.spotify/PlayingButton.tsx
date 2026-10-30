@@ -68,6 +68,8 @@ export function NowPlaying({
 }): React.JSX.Element {
   const t = usePluginTranslation()
   const [error, setError] = useState<string | null>(null)
+  /** Augmente à chaque commande : le volume est relu (Spotify ouvre son son en jouant). */
+  const [commands, setCommands] = useState(0)
   const command = (action: SpotifyCommand): void => {
     setError(null)
     window.tessera.spotify
@@ -75,6 +77,7 @@ export function NowPlaying({
       // Spotify change de titre un instant après la commande
       .then(() => window.setTimeout(onChange, 600))
       .catch((failure: unknown) => setError(errorMessage(failure)))
+      .finally(() => setCommands((count) => count + 1))
   }
 
   if (!playback) {
@@ -82,65 +85,68 @@ export function NowPlaying({
       <p className={styles.muted}>{playback === undefined ? t('loading') : t('header.nothing')}</p>
     )
   }
+  // Volume à la verticale, à droite : il ne se confond pas avec la barre de lecture
   return (
     <div className={styles.now}>
-      <div className={styles.track}>
-        {playback.image ? (
-          <img className={styles.cover} src={playback.image} alt="" />
-        ) : (
-          <span className={styles.cover}>
-            <Music2 size={22} aria-hidden />
+      <div className={styles.main}>
+        <div className={styles.track}>
+          {playback.image ? (
+            <img className={styles.cover} src={playback.image} alt="" />
+          ) : (
+            <span className={styles.cover}>
+              <Music2 size={22} aria-hidden />
+            </span>
+          )}
+          <span className={styles.text}>
+            <strong>{playback.title}</strong>
+            <span className={styles.muted}>{playback.artist}</span>
           </span>
-        )}
-        <span className={styles.text}>
-          <strong>{playback.title}</strong>
-          <span className={styles.muted}>{playback.artist}</span>
-        </span>
-        {playback.uri && (
+          {playback.uri && (
+            <button
+              type="button"
+              className={styles.iconButton}
+              title={t('header.open')}
+              aria-label={t('header.open')}
+              onClick={() => void window.tessera.spotify.open(playback.uri!)}
+            >
+              <ExternalLink size={14} aria-hidden />
+            </button>
+          )}
+        </div>
+        <div className={styles.controls}>
           <button
             type="button"
-            className={styles.iconButton}
-            title={t('header.open')}
-            aria-label={t('header.open')}
-            onClick={() => void window.tessera.spotify.open(playback.uri!)}
+            className={styles.control}
+            title={t('header.previous')}
+            aria-label={t('header.previous')}
+            onClick={() => command('previous')}
           >
-            <ExternalLink size={14} aria-hidden />
+            <SkipBack size={16} aria-hidden />
           </button>
-        )}
+          <button
+            type="button"
+            className={styles.control}
+            data-main
+            title={playback.playing ? t('header.pause') : t('header.play')}
+            aria-label={playback.playing ? t('header.pause') : t('header.play')}
+            onClick={() => command('play-pause')}
+          >
+            {playback.playing ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
+          </button>
+          <button
+            type="button"
+            className={styles.control}
+            title={t('header.next')}
+            aria-label={t('header.next')}
+            onClick={() => command('next')}
+          >
+            <SkipForward size={16} aria-hidden />
+          </button>
+        </div>
+        <SpotifyProgress />
+        {error && <p className={styles.error}>{error}</p>}
       </div>
-      <div className={styles.controls}>
-        <button
-          type="button"
-          className={styles.control}
-          title={t('header.previous')}
-          aria-label={t('header.previous')}
-          onClick={() => command('previous')}
-        >
-          <SkipBack size={16} aria-hidden />
-        </button>
-        <button
-          type="button"
-          className={styles.control}
-          data-main
-          title={playback.playing ? t('header.pause') : t('header.play')}
-          aria-label={playback.playing ? t('header.pause') : t('header.play')}
-          onClick={() => command('play-pause')}
-        >
-          {playback.playing ? <Pause size={18} aria-hidden /> : <Play size={18} aria-hidden />}
-        </button>
-        <button
-          type="button"
-          className={styles.control}
-          title={t('header.next')}
-          aria-label={t('header.next')}
-          onClick={() => command('next')}
-        >
-          <SkipForward size={16} aria-hidden />
-        </button>
-      </div>
-      <SpotifyProgress />
-      <SpotifyVolume />
-      {error && <p className={styles.error}>{error}</p>}
+      <SpotifyVolume commands={commands} />
     </div>
   )
 }
@@ -223,15 +229,19 @@ function SpotifyProgress(): React.JSX.Element | null {
   )
 }
 
-const VOLUME_REFRESH_MS = 3_000
+const VOLUME_REFRESH_MS = 2_000
+/** Relu un instant après une commande (le son de Spotify démarre après elle). */
+const VOLUME_AFTER_COMMAND_MS = 500
 /** Après un réglage, la valeur lue dans Windows est ignorée un instant (elle arrive en retard). */
 const LOCAL_MS = 1_500
 
 /**
  * Volume de l'application Spotify de ce PC (sa session audio, sans toucher au volume général),
- * avec sourdine. Rien quand Spotify n'a pas de session audio (pas lancé sur ce PC).
+ * avec sourdine : barre verticale, toujours là, grisée tant que Spotify n'a pas de session audio
+ * (pas lancé sur ce PC, ou pas encore de son joué). Une lecture qui échoue garde la dernière
+ * valeur.
  */
-function SpotifyVolume(): React.JSX.Element | null {
+function SpotifyVolume({ commands }: { commands: number }): React.JSX.Element {
   const t = usePluginTranslation()
   const [state, setState] = useState<{ volume: number; muted: boolean } | null>(null)
   const [local, setLocal] = useState<{ volume: number; muted: boolean } | null>(null)
@@ -244,7 +254,7 @@ function SpotifyVolume(): React.JSX.Element | null {
       void window.tessera.spotify
         .volume()
         .then(setState)
-        .catch(() => setState(null))
+        .catch(() => {})
     load()
     const timer = window.setInterval(() => !document.hidden && load(), VOLUME_REFRESH_MS)
     return () => {
@@ -253,9 +263,22 @@ function SpotifyVolume(): React.JSX.Element | null {
       window.clearTimeout(sendTimer.current)
     }
   }, [])
+  // Après lecture, pause, titre suivant… : relu tout de suite
+  useEffect(() => {
+    if (commands === 0) return
+    const timer = window.setTimeout(
+      () =>
+        void window.tessera.spotify
+          .volume()
+          .then(setState)
+          .catch(() => {}),
+      VOLUME_AFTER_COMMAND_MS
+    )
+    return () => window.clearTimeout(timer)
+  }, [commands])
 
-  const shown = local ?? state
-  if (!shown) return null
+  const shown = local ?? state ?? { volume: 0, muted: false }
+  const known = (local ?? state) !== null
 
   const remember = (value: { volume: number; muted: boolean }): void => {
     setLocal(value)
@@ -282,13 +305,30 @@ function SpotifyVolume(): React.JSX.Element | null {
   const value = shown.muted ? 0 : shown.volume
   const label = shown.muted ? t('header.unmute') : t('header.mute')
   return (
-    <div className={styles.volume}>
+    <div
+      className={styles.volume}
+      data-unknown={!known || undefined}
+      title={known ? undefined : t('header.volumeUnknown')}
+    >
+      <span className={styles.volumeValue}>{known ? `${value} %` : '–'}</span>
+      <input
+        type="range"
+        className={styles.volumeSlider}
+        min={0}
+        max={100}
+        value={value}
+        disabled={!known}
+        aria-label={t('header.volume')}
+        aria-orientation="vertical"
+        onChange={(event) => setVolume(Number(event.target.value))}
+      />
       <button
         type="button"
         className={styles.iconButton}
         data-active={shown.muted}
         title={label}
         aria-label={label}
+        disabled={!known}
         onClick={toggleMute}
       >
         {value === 0 ? (
@@ -299,16 +339,6 @@ function SpotifyVolume(): React.JSX.Element | null {
           <Volume2 size={16} aria-hidden />
         )}
       </button>
-      <input
-        type="range"
-        className={styles.slider}
-        min={0}
-        max={100}
-        value={value}
-        aria-label={t('header.volume')}
-        onChange={(event) => setVolume(Number(event.target.value))}
-      />
-      <span className={styles.volumeValue}>{value} %</span>
     </div>
   )
 }

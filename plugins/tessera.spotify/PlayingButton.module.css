@@ -11,10 +11,18 @@
   width: 20rem;
 }
 
+/* Titre, commandes et barre de lecture à gauche ; volume à la verticale, à droite */
 .now {
   display: flex;
+  gap: 0.75rem;
+}
+
+.main {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 0.625rem;
+  min-width: 0;
 }
 
 .track {
@@ -134,25 +142,41 @@
   text-align: center;
 }
 
-/* Volume de l'application Spotify */
-.volume {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .slider {
   flex: 1;
   min-width: 0;
   accent-color: #1db954;
 }
 
+/* Volume de l'application Spotify : valeur en haut, barre verticale (bas = 0), sourdine en bas */
+.volume {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  width: 2.5rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid var(--color-border);
+}
+
+.volume[data-unknown] {
+  opacity: 0.5;
+}
+
+.volumeSlider {
+  flex: 1;
+  min-height: 4.5rem;
+  width: 1.25rem;
+  margin: 0;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  accent-color: #1db954;
+}
+
 .volumeValue {
-  min-width: 2.75rem;
   color: var(--color-text-muted);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
-  text-align: right;
 }
 
 .iconButton[data-active='true'] {

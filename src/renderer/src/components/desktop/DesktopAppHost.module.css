@@ -68,6 +68,14 @@
   pointer-events: none;
 }
 
+/* Bloc sans image de sa fenêtre (mode édition) : l'icône de l'application, floutée avec le bloc */
+.veiled {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  opacity: 0.6;
+}
+
 .message {
   display: flex;
   flex-direction: column;

@@ -135,6 +135,7 @@ function InstalledBlock({
       data-tab-target={tabTarget}
       data-tab-over={tabTarget && tabDrag?.over}
     >
+      {/* Barre du bloc : inerte en mode édition, comme le reste du bloc (flouté) */}
       {config.showHeader && (
         <div ref={header} className={styles.header}>
           {browser && (kind === 'browser' || browsers.length > 1) ? (
@@ -142,7 +143,6 @@ function InstalledBlock({
             <div className={styles.browsers} role="group" aria-label={t('switchBrowser')}>
               {browsers.map((choice) => (
                 <button
-                  {...EDIT_ACTIVE}
                   key={choice.id}
                   type="button"
                   className={`${styles.browserButton} no-drag`}
@@ -170,7 +170,6 @@ function InstalledBlock({
           )}
           {app && (
             <button
-              {...EDIT_ACTIVE}
               type="button"
               className={`${styles.iconButton} no-drag`}
               title={t('refresh')}
@@ -182,7 +181,6 @@ function InstalledBlock({
           )}
           {app && (
             <button
-              {...EDIT_ACTIVE}
               type="button"
               className={`${styles.iconButton} no-drag`}
               title={t('takeOut')}
@@ -194,7 +192,6 @@ function InstalledBlock({
           )}
           {kind === 'app' && (
             <button
-              {...EDIT_ACTIVE}
               type="button"
               className={`${styles.iconButton} no-drag`}
               title={t('change')}
@@ -215,7 +212,8 @@ function InstalledBlock({
             hostId={instanceId}
             offset={config.offset}
             onOffsetChange={(offset) => setConfig({ offset })}
-            panHandle={header}
+            // Sans barre, l'image de la fenêtre rognée se glisse en mode édition
+            panHandle={config.showHeader ? header : undefined}
           />
         ) : (
           <p className={styles.missing}>{t('missing')}</p>

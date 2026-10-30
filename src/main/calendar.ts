@@ -26,7 +26,7 @@ import { notify } from './notifications'
 import { getSettings, updateSettings } from './settings-store'
 
 /**
- * Google Agenda (widget « Prochain événement » de la barre des pages) : événements des sept
+ * Google Agenda (widget « Agenda » de la barre des pages) : événements des sept
  * prochains jours des agendas affichés dans Google Agenda ; création, modification et
  * suppression dans les agendas dont l'utilisateur est propriétaire ou éditeur (rappels, invités,
  * répétition). Les rappels sont aussi des notifications de Tessera, tant qu'il est ouvert.

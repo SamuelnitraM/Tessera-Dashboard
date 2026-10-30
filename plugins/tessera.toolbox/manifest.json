@@ -176,8 +176,8 @@
     {
       "type": "agenda",
       "name": {
-        "fr": "Prochain événement",
-        "en": "Next event"
+        "fr": "Agenda",
+        "en": "Calendar"
       },
       "description": {
         "fr": "Tes rendez-vous Google Agenda de la semaine.",

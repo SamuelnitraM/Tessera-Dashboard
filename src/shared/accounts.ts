@@ -16,7 +16,7 @@ export interface AccountProviders {
   builtIn: Record<AccountProvider, boolean>
 }
 
-/** Compte Google qui a donné accès à son agenda (widget « Prochain événement »). */
+/** Compte Google qui a donné accès à son agenda (widget « Agenda »). */
 export interface CalendarAccount {
   id: string
   email: string

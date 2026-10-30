@@ -32,7 +32,7 @@ function useNow(): number {
   return now
 }
 
-/** Prochain événement (Google Agenda) : dans la barre s'il est proche, la semaine dans le panneau. */
+/** Agenda (Google Agenda) : prochain événement dans la barre s'il est proche, la semaine dans le panneau. */
 function useAgenda(): {
   state: CalendarState | null
   failed: boolean

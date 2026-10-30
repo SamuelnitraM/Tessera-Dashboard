@@ -180,7 +180,9 @@ export function DesktopAppHost({
     }
   })
 
-  const showingSnapshot = suspended && snapshot && attachedHere
+  // Image de la fenêtre (interface par-dessus, mode édition) : aussi pour un bloc hors de la vue,
+  // dont la fenêtre est masquée (sa dernière image)
+  const showingSnapshot = suspended && snapshot && (attachedHere || state.hostId === null)
   // Fenêtre affichée ici (ou son image) : barres de défilement si elle est rognée
   const scrollable = attachedHere && (state.status === 'running' || !!showingSnapshot)
 
@@ -603,9 +605,12 @@ export function DesktopAppHost({
     !snapshot &&
     (state.status === 'running' || state.status === 'starting' || state.status === 'idle')
   ) {
-    // Bloc ajouté pendant que les fenêtres sont masquées (mode édition…) : pas encore d'image
+    // Pas encore d'image (bloc ajouté ou application lancée pendant le mode édition) : son
+    // icône seule, floutée comme le reste du bloc
     content = (
-      <Message icon={<AppIcon app={app} />} text={t('desktopApps.afterEdit', { name: app.name })} />
+      <div className={styles.veiled} role="img" aria-label={app.name}>
+        <AppIcon app={app} />
+      </div>
     )
   } else if (state.status === 'outside') {
     content = (
@@ -660,9 +665,10 @@ export function DesktopAppHost({
     )
   }
 
-  // Image rognée (mode édition) : on la glisse pour choisir la partie affichée. `no-drag` :
-  // ce glisser ne déplace pas le bloc (sa barre d'outils le fait).
-  const panOnImage = showingSnapshot && cropped
+  // Image rognée (mode édition), sans barre de bloc pour la glisser : on glisse l'image pour
+  // choisir la partie affichée. `no-drag` : ce glisser ne déplace pas le bloc (sa barre
+  // d'outils le fait).
+  const panOnImage = showingSnapshot && cropped && !panHandle
   return (
     <div
       ref={ref}
@@ -681,7 +687,7 @@ export function DesktopAppHost({
           <div style={{ width: app.minWidth, height: app.minHeight }} />
         </div>
       )}
-      {showingSnapshot && cropped && (
+      {panOnImage && (
         <span className={styles.panBadge}>
           <Move size={13} aria-hidden />
           {t('desktopApps.panHint')}

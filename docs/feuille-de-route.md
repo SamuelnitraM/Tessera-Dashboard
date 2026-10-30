@@ -215,6 +215,9 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Interrupteur « Aimantation » propre à chaque page, à côté d'« Automatique » (libellés au-dessus des interrupteurs) ; icône d'aimant sur chaque limite d'écran, barrée sans aimantation.
   - [x] « Taille : écran entier » réversible : « Taille précédente » rend sa place au bloc et à ceux qu'il a écartés (un bloc posé entre-temps sur l'une de ces places va à côté).
   - [x] Nouveau bloc placé sur la ligne la plus haute où il tient, à sa taille par défaut ou réduit à la place libre, jamais sous son minimum.
+  - [x] Applications installées et navigateurs en mode édition : floutés et grisés comme les autres blocs, barre du bloc inerte (changer de navigateur, rafraîchir, sortir). Un bloc hors de la vue montre la dernière image de sa fenêtre, prise quand elle a été masquée (au lieu de « … s'affichera à la sortie du mode édition »).
+  - [x] Widget Spotify : volume à la verticale, à droite du panneau (il ne se confond plus avec la barre de lecture), toujours affiché (grisé tant que Spotify n'a pas joué de son), relu après chaque commande.
+  - [x] « Prochain événement » renommé « Agenda ».
 - [ ] **Étape 34 : barre propre à chaque page.** Disposition des widgets propre à chaque page (copiée de la page principale pour une nouvelle page), contenu des widgets et alignement communs ; ajout, rangement et glisser vers la page hors du mode édition ; retrait par le clic droit.
 - [ ] **Étape 35 : liens entre blocs.** Un fichier ouvert depuis Tessera (fichiers, pièces jointes…) met en avant le bloc qui l'affiche ; réglage « prioritaire pour ouvrir les fichiers » sur un bloc ; un bloc Navigateur passe au navigateur demandé ; toutes les interactions entre blocs revues.
 
