@@ -179,3 +179,23 @@
   background: var(--color-danger-soft);
   color: var(--color-danger);
 }
+
+/* Page glissée : estompée ; trait d'insertion au-dessus ou au-dessous de la page sous la souris */
+.pageRow[data-dragging='true'] {
+  opacity: 0.45;
+}
+
+.pageRow[data-drop='before'] {
+  box-shadow: inset 0 3px 0 var(--color-accent);
+}
+
+.pageRow[data-drop='after'] {
+  box-shadow: inset 0 -3px 0 var(--color-accent);
+}
+
+/* Onglet d'une autre fenêtre tiré au-dessus : la liste des pages peut le recevoir */
+.group[data-drop-target='true'] {
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}

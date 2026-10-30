@@ -14,7 +14,13 @@ import {
 import { registerHeaderBarHandlers } from './headerbar/ipc'
 import { errorText } from './i18n'
 import { registerModuleHandlers } from './modules'
-import { holdFullScreen, isFullScreen, toggleFullScreen } from './window'
+import {
+  getTesseraWindows,
+  holdFullScreen,
+  isFullScreen,
+  tesseraWindowOf,
+  toggleFullScreen
+} from './window'
 import { setVideoStage, toggleVideoWheel } from './video-stage'
 import { getDashboard, saveDashboard } from './dashboard-store'
 import {
@@ -182,10 +188,18 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(IpcChannels.dashboardGet, () => getDashboard())
 
-  // Comme les réglages, le tableau de bord reçu est entièrement revalidé avant sauvegarde
-  ipcMain.handle(IpcChannels.dashboardSave, (_event, dashboard: unknown) =>
-    saveDashboard(dashboard)
-  )
+  // Comme les réglages, le tableau de bord reçu est entièrement revalidé avant sauvegarde. Les
+  // autres fenêtres reçoivent la nouvelle version (sans quoi leur prochaine sauvegarde, faite
+  // avec l'ancienne, effacerait ce changement).
+  ipcMain.handle(IpcChannels.dashboardSave, (event, dashboard: unknown) => {
+    const saved = saveDashboard(dashboard)
+    for (const window of getTesseraWindows()) {
+      if (window.webContents !== event.sender && !window.isDestroyed()) {
+        window.webContents.send(IpcChannels.dashboardChanged, saved)
+      }
+    }
+    return saved
+  })
 
   // Fichiers des extensions : chaque opération vérifie la permission de l'extension
   ipcMain.handle(IpcChannels.pluginFilesList, (_event, pluginId: string) => listFiles(pluginId))
@@ -259,8 +273,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsGetStates, () => getAppStates())
   ipcMain.handle(
     IpcChannels.desktopAppsAttach,
-    (_event, hostId: string, appId: string, rect: HostRect | null) =>
-      attachHost(hostId, appId, rect)
+    (event, hostId: string, appId: string, rect: HostRect | null) => {
+      const window = tesseraWindowOf(event.sender)
+      if (window) attachHost(window, hostId, appId, rect)
+    }
   )
   ipcMain.handle(IpcChannels.desktopAppsMove, (_event, hostId: string, rect: HostRect | null) =>
     moveHost(hostId, rect)
@@ -272,9 +288,12 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsRefresh, (_event, appId: string) => refreshApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsFocus, (_event, appId: string) => focusApp(String(appId)))
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
-  ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (_event, value: boolean, reasons: unknown) =>
-    setSuspended(value === true, typeof reasons === 'string' ? reasons.slice(0, 300) : '')
-  )
+  ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (event, value: boolean, reasons: unknown) => {
+    const window = tesseraWindowOf(event.sender)
+    if (window) {
+      setSuspended(window, value === true, typeof reasons === 'string' ? reasons.slice(0, 300) : '')
+    }
+  })
   ipcMain.handle(IpcChannels.desktopAppsLog, (_event, message: unknown) => {
     if (typeof message === 'string') logDocking(`[interface] ${message.slice(0, 500)}`)
   })
@@ -483,13 +502,17 @@ export function registerIpcHandlers(): void {
   )
 
   ipcMain.handle(IpcChannels.systemGetPreferences, () => getSystemPreferences())
-  ipcMain.handle(IpcChannels.windowIsFullScreen, () => isFullScreen())
-  ipcMain.handle(IpcChannels.windowToggleFullScreen, () => toggleFullScreen())
-  ipcMain.handle(IpcChannels.windowHoldFullScreen, (_event, value: boolean) =>
-    holdFullScreen(value === true)
+  ipcMain.handle(IpcChannels.windowIsFullScreen, (event) =>
+    isFullScreen(tesseraWindowOf(event.sender))
   )
-  ipcMain.handle(IpcChannels.videoStageSet, (_event, active: boolean) =>
-    setVideoStage(active === true)
+  ipcMain.handle(IpcChannels.windowToggleFullScreen, (event) =>
+    toggleFullScreen(tesseraWindowOf(event.sender))
+  )
+  ipcMain.handle(IpcChannels.windowHoldFullScreen, (event, value: boolean) =>
+    holdFullScreen(tesseraWindowOf(event.sender), value === true)
+  )
+  ipcMain.handle(IpcChannels.videoStageSet, (event, active: boolean) =>
+    setVideoStage(active === true, tesseraWindowOf(event.sender))
   )
   ipcMain.handle(IpcChannels.videoStageToggleWheel, () => toggleVideoWheel())
 

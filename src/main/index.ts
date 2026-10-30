@@ -6,7 +6,12 @@ import { IpcChannels } from '@shared/ipc'
 import { broadcast } from './broadcast'
 import { flushDashboard, loadDashboard } from './dashboard-store'
 import { convertBrowserBlocks } from './browser-blocks'
-import { closeRemovedApps, initDocking, releaseAllApps } from './desktop/docking'
+import {
+  attachDockingWindow,
+  closeRemovedApps,
+  initDocking,
+  releaseAllApps
+} from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
 import { logApp, watchCrashes } from './log'
 import { flushMailState, initMail, stopMail } from './mail'
@@ -49,7 +54,14 @@ import { flushSettings, getSettings, loadSettings, onSettingsChange } from './se
 import { applyTheme, watchSystemPreferences } from './system'
 import { createTray, refreshAppIcons, refreshTrayMenu } from './tray'
 import { flushWebPermissions, loadWebPermissions, watchWebContents } from './web'
-import { createMainWindow, getMainWindow, markAppAsQuitting, showMainWindow } from './window'
+import {
+  getMainWindow,
+  markAppAsQuitting,
+  setWindowCreatedListener,
+  showMainWindow,
+  showWindow
+} from './window'
+import { openStartupWindows, registerWindowHandlers, saveWindows, windowOfApp } from './windows'
 import { toggleVideoWheel } from './video-stage'
 
 // Protocoles de l'app, à déclarer en une fois avant qu'elle soit prête : vidéos du PC
@@ -75,6 +87,8 @@ if (!app.requestSingleInstanceLock()) {
     markAppAsQuitting()
     // Chaque étape à part : une erreur n'empêche pas les suivantes (enregistrements, arrêts)
     const steps: (() => void)[] = [
+      // Fenêtres et leurs pages, retrouvées au lancement suivant
+      saveWindows,
       // Les applications installées sont fermées, ou rendues au bureau (réglage)
       () => releaseAllApps(getSettings().apps.onQuit),
       flushSettings,
@@ -104,8 +118,8 @@ if (!app.requestSingleInstanceLock()) {
     }
   })
 
-  // Avec l'arrière-plan activé, la fenêtre est seulement masquée (window.ts) : cet événement
-  // n'arrive donc que si l'utilisateur a choisi de quitter l'app en fermant la fenêtre
+  // Avec l'arrière-plan activé, la dernière fenêtre est seulement masquée (window.ts) : cet
+  // événement n'arrive donc que si l'utilisateur a choisi de quitter l'app en fermant la fenêtre
   app.on('window-all-closed', () => {
     if (!getSettings().window.closeToTray) app.quit()
   })
@@ -137,25 +151,33 @@ if (!app.requestSingleInstanceLock()) {
     loadModulesData()
 
     registerIpcHandlers()
-    // Lancée avec Windows : Tessera reste dans la zone de notification
-    initDocking(createMainWindow({ hidden: isLaunchedHidden() }), {
+    registerWindowHandlers()
+    // Applications installées : chaque événement va à la fenêtre de Tessera de son bloc
+    initDocking({
       changed: (appId, state) => broadcast(IpcChannels.desktopAppsChanged, appId, state),
       // Une application demande à s'afficher : Tessera s'ouvre sur son bloc ou son onglet
       reveal: (appId) => {
-        showMainWindow()
-        getMainWindow()?.webContents.send(IpcChannels.desktopAppsReveal, appId)
+        const window = windowOfApp(appId) ?? getMainWindow()
+        if (!window) return
+        showWindow(window)
+        window.webContents.send(IpcChannels.desktopAppsReveal, appId)
       },
-      pan: (pan) => getMainWindow()?.webContents.send(IpcChannels.desktopAppsPan, pan),
-      moved: () => getMainWindow()?.webContents.send(IpcChannels.desktopAppsUnstretch),
-      wheel: (hostId, deltaY) =>
-        getMainWindow()?.webContents.send(IpcChannels.desktopAppsWheel, { hostId, deltaY }),
-      activate: (hostId) =>
-        getMainWindow()?.webContents.send(IpcChannels.desktopAppsActivate, hostId),
-      fullScreen: (appId, value) =>
-        getMainWindow()?.webContents.send(IpcChannels.desktopAppsFullScreen, { appId, value }),
+      pan: (window, pan) => window.webContents.send(IpcChannels.desktopAppsPan, pan),
+      moved: (window) => window.webContents.send(IpcChannels.desktopAppsUnstretch),
+      wheel: (window, hostId, deltaY) =>
+        window.webContents.send(IpcChannels.desktopAppsWheel, { hostId, deltaY }),
+      activate: (window, hostId) =>
+        window
+          ? window.webContents.send(IpcChannels.desktopAppsActivate, hostId)
+          : broadcast(IpcChannels.desktopAppsActivate, null),
+      fullScreen: (window, appId, value) =>
+        window.webContents.send(IpcChannels.desktopAppsFullScreen, { appId, value }),
       middleClick: () => toggleVideoWheel(),
-      tabDrag: (drag) => getMainWindow()?.webContents.send(IpcChannels.desktopAppsTabDrag, drag)
+      tabDrag: (window, drag) => window.webContents.send(IpcChannels.desktopAppsTabDrag, drag)
     })
+    setWindowCreatedListener(attachDockingWindow)
+    // Lancée avec Windows : Tessera reste dans la zone de notification
+    openStartupWindows(isLaunchedHidden())
     createTray()
 
     onSettingsChange((next, previous) => {
@@ -190,7 +212,9 @@ if (!app.requestSingleInstanceLock()) {
     if (opened) void openPackage(opened)
     setNotificationListeners({
       changed: (list) => broadcast(IpcChannels.notificationsChanged, list),
-      play: (sound, volume) => broadcast(IpcChannels.notificationsPlay, sound, volume),
+      // Une seule fenêtre joue le son (sinon il sonnerait une fois par fenêtre)
+      play: (sound, volume) =>
+        getMainWindow()?.webContents.send(IpcChannels.notificationsPlay, sound, volume),
       // Clic sur une bannière : Tessera s'ouvre sur l'application qui l'a envoyée
       activate: (notification) => {
         showMainWindow()

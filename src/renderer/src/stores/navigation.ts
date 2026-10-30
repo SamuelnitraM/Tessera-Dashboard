@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { MAIN_PAGE_ID } from '@shared/dashboard'
+import { ownsPage } from './windowPages'
 
 export const SETTINGS_SECTIONS = [
   'general',
@@ -32,7 +33,10 @@ interface NavigationState {
    * (Discord ne se recharge pas à chaque visite et continue de recevoir les messages).
    */
   openedApps: string[]
-  /** Change de vue. Quitte toujours le mode édition. */
+  /**
+   * Change de vue. Quitte toujours le mode édition. Une page d'une autre fenêtre s'ouvre dans
+   * celle-ci, qui passe devant.
+   */
   navigate: (view: View) => void
   setEditing: (editing: boolean) => void
   /** Ferme l'onglet d'une application (sa page est déchargée). */
@@ -43,7 +47,11 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   view: { type: 'page', pageId: MAIN_PAGE_ID },
   editing: false,
   openedApps: [],
-  navigate: (view) =>
+  navigate: (view) => {
+    if (view.type === 'page' && !ownsPage(view.pageId)) {
+      void window.tessera.windows.showPage(view.pageId)
+      return
+    }
     set((state) => ({
       view,
       editing: false,
@@ -51,7 +59,8 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
         view.type === 'app' && !state.openedApps.includes(view.appId)
           ? [...state.openedApps, view.appId]
           : state.openedApps
-    })),
+    }))
+  },
   setEditing: (editing) => set({ editing }),
   closeApp: (appId) =>
     set((state) => ({

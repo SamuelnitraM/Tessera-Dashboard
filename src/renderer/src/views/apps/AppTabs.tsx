@@ -22,6 +22,12 @@ import { useWebAppsStore } from '../../stores/webApps'
 import styles from './AppTabs.module.css'
 
 /**
+ * Propre à cette fenêtre de Tessera : un onglet de la même application ouvert dans deux fenêtres
+ * n'a pas le même emplacement.
+ */
+const WINDOW_KEY = crypto.randomUUID().slice(0, 8)
+
+/**
  * Onglets des applications. Une application web ouverte garde sa page chargée en
  * arrière-plan ; une application installée garde sa fenêtre, masquée hors de son onglet.
  * Seul l'onglet actif est visible.
@@ -205,7 +211,7 @@ function DesktopAppTab({ app, active }: { app: DesktopApp; active: boolean }): R
       <div className={styles.page}>
         <DesktopAppHost
           app={app}
-          hostId={`tab:${app.id}`}
+          hostId={`tab:${WINDOW_KEY}:${app.id}`}
           active={active}
           offset={offset}
           onOffsetChange={setOffset}

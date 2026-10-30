@@ -14,6 +14,12 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - Une page qui ne défile pas (tous ses blocs tiennent dans la fenêtre) laisse la molette aux blocs, sans clic préalable.
 - **Écrans de la page** : seulement en disposition large (la disposition compacte n'a pas d'écrans). L'aimantation ne suit que la molette (pas la barre de défilement). Les boutons d'écran placés ailleurs que dans la barre de la page prennent une bande à côté de la grille (en haut, en bas ou sur un côté) : la grille perd quelques pixels de ce côté.
 
+## Fenêtres
+
+- **Plusieurs fenêtres** : une page passée dans une autre fenêtre recharge ses blocs (une page web ou un bloc vidéo repart du début, comme au changement de page). Une application installée affichée dans deux fenêtres à la fois ne s'affiche que dans le dernier bloc ouvert ; l'autre propose de la réafficher.
+- Lancé avec Windows (caché), une autre fenêtre gardée agrandie revient à sa taille normale à la première ouverture.
+- Un onglet lâché par-dessus une fenêtre d'une autre application ouvre une nouvelle fenêtre de Tessera à cet endroit ; lâché sur la barre des tâches aussi.
+
 ## Barre des pages
 
 - **Widgets de la barre fournis par les extensions** : seulement par les extensions intégrées (Mails, Tâches, Spotify, Surveillance de sites) ; un module tiers ne peut pas encore en ajouter (son `headerWidgets` est lu mais pas affiché). Le widget d'une extension désactivée disparaît de la barre et revient avec elle.

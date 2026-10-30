@@ -134,3 +134,10 @@ h3,
 p {
   margin: 0;
 }
+
+/* Onglet de page en cours de glisser (hooks/usePageTabDrag.ts) */
+:root[data-page-drag='true'],
+:root[data-page-drag='true'] * {
+  cursor: grabbing !important;
+  user-select: none;
+}

@@ -23,6 +23,8 @@ interface DashboardState {
   /** Crée une page et renvoie son identifiant. */
   addPage: (name: string) => string
   renamePage: (pageId: string, name: string) => void
+  /** Range la page juste avant (ou après) une autre (onglet glissé). */
+  movePage: (pageId: string, targetId: string, after: boolean) => void
   /** « Automatique » : la page reste rangée vers le haut (rangée tout de suite à l'activation). */
   setAutoArrange: (pageId: string, value: boolean) => void
   /** « Ajuster » : remonte les blocs et comble les trous, sans changer leur taille. */
@@ -50,6 +52,16 @@ interface DashboardState {
 }
 
 const defaultSizeOf = (widget: { type: string }) => getDefaultSize(widget.type)
+
+/**
+ * Appelé juste avant l'enregistrement d'une nouvelle page (voir lib/windows.ts : une page créée
+ * dans une autre fenêtre que la principale y reste).
+ */
+let pageCreated: (pageId: string) => void = () => {}
+
+export function setPageCreatedListener(listener: (pageId: string) => void): void {
+  pageCreated = listener
+}
 
 /** Page en mode « Automatique » : ses dispositions sont rangées après chaque changement. */
 function arranged(page: DashboardPage): DashboardPage {
@@ -92,11 +104,23 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
         layouts: { wide: [], compact: null }
       }
       const { dashboard } = get()
+      pageCreated(id)
       commit({ ...dashboard, pages: [...dashboard.pages, page] })
       return id
     },
 
     renamePage: (pageId, name) => updatePage(pageId, (page) => ({ ...page, name })),
+
+    movePage: (pageId, targetId, after) => {
+      const { dashboard } = get()
+      const page = dashboard.pages.find((candidate) => candidate.id === pageId)
+      if (!page || pageId === targetId) return
+      const rest = dashboard.pages.filter((candidate) => candidate.id !== pageId)
+      const index = rest.findIndex((candidate) => candidate.id === targetId)
+      if (index < 0) return
+      rest.splice(after ? index + 1 : index, 0, page)
+      commit({ ...dashboard, pages: rest })
+    },
 
     setAutoArrange: (pageId, value) =>
       updatePage(pageId, (page) => arranged({ ...page, autoArrange: value })),

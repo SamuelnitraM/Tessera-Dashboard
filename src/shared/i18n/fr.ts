@@ -84,8 +84,13 @@ export const fr = {
       open: 'Ouvrir',
       edit: 'Modifier la page',
       rename: 'Renommer…',
+      newWindow: 'Ouvrir dans une nouvelle fenêtre',
+      toMainWindow: 'Déplacer vers la fenêtre principale',
       delete: 'Supprimer la page…'
     },
+    /** Onglet tiré depuis une autre fenêtre de Tessera au-dessus de celle-ci. */
+    dropPage: 'Lâche l’onglet pour déplacer la page dans cette fenêtre',
+    dragPage: 'Glisse l’onglet pour ranger la page, ou hors de la fenêtre pour l’ouvrir à part',
     appMenu: {
       open: 'Ouvrir',
       openIn: 'Ouvrir dans {{browser}}',

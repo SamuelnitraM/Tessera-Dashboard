@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'ele
 import { IpcChannels, type AppInfo, type LogName, type SystemPreferences } from '@shared/ipc'
 import type { BrowserChoice, InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
+import type { PageDrop, WindowNavigate, WindowPages } from '@shared/windows'
 import type {
   AudioFlow,
   AppAudio,
@@ -94,7 +95,39 @@ const api = {
   dashboard: {
     get: (): Promise<Dashboard> => ipcRenderer.invoke(IpcChannels.dashboardGet),
     save: (dashboard: Dashboard): Promise<Dashboard> =>
-      ipcRenderer.invoke(IpcChannels.dashboardSave, dashboard)
+      ipcRenderer.invoke(IpcChannels.dashboardSave, dashboard),
+    /** Tableau de bord changé par une autre fenêtre. */
+    onChange: (callback: (dashboard: Dashboard) => void) =>
+      subscribe(IpcChannels.dashboardChanged, callback)
+  },
+  /** Fenêtres de Tessera : pages de cette fenêtre, onglets glissés d'une fenêtre à l'autre. */
+  windows: {
+    pages: (): Promise<WindowPages | null> => ipcRenderer.invoke(IpcChannels.windowsPages),
+    onPagesChange: (callback: (pages: WindowPages) => void) =>
+      subscribe(IpcChannels.windowsPagesChanged, callback),
+    /** Onglet de page tiré hors de la fenêtre (ou fin) : la fenêtre dessous le montre. */
+    dragPage: (dragging: boolean): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowsDragPage, dragging === true),
+    /** Onglet lâché hors de la fenêtre : autre fenêtre sous la souris, ou nouvelle fenêtre. */
+    dropPage: (pageId: string): Promise<PageDrop> =>
+      ipcRenderer.invoke(IpcChannels.windowsDropPage, pageId),
+    openPage: (pageId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowsOpenPage, pageId),
+    movePageToMain: (pageId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowsMovePage, pageId),
+    /** Va à une page affichée par une autre fenêtre (elle passe devant). */
+    showPage: (pageId: string, blockId?: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowsShowPage, pageId, blockId),
+    /** Page créée dans cette fenêtre (secondaire) : elle y reste. */
+    claimPage: (pageId: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowsClaimPage, pageId),
+    setOpenedApps: (appIds: string[]): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.windowsSetOpenedApps, appIds),
+    onNavigate: (callback: (target: WindowNavigate) => void) =>
+      subscribe(IpcChannels.windowsNavigate, callback),
+    /** Un onglet d'une autre fenêtre est tiré au-dessus de celle-ci (ou ne l'est plus). */
+    onDropTarget: (callback: (value: boolean) => void) =>
+      subscribe(IpcChannels.windowsDropTarget, callback)
   },
   /** Fichiers des extensions (le processus principal vérifie leurs permissions). */
   pluginFiles: {

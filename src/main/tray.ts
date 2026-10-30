@@ -5,7 +5,7 @@ import { getTranslation } from './i18n'
 import { getAppIcons } from './app-icon'
 import { setDoNotDisturb } from './notifications'
 import { getSettings } from './settings-store'
-import { getMainWindow, showMainWindow, toggleMainWindow } from './window'
+import { setWindowsIcon, showMainWindow, toggleMainWindow } from './window'
 
 // Référence gardée au niveau du module : sinon le ramasse-miettes supprime l'icône
 let tray: Tray | null = null
@@ -31,7 +31,7 @@ export function refreshAppIcons(): void {
   iconTimer = setTimeout(() => {
     const icons = getAppIcons()
     tray?.setImage(icons.tray)
-    getMainWindow()?.setIcon(icons.window)
+    setWindowsIcon(icons.window)
   }, 200)
 }
 

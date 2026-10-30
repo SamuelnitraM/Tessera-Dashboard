@@ -89,6 +89,9 @@ const api = {
   ),
   SetFocus: user32.func('intptr_t __stdcall SetFocus(intptr_t hwnd)'),
   GetWindow: user32.func('intptr_t __stdcall GetWindow(intptr_t hwnd, uint32_t cmd)'),
+  SetWindowLongPtrW: user32.func(
+    'intptr_t __stdcall SetWindowLongPtrW(intptr_t hwnd, int index, intptr_t value)'
+  ),
   SetWindowPos: user32.func(
     'bool __stdcall SetWindowPos(intptr_t hwnd, intptr_t after, int x, int y, int cx, int cy, uint32_t flags)'
   ),
@@ -265,10 +268,22 @@ api.RegisterClassExW({
 const adopted = new Map<number, { frame: number; saved: SavedWindow }>()
 /** Cadres existants (signalés à la barre des tâches pendant le plein écran). */
 const frames = new Set<number>()
-/** Tessera est en plein écran. */
-let fullScreen = false
+/** Fenêtres de Tessera en plein écran. */
+const fullScreenOwners = new Set<number>()
 
 const GW_OWNER = 4
+const GWLP_HWNDPARENT = -8
+
+/** Le cadre appartient à une fenêtre de Tessera en plein écran. */
+const inFullScreen = (frame: number): boolean =>
+  fullScreenOwners.has(Number(api.GetWindow(frame, GW_OWNER)))
+
+/** Signale le cadre et sa fenêtre insérée d'après le plein écran de leur fenêtre de Tessera. */
+function markFrame(frame: number): void {
+  const value = inFullScreen(frame)
+  markFullScreen(frame, value)
+  for (const [window, entry] of adopted) if (entry.frame === frame) markFullScreen(window, value)
+}
 const SWP_RAISE = 0x0013 // SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE
 const EVENT_SYSTEM_FOREGROUND = 0x0003
 
@@ -318,23 +333,29 @@ function run(command: FrameCommand): boolean {
           0
         )
       )
-      fullScreen = command.fullScreen
-      if (fullScreen) markFullScreen(frame, true)
+      if (command.fullScreen) fullScreenOwners.add(command.owner)
+      if (command.fullScreen) markFullScreen(frame, true)
       frames.add(frame)
       reply({ id: command.id, frame })
       return true
     }
     case 'fullScreen':
-      fullScreen = command.value
-      for (const frame of frames) markFullScreen(frame, fullScreen)
-      for (const window of adopted.keys()) markFullScreen(window, fullScreen)
+      if (command.value) fullScreenOwners.add(command.owner)
+      else fullScreenOwners.delete(command.owner)
+      for (const frame of frames) {
+        if (Number(api.GetWindow(frame, GW_OWNER)) === command.owner) markFrame(frame)
+      }
+      return true
+    case 'owner':
+      api.SetWindowLongPtrW(command.frame, GWLP_HWNDPARENT, command.owner)
+      markFrame(command.frame)
       return true
     case 'adopt':
       adopted.set(command.window, { frame: command.frame, saved: command.saved })
-      if (fullScreen) markFullScreen(command.window, true)
+      if (inFullScreen(command.frame)) markFullScreen(command.window, true)
       return true
     case 'release':
-      if (fullScreen) markFullScreen(command.window, false)
+      if (inFullScreen(command.frame)) markFullScreen(command.window, false)
       adopted.delete(command.window)
       frames.delete(command.frame)
       api.DestroyWindow(command.frame)
@@ -349,7 +370,7 @@ function run(command: FrameCommand): boolean {
       let restored = 0
       for (const [window, { frame, saved }] of adopted) {
         if (w.isWindow(window) && w.getParent(window) === frame) {
-          if (fullScreen) markFullScreen(window, false)
+          if (inFullScreen(frame)) markFullScreen(window, false)
           returnWindow(window, saved, true)
           restored++
         }

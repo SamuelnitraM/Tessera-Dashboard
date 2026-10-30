@@ -108,6 +108,7 @@ const api = {
   ),
   SetParent: fn(user32, 'intptr_t __stdcall SetParent(intptr_t child, intptr_t parent)'),
   GetAncestor: fn(user32, 'intptr_t __stdcall GetAncestor(intptr_t hwnd, uint32_t flags)'),
+  WindowFromPoint: fn(user32, 'intptr_t __stdcall WindowFromPoint(POINT point)'),
   GetClassNameW: fn(
     user32,
     'int __stdcall GetClassNameW(intptr_t hwnd, _Out_ uint8_t *buf, int max)'
@@ -256,6 +257,12 @@ export const setParent = (hwnd: Hwnd, parent: Hwnd): void => void api.SetParent(
  * propriétaire d'une fenêtre insérée qui garde le style WS_POPUP (voir `childStyle`).
  */
 export const getParent = (hwnd: Hwnd): Hwnd => Number(api.GetAncestor(hwnd, 1 /* GA_PARENT */))
+
+/** Fenêtre de premier niveau sous ce point de l'écran (px physiques), `0` s'il n'y en a pas. */
+export function rootWindowAt(x: number, y: number): Hwnd {
+  const hwnd = Number(api.WindowFromPoint({ x: Math.round(x), y: Math.round(y) }))
+  return hwnd ? Number(api.GetAncestor(hwnd, 2 /* GA_ROOT */)) : 0
+}
 
 /** Classe de la fenêtre (`Chrome_WidgetWin_1`…). */
 export function getClassName(hwnd: Hwnd): string {

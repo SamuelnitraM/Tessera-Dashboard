@@ -58,7 +58,8 @@ Arborescence :
 src/
 ├── main/                     # Processus principal (Node.js)
 │   ├── index.ts              #   Point d'entrée : instance unique, démarrage, abonnements
-│   ├── window.ts             #   Fenêtre principale, fermeture, sécurité de navigation
+│   ├── window.ts             #   Fenêtres de Tessera (la principale en premier), fermeture, plein écran, sécurité
+│   ├── windows.ts            #   Pages de chaque fenêtre, onglets glissés d'une fenêtre à l'autre, windows.json
 │   ├── window-state.ts       #   Mémorisation de la position et de la taille
 │   ├── tray.ts               #   Icône et menu de la zone de notification
 │   ├── json-store.ts         #   Fichier JSON validé, sauvegardé en différé (réutilisable)
@@ -67,7 +68,7 @@ src/
 │   ├── system.ts             #   Thème natif, couleur d'accent et langues de Windows
 │   ├── i18n.ts               #   Traductions côté système (menus natifs)
 │   ├── ipc.ts                #   Réponses aux demandes de l'interface
-│   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres
+│   ├── broadcast.ts          #   Envoi d'événements à toutes les fenêtres de Tessera
 │   ├── json-file.ts          #   Lecture / écriture atomique de fichiers JSON
 │   ├── paths.ts              #   Chemins des ressources (dev / packagé)
 │   ├── browsers.ts           #   Navigateurs installés (Brave, Chrome…) et ouverture d'applications
@@ -199,7 +200,9 @@ La disposition compacte est générée à partir de la large (ordre de lecture c
 
 **Grands blocs** : `ToolboxBlock` (`plugins/tessera.toolbox`) mesure son bloc et le transmet par `BlockSizeContext` (`headerbar/helpers.ts`, `useBlockSize()`, `null` dans la barre). Météo (≥ 520 px de large) dessine la courbe des 24 heures en SVG et met les jours côte à côte ; Système (≥ 420 × 300 px) garde les 60 dernières mesures (communes à tous les blocs, une par seconde au plus) et affiche les programmes les plus gourmands, à côté au-delà de 640 px ; Prochain événement (≥ 640 px) passe en vue semaine (7 colonnes, un clic modifie l'événement).
 
-**Plein écran** : `toggleFullScreen` (`window.ts`), canal `window:full-screen-changed` pour le bouton du menu latéral (`FullScreenButton`).
+**Plein écran** : `toggleFullScreen` (`window.ts`, pour la fenêtre qui appelle), canal `window:full-screen-changed` pour le bouton du menu latéral (`FullScreenButton`).
+
+**Plusieurs fenêtres** (étape 30) : `window.ts` crée chaque fenêtre (`createTesseraWindow`, la principale en premier : `getMainWindow`, `getTesseraWindows`, `tesseraWindowOf(webContents)`), garde le plein écran de chacune et décide de la fermeture (d'autres fenêtres restent : elle se ferme ; la dernière seule part dans la zone de notification). `windows.ts` répartit les pages : la fenêtre principale affiche toutes les pages qui ne sont dans aucune autre, chaque autre fenêtre sa liste (`pagesOf`, `ownerOfPage`) ; chaque fenêtre reçoit les siennes (`WindowPages` de `shared/windows.ts`, canal `windows:pages-changed`, envoyé seulement s'il a changé). Un onglet lâché hors de sa fenêtre (`dropPage`) va à la fenêtre de Tessera sous la souris (`rootWindowAt` + propriétaire, pour un cadre d'application), sinon dans une nouvelle fenêtre ; une fenêtre vidée se ferme ; une page créée dans une autre fenêtre y est réservée avant d'être enregistrée (`claimPage`). Les fenêtres secondaires sont notées dans `windows.json` (pages, place), jamais avant la fin du démarrage, et rouvertes par `openStartupWindows`. Le tableau de bord enregistré par une fenêtre est envoyé aux autres (`dashboard:changed`), qui le reprennent sans le réenregistrer. Côté interface : `stores/windowPages.ts` (`ownsPage`), `lib/windows.ts` (`useOwnPages`, `homePageId`, `showBlock` qui passe par la fenêtre de la page, page partie ailleurs → accueil de la fenêtre), `hooks/usePageTabDrag.ts` (glisser : écouteurs sur la fenêtre, capture du pointeur au-delà de 6 px, `windows:drag-page` pour l'encadré de la fenêtre survolée). Applications installées : chaque bloc garde sa fenêtre (`Host.window`), le cadre appartient à la fenêtre de son bloc (`setOwner`, commande `owner` de l'hébergeur), `attachDockingWindow` branche chaque fenêtre ; masquage (`suspendedWindows`), plein écran des cadres (par propriétaire) et onglets de navigateur tirés sont propres à chaque fenêtre ; les onglets d'applications ont un emplacement propre à la fenêtre (`tab:<fenêtre>:<application>`) et les applications ouvertes en onglet ailleurs (`appsElsewhere`) ne sont pas fermées.
 
 **Changement de navigateur** (bloc `tessera.desktop/app`) : la barre du bloc montre un bouton par navigateur détecté (logo lu une fois par `iconOf`). `listBrowserChoices` (`src/main/browsers.ts`) associe chaque navigateur détecté à l'application installée qui l'affiche (même exécutable) ; `browserAppFor` la crée au besoin (lancement normal, le navigateur rouvre ses onglets selon ses réglages). Le bloc garde dans `config.parked` les navigateurs qu'il a quittés : `usedApps` (`stores/desktopApps.ts`) les compte comme utilisés, ils restent donc ouverts (cadre masqué) au lieu d'être fermés. « Changer d'application » vide cette liste.
 

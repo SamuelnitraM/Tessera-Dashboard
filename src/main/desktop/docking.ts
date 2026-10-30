@@ -20,6 +20,7 @@ import {
   setFrameFocusListener,
   setFrameMiddle,
   setFrameMiddleListener,
+  setFrameOwner,
   setFramePanListener,
   setFramePannable,
   setFrameWheel,
@@ -29,6 +30,7 @@ import { logDocking } from '../log'
 import { saveMinSize } from './programs'
 import { childStyle, isChromium, returnWindow, saveWindow, type SavedWindow } from './saved-window'
 import * as w from './win32'
+import { getMainWindow, hwndOf } from '../window'
 
 /**
  * Fenêtres des applications installées affichées dans Tessera.
@@ -58,6 +60,8 @@ interface DockedWindow {
   hwnd: w.Hwnd
   pid: number
   frame: w.Hwnd
+  /** Fenêtre de Tessera propriétaire du cadre (celle du bloc qui l'affiche). */
+  owner: BrowserWindow
   saved: SavedWindow
   /** Taille minimale imposée par l'application (px physiques). */
   min: { width: number; height: number }
@@ -112,6 +116,8 @@ interface DockedWindow {
 interface Host {
   appId: string
   rect: HostRect | null
+  /** Fenêtre de Tessera du bloc ou de l'onglet. */
+  window: BrowserWindow
 }
 
 interface DockingListeners {
@@ -119,19 +125,22 @@ interface DockingListeners {
   /** L'application demande à s'afficher (clic sur sa notification…) : l'interface va vers elle. */
   reveal: (appId: string) => void
   /** Clic gauche + droit sur une fenêtre rognée : son bloc déplace le contenu. */
-  pan: (pan: DesktopAppPan) => void
-  /** La fenêtre de Tessera a bougé : les fenêtres étirées reprennent la taille de leur bloc. */
-  moved: () => void
+  pan: (window: BrowserWindow, pan: DesktopAppPan) => void
+  /** Une fenêtre de Tessera a bougé : les fenêtres étirées reprennent la taille de leur bloc. */
+  moved: (window: BrowserWindow) => void
   /** Molette au-dessus de la fenêtre d'un bloc (px, positif vers le bas) : la page défile. */
-  wheel: (hostId: string, deltaY: number) => void
+  wheel: (window: BrowserWindow, hostId: string, deltaY: number) => void
   /** Clic dans l'application d'un bloc : il devient actif (`null` : souris sortie). */
-  activate: (hostId: string | null) => void
+  activate: (window: BrowserWindow | null, hostId: string | null) => void
   /** L'application passe en plein écran (vidéo…) ou en sort. */
-  fullScreen: (appId: string, value: boolean) => void
+  fullScreen: (window: BrowserWindow, appId: string, value: boolean) => void
   /** Clic molette sur une vidéo en plein écran : la molette bascule entre la page et la vidéo. */
   middleClick: () => void
-  /** Onglet de navigateur tiré par l'utilisateur, et la souris (`null` : relâché). */
-  tabDrag: (drag: DesktopAppTabDrag | null) => void
+  /**
+   * Onglet de navigateur tiré par l'utilisateur, et la souris dans cette fenêtre de Tessera
+   * (`null` : relâché).
+   */
+  tabDrag: (window: BrowserWindow, drag: DesktopAppTabDrag | null) => void
 }
 
 /** Masquage signalé moins de 2 s après celui de Tessera : c'est le sien, pas celui de l'application. */
@@ -147,8 +156,8 @@ const UNFRAMED_AFTER_MS = 12_000
 /** Fenêtre détruite, programme encore ouvert : délai d'attente de la fenêtre qui la remplace. */
 const REPLACE_TIMEOUT_MS = 8000
 
-let hostWindow: BrowserWindow | null = null
-let hostHwnd: w.Hwnd = 0
+/** Fenêtres de Tessera branchées (voir `attachDockingWindow`). */
+const hostWindows = new Set<BrowserWindow>()
 let listeners: DockingListeners = {
   changed: () => {},
   reveal: () => {},
@@ -160,8 +169,8 @@ let listeners: DockingListeners = {
   middleClick: () => {},
   tabDrag: () => {}
 }
-/** Fenêtre de Tessera recouverte par son interface (fenêtre de dialogue, mode édition…). */
-let suspended = false
+/** Fenêtres de Tessera recouvertes par leur interface (dialogue, mode édition…), et pourquoi. */
+const suspendedWindows = new Map<BrowserWindow, { reasons: string; since: number }>()
 
 const hosts = new Map<string, Host>()
 /** Bloc ou onglet qui affiche chaque application. */
@@ -204,15 +213,21 @@ function setState(appId: string, patch: Partial<DesktopAppState>): void {
 const sameRect = (a: w.Rect | null, b: w.Rect): boolean =>
   a !== null && a.left === b.left && a.top === b.top && a.right === b.right && a.bottom === b.bottom
 
-function hostIsVisible(): boolean {
-  return !!hostWindow && hostWindow.isVisible() && !hostWindow.isMinimized()
+/** Fenêtre de Tessera du bloc qui affiche l'application (`null` : aucun). */
+function hostWindowOf(appId: string): BrowserWindow | null {
+  const hostId = activeHosts.get(appId)
+  const window = hostId ? hosts.get(hostId)?.window : null
+  return window && !window.isDestroyed() ? window : null
 }
 
-/** Facteur px CSS -> px physiques (échelle de l'écran de Tessera × zoom de l'interface). */
-function hostScale(): number {
-  if (!hostWindow) return 1
-  const display = screen.getDisplayMatching(hostWindow.getBounds())
-  return display.scaleFactor * hostWindow.webContents.getZoomFactor()
+const isShown = (window: BrowserWindow | null): window is BrowserWindow =>
+  !!window && !window.isDestroyed() && window.isVisible() && !window.isMinimized()
+
+/** Facteur px CSS -> px physiques (échelle de l'écran de la fenêtre × zoom de l'interface). */
+function scaleOf(window: BrowserWindow | null): number {
+  if (!window || window.isDestroyed()) return 1
+  const display = screen.getDisplayMatching(window.getBounds())
+  return display.scaleFactor * window.webContents.getZoomFactor()
 }
 
 interface Layout {
@@ -239,9 +254,11 @@ function hiddenReason(docked: DockedWindow): string | null {
   if (!hostId) return 'aucun bloc ne l’affiche (autre page, navigateur mis de côté…)'
   const rect = hosts.get(hostId)?.rect
   if (!rect) return `bloc ${hostId} hors de la vue`
-  if (suspended) return `interface par-dessus (${suspendReasons || 'raison inconnue'})`
+  const window = hostWindowOf(docked.appId)
+  const suspension = window && suspendedWindows.get(window)
+  if (suspension) return `interface par-dessus (${suspension.reasons || 'raison inconnue'})`
   if (docked.hiddenByApp) return 'masquée par l’application'
-  if (!hostIsVisible()) return 'Tessera réduit ou caché'
+  if (!isShown(window)) return 'Tessera réduit ou caché'
   if (rect.clip && (rect.clip.width <= 0 || rect.clip.height <= 0)) return 'bloc hors de la vue'
   return null
 }
@@ -250,10 +267,11 @@ function hiddenReason(docked: DockedWindow): string | null {
 function layoutFor(docked: DockedWindow): Layout | null {
   const hostId = activeHosts.get(docked.appId)
   const rect = hostId ? hosts.get(hostId)?.rect : null
-  if (!rect || suspended || docked.hiddenByApp || !hostIsVisible()) return null
-  const scale = hostScale()
+  const window = hostWindowOf(docked.appId)
+  if (!rect || !isShown(window) || suspendedWindows.has(window) || docked.hiddenByApp) return null
+  const scale = scaleOf(window)
   const px = (value: number): number => Math.round(value * scale)
-  const origin = w.clientOrigin(hostHwnd)
+  const origin = w.clientOrigin(hwndOf(window))
 
   // Bloc entier (px physiques, écran) et partie visible (page qui défile)
   const block = {
@@ -325,6 +343,9 @@ function place(docked: DockedWindow): void {
     return hideFrame(docked)
   }
   note(docked, `affichée dans ${activeHosts.get(docked.appId)}`)
+  // Bloc passé dans une autre fenêtre de Tessera : le cadre suit (il reste au-dessus d'elle)
+  const owner = hostWindowOf(docked.appId)
+  if (owner && owner !== docked.owner) setOwner(docked, owner)
 
   // La fenêtre a quitté son cadre (l'application l'a replacée sur le bureau) : remise dedans
   if (w.getParent(docked.hwnd) !== docked.frame) {
@@ -376,7 +397,7 @@ function place(docked: DockedWindow): void {
     setFrameMiddle(docked.frame, layout.stage)
   }
   // Cadre masqué sans nous (fenêtre de Tessera réduite puis rendue…) : il sera réaffiché
-  if (docked.shown && !w.isVisible(docked.frame) && hostIsVisible()) docked.shown = false
+  if (docked.shown && !w.isVisible(docked.frame) && isShown(owner)) docked.shown = false
 
   const key = JSON.stringify({ layout, insets })
   const current = w.getWindowRect(docked.hwnd)
@@ -417,6 +438,13 @@ function place(docked: DockedWindow): void {
 
 function placeAll(): void {
   for (const docked of windows.values()) place(docked)
+}
+
+/** Le cadre appartient désormais à cette fenêtre de Tessera (tout de suite, puis l'hébergeur). */
+function setOwner(docked: DockedWindow, owner: BrowserWindow): void {
+  docked.owner = owner
+  if (w.isWindow(docked.frame)) w.setOwner(docked.frame, hwndOf(owner))
+  setFrameOwner(docked.frame, hwndOf(owner))
 }
 
 // ---------------------------------------------------------------------------
@@ -483,10 +511,15 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       width: Math.max(1, client?.width ?? measured.right - measured.left),
       height: Math.max(1, client?.height ?? measured.bottom - measured.top)
     }
-    const scale = hostScale()
+    const owner = hostWindowOf(appId) ?? getMainWindow()
+    if (!owner) {
+      returnWindow(hwnd, saved, true)
+      return
+    }
+    const scale = scaleOf(owner)
     saveMinSize(appId, Math.round(min.width / scale), Math.round(min.height / scale))
 
-    const frame = await createFrame(hostHwnd, { x: 0, y: 0, width: 1, height: 1 })
+    const frame = await createFrame(hwndOf(owner), { x: 0, y: 0, width: 1, height: 1 })
     // Fermée ou sortie de Tessera pendant la création du cadre : rendue telle quelle
     if (cancelled.has(appId)) {
       cancelled.delete(appId)
@@ -518,6 +551,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       hwnd,
       pid,
       frame,
+      owner,
       saved,
       min,
       shown: false,
@@ -649,10 +683,11 @@ const STAGE_EXIT_MS = 600
 /** Premier cran de molette relayé pendant le plein écran d'une application : déjà noté. */
 let wheelLogged = false
 
-/** Taille de l'écran de Tessera (px physiques). */
-function monitorSize(): { width: number; height: number } | null {
-  if (!hostWindow) return null
-  const display = screen.getDisplayMatching(hostWindow.getBounds())
+/** Taille de l'écran de la fenêtre de Tessera du bloc (px physiques). */
+function monitorSize(docked: DockedWindow): { width: number; height: number } | null {
+  const window = hostWindowOf(docked.appId) ?? docked.owner
+  if (window.isDestroyed()) return null
+  const display = screen.getDisplayMatching(window.getBounds())
   return {
     width: Math.round(display.bounds.width * display.scaleFactor),
     height: Math.round(display.bounds.height * display.scaleFactor)
@@ -667,7 +702,7 @@ function monitorSize(): { width: number; height: number } | null {
  */
 function followFullScreen(docked: DockedWindow): boolean {
   if (docked.fixedSize) return false
-  const monitor = monitorSize()
+  const monitor = monitorSize(docked)
   if (!monitor) return false
   const rect = w.getWindowRect(docked.hwnd)
   const full =
@@ -686,7 +721,8 @@ function followFullScreen(docked: DockedWindow): boolean {
   wheelLogged = false
   docked.target = null
   if (inBlock) return false
-  listeners.fullScreen(docked.appId, full)
+  const window = hostWindowOf(docked.appId)
+  if (window) listeners.fullScreen(window, docked.appId, full)
   if (full) return true
   // Sortie pendant la vidéo plein écran de Tessera : le bloc envoie sa place dans un instant.
   // Replacée tout de suite à celle de la vidéo (tout l'écran), la fenêtre redevenue normale
@@ -754,7 +790,7 @@ const TAB_DRAG_MAX_MS = 120_000
 const TAB_DROP_SETTLE_MS = 150
 
 function onMoveSize(event: number, hwnd: w.Hwnd): void {
-  if (event !== w.WinEvent.SYSTEM_MOVESIZESTART || tabDrag || !hostWindow) return
+  if (event !== w.WinEvent.SYSTEM_MOVESIZESTART || tabDrag || hostWindows.size === 0) return
   // Fenêtre principale d'un navigateur Chromium (ni insérée, ni bulle appartenant à une fenêtre)
   if (!isChromium(hwnd) || w.getOwner(hwnd) || w.getStyle(hwnd) & w.WS.CHILD) return
   const pid = w.getProcessId(hwnd)
@@ -779,46 +815,57 @@ function onMoveSize(event: number, hwnd: w.Hwnd): void {
 
 function followTabDrag(): void {
   const drag = tabDrag
-  if (!drag || !hostWindow) return
+  if (!drag) return
   if (!w.isLeftButtonDown() || Date.now() - drag.startedAt > TAB_DRAG_MAX_MS) {
     clearInterval(drag.timer)
     tabDrag = null
-    listeners.tabDrag(null)
+    for (const window of hostWindows) listeners.tabDrag(window, null)
     setTimeout(() => {
       for (const docked of windows.values()) if (docked.tabDrop) closeToTab(docked)
     }, TAB_DROP_SETTLE_MS)
     return
   }
   const point = screen.getCursorScreenPoint()
-  const content = hostWindow.getContentBounds()
-  const inside =
-    point.x >= content.x &&
-    point.y >= content.y &&
-    point.x < content.x + content.width &&
-    point.y < content.y + content.height
-  // Souris au-dessus de Tessera : les fenêtres de ce navigateur affichées dans un bloc (celle d'un
-  // bloc qui vient de passer sur lui aussi) sont prêtes à recevoir l'onglet. Ailleurs, elles
-  // restent dans leur cadre. Chromium remet parfois toute sa fenêtre (à chaque changement de
-  // taille ou de style) : la partie qui reçoit la souris est rétablie.
+  const isInside = (window: BrowserWindow | null): boolean => {
+    if (!isShown(window)) return false
+    const content = window.getContentBounds()
+    return (
+      point.x >= content.x &&
+      point.y >= content.y &&
+      point.x < content.x + content.width &&
+      point.y < content.y + content.height
+    )
+  }
+  // Souris au-dessus de la fenêtre de Tessera d'un bloc : les fenêtres de ce navigateur affichées
+  // dans un bloc (celle d'un bloc qui vient de passer sur lui aussi) sont prêtes à recevoir
+  // l'onglet. Ailleurs, elles restent dans leur cadre. Chromium remet parfois toute sa fenêtre (à
+  // chaque changement de taille ou de style) : la partie qui reçoit la souris est rétablie.
   for (const docked of windows.values()) {
     if (docked.pid !== drag.pid) continue
-    if (!inside) {
+    if (!isInside(hostWindowOf(docked.appId))) {
       if (docked.tabDrop) closeToTab(docked)
     } else if (docked.tabDrop) keepTabDropRegion(docked)
     else if (docked.shown && !docked.fullScreen) openToTab(docked)
   }
   if (!drag.appId) return
-  // Souris dans la fenêtre de Tessera (px CSS) : un bloc Navigateur dessous passe sur ce navigateur
-  const zoom = hostWindow.webContents.getZoomFactor()
-  const next: DesktopAppTabDrag = {
-    appId: drag.appId,
-    x: inside ? Math.round((point.x - content.x) / zoom) : null,
-    y: inside ? Math.round((point.y - content.y) / zoom) : null
-  }
-  const key = JSON.stringify(next)
+  // Souris dans chaque fenêtre de Tessera (px CSS, `null` ailleurs) : un bloc Navigateur dessous
+  // passe sur ce navigateur
+  const appId = drag.appId
+  const next = [...hostWindows].map((window) => {
+    const inside = isInside(window)
+    const content = window.getContentBounds()
+    const zoom = window.webContents.getZoomFactor()
+    const position: DesktopAppTabDrag = {
+      appId,
+      x: inside ? Math.round((point.x - content.x) / zoom) : null,
+      y: inside ? Math.round((point.y - content.y) / zoom) : null
+    }
+    return { window, position }
+  })
+  const key = JSON.stringify(next.map(({ position }) => position))
   if (key === drag.sent) return
   drag.sent = key
-  listeners.tabDrag(next)
+  for (const { window, position } of next) listeners.tabDrag(window, position)
 }
 
 /**
@@ -840,8 +887,8 @@ function openToTab(docked: DockedWindow): void {
   }
   w.setParent(docked.hwnd, 0)
   w.setStyle(docked.hwnd, (w.getStyle(docked.hwnd) & ~w.WS.CHILD) | w.WS.POPUP)
-  // Au-dessus de Tessera, sans bouton dans la barre des tâches
-  w.setOwner(docked.hwnd, hostHwnd)
+  // Au-dessus de la fenêtre de Tessera du bloc, sans bouton dans la barre des tâches
+  w.setOwner(docked.hwnd, hwndOf(docked.owner))
   w.setWindowPos(
     docked.hwnd,
     rect.left,
@@ -1015,16 +1062,21 @@ export async function launchApp(appId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 /** Un bloc ou un onglet affiche l'application (elle s'ouvre si besoin). */
-export function attachHost(hostId: string, appId: string, rect: HostRect | null): void {
+export function attachHost(
+  window: BrowserWindow,
+  hostId: string,
+  appId: string,
+  rect: HostRect | null
+): void {
   const desktopApp = findApp(appId)
-  if (!desktopApp) return
+  if (!desktopApp || !hostWindows.has(window)) return
   const previous = activeHosts.get(appId)
   if (previous !== hostId) {
     logDocking(
       `${appId} : bloc ${hostId} l’affiche${previous ? ` (à la place de ${previous})` : ''}`
     )
   }
-  hosts.set(hostId, { appId, rect })
+  hosts.set(hostId, { appId, rect, window })
   activeHosts.set(appId, hostId)
   setState(appId, {})
 
@@ -1055,16 +1107,21 @@ export function detachHost(hostId: string): void {
   const host = hosts.get(hostId)
   if (!host) return
   logDocking(`${host.appId} : bloc ${hostId} ne l’affiche plus`)
-  hosts.delete(hostId)
-  if (activeHosts.get(host.appId) === hostId) {
-    // Un autre bloc affiche la même application : il prend le relais
-    const other = [...hosts.entries()].find(([, candidate]) => candidate.appId === host.appId)
-    if (other) activeHosts.set(host.appId, other[0])
-    else activeHosts.delete(host.appId)
-    setState(host.appId, {})
-  }
+  forgetHost(hostId)
   const docked = windows.get(host.appId)
   if (docked) place(docked)
+}
+
+/** Oublie un bloc ; un autre bloc qui affiche la même application prend le relais. */
+function forgetHost(hostId: string): void {
+  const host = hosts.get(hostId)
+  if (!host) return
+  hosts.delete(hostId)
+  if (activeHosts.get(host.appId) !== hostId) return
+  const other = [...hosts.entries()].find(([, candidate]) => candidate.appId === host.appId)
+  if (other) activeHosts.set(host.appId, other[0])
+  else activeHosts.delete(host.appId)
+  setState(host.appId, {})
 }
 
 /**
@@ -1156,11 +1213,10 @@ function describe(docked: DockedWindow): string {
  * Masque les fenêtres pendant que l'interface de Tessera passe au-dessus (dialogue, édition…).
  * `reasons` : ce qui passe par-dessus (journal).
  */
-export function setSuspended(value: boolean, reasons = ''): void {
-  if (suspended === value) return
-  suspended = value
-  suspendReasons = value ? reasons : ''
-  suspendedSince = Date.now()
+export function setSuspended(window: BrowserWindow, value: boolean, reasons = ''): void {
+  if (suspendedWindows.has(window) === value) return
+  if (value) suspendedWindows.set(window, { reasons, since: Date.now() })
+  else suspendedWindows.delete(window)
   logDocking(
     value ? `fenêtres masquées (interface par-dessus : ${reasons || '?'})` : 'fenêtres réaffichées'
   )
@@ -1173,8 +1229,6 @@ const WATCH_MS = 2000
 /** Interface par-dessus depuis plus longtemps : noté (dialogue oublié ouvert ?). */
 const LONG_SUSPENSION_MS = 60_000
 let watchTimer: NodeJS.Timeout | null = null
-let suspendReasons = ''
-let suspendedSince = 0
 let longSuspensionLogged = false
 
 /** Note un changement d'état de la fenêtre (une seule fois par changement). */
@@ -1194,11 +1248,14 @@ function watchAll(): void {
     watchTimer = null
     return
   }
-  if (suspended && Date.now() - suspendedSince > LONG_SUSPENSION_MS && !longSuspensionLogged) {
+  const long = [...suspendedWindows.values()].find(
+    (suspension) => Date.now() - suspension.since > LONG_SUSPENSION_MS
+  )
+  if (long && !longSuspensionLogged) {
     longSuspensionLogged = true
-    logDocking(`fenêtres masquées depuis plus d'une minute (${suspendReasons || '?'})`)
+    logDocking(`fenêtres masquées depuis plus d'une minute (${long.reasons || '?'})`)
   }
-  if (!suspended) longSuspensionLogged = false
+  if (suspendedWindows.size === 0) longSuspensionLogged = false
   for (const docked of [...windows.values()]) watch(docked)
 }
 
@@ -1256,9 +1313,9 @@ function watch(docked: DockedWindow): void {
 /** Images des fenêtres affichées (taille réelle), montrées à leur place pendant qu'elles sont masquées. */
 export function captureApps(): Record<string, DesktopAppSnapshot> {
   const images: Record<string, DesktopAppSnapshot> = {}
-  const scale = hostScale()
   for (const docked of windows.values()) {
     if (!docked.shown) continue
+    const scale = scaleOf(docked.owner)
     const capture = w.captureWindow(docked.hwnd)
     if (!capture) continue
     const image = nativeImage.createFromBitmap(capture.bits, {
@@ -1286,10 +1343,8 @@ export function releaseAllApps(mode: QuitMode): void {
   for (const docked of [...windows.values()]) undock(docked, docked.fixedSize ? 'restore' : mode)
 }
 
-/** Branche le gestionnaire sur la fenêtre de Tessera. */
-export function initDocking(window: BrowserWindow, next: DockingListeners): void {
-  hostWindow = window
-  hostHwnd = Number(window.getNativeWindowHandle().readBigInt64LE(0))
+/** Branche le gestionnaire (une fois) ; chaque fenêtre s'y ajoute par `attachDockingWindow`. */
+export function initDocking(next: DockingListeners): void {
   listeners = next
 
   // L'hébergeur des cadres s'est arrêté : les fenêtres insérées ont disparu avec ses cadres
@@ -1316,35 +1371,39 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
     )
   })
 
-  // Clic gauche + droit sur une fenêtre rognée : transmis à son bloc (px CSS)
-  setFramePanListener(({ pan, frame, dx, dy }) => {
+  // Bloc (et sa fenêtre de Tessera) qui affiche la fenêtre insérée dans ce cadre
+  const hostOfFrame = (frame: number): { hostId: string; window: BrowserWindow } | null => {
     const docked = [...windows.values()].find((candidate) => candidate.frame === frame)
     const hostId = docked && activeHosts.get(docked.appId)
-    if (!hostId) return
-    const scale = hostScale()
-    listeners.pan({ hostId, phase: pan, dx: dx / scale, dy: dy / scale })
+    const window = hostId ? hosts.get(hostId)?.window : null
+    return hostId && window && !window.isDestroyed() ? { hostId, window } : null
+  }
+
+  // Clic gauche + droit sur une fenêtre rognée : transmis à son bloc (px CSS)
+  setFramePanListener(({ pan, frame, dx, dy }) => {
+    const host = hostOfFrame(frame)
+    if (!host) return
+    const scale = scaleOf(host.window)
+    listeners.pan(host.window, { hostId: host.hostId, phase: pan, dx: dx / scale, dy: dy / scale })
   })
 
   // Molette au-dessus de la fenêtre d'un bloc, clic dans son application : transmis au bloc
-  const hostOfFrame = (frame: number): string | null => {
-    const docked = [...windows.values()].find((candidate) => candidate.frame === frame)
-    return (docked && activeHosts.get(docked.appId)) ?? null
-  }
   setFrameWheelListeners({
     // Un cran de molette (120) : 100 px, comme dans une page web
     wheel: ({ wheel, delta }) => {
-      const hostId = hostOfFrame(wheel)
-      if (!hostId) return
+      const host = hostOfFrame(wheel)
+      if (!host) return
       // Vidéo plein écran : le premier cran relayé est noté (diagnostic de la molette)
       const docked = [...windows.values()].find((candidate) => candidate.frame === wheel)
       if (docked?.fullScreen && !wheelLogged) {
         wheelLogged = true
         logDocking(`${docked.appId} : molette relayée à Tessera (vidéo plein écran)`)
       }
-      listeners.wheel(hostId, (-delta / 120) * 100)
+      listeners.wheel(host.window, host.hostId, (-delta / 120) * 100)
     },
     active: ({ active }) => {
-      listeners.activate(active ? hostOfFrame(active) : null)
+      const host = active ? hostOfFrame(active) : null
+      listeners.activate(host?.window ?? null, host?.hostId ?? null)
       // Clic dans l'application : sa fenêtre est revérifiée (style, place)
       const docked = [...windows.values()].find((candidate) => candidate.frame === active)
       if (docked) place(docked)
@@ -1354,12 +1413,18 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
   setFrameMiddleListener(() => listeners.middleClick())
 
   // Onglet tiré hors d'une fenêtre de navigateur : il peut être déposé dans un bloc
-  const stopMoveSize = w.watchMoveSize(onMoveSize)
+  w.watchMoveSize(onMoveSize)
+  screen.on('display-metrics-changed', placeAll)
+}
 
-  // Suit la fenêtre de Tessera (les événements « move » arrivent pendant le déplacement).
-  // Une fenêtre étirée reprend alors la taille de son bloc.
+/** Branche une fenêtre de Tessera : ses blocs peuvent afficher des applications. */
+export function attachDockingWindow(window: BrowserWindow): void {
+  hostWindows.add(window)
+
+  // Suit la fenêtre (les événements « move » arrivent pendant le déplacement). Une fenêtre
+  // étirée reprend alors la taille de son bloc.
   window.on('move', () => {
-    listeners.moved()
+    listeners.moved(window)
     placeAll()
   })
   window.on('resize', placeAll)
@@ -1370,22 +1435,36 @@ export function initDocking(window: BrowserWindow, next: DockingListeners): void
   window.on('restore', placeAll)
   window.on('hide', placeAll)
   window.on('show', placeAll)
-  screen.on('display-metrics-changed', placeAll)
 
-  // Interface rechargée : les blocs vont se réenregistrer. Seulement la page elle-même :
+  // Interface rechargée : ses blocs vont se réenregistrer. Seulement la page elle-même :
   // `did-start-loading` arrive aussi quand un cadre interne charge (corps d'un mail, module…),
   // et toutes les fenêtres perdaient alors leur bloc (blocs gris).
   window.webContents.on('did-start-navigation', (details) => {
     if (!details.isMainFrame || details.isSameDocument) return
     logDocking('interface rechargée : les blocs vont se réenregistrer')
-    hosts.clear()
-    activeHosts.clear()
-    for (const appId of states.keys()) setState(appId, {})
+    forgetHostsOf(window)
     placeAll()
   })
-  window.on('closed', () => {
-    stopMoveSize()
-    screen.off('display-metrics-changed', placeAll)
-    hostWindow = null
+
+  // Fermeture : Windows détruit les fenêtres dont elle est propriétaire. Les cadres de ses blocs
+  // passent tout de suite à une autre fenêtre de Tessera (ses pages y vont aussi), sans quoi les
+  // applications qu'ils contiennent disparaîtraient avec eux.
+  window.on('close', () => {
+    const other = [...hostWindows].find(
+      (candidate) => candidate !== window && !candidate.isDestroyed()
+    )
+    if (!other) return
+    for (const docked of windows.values()) if (docked.owner === window) setOwner(docked, other)
   })
+  window.on('closed', () => {
+    hostWindows.delete(window)
+    suspendedWindows.delete(window)
+    forgetHostsOf(window)
+    placeAll()
+  })
+}
+
+/** Oublie les blocs d'une fenêtre (rechargée ou fermée). */
+function forgetHostsOf(window: BrowserWindow): void {
+  for (const [hostId, host] of [...hosts]) if (host.window === window) forgetHost(hostId)
 }

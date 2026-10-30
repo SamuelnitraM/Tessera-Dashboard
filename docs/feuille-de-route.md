@@ -189,7 +189,15 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Code des extensions chargé à la demande : celles de la page d'accueil et de la barre pendant le démarrage, les autres pages au repos ; une extension inutilisée ne coûte plus rien.
   - [x] Interface minifiée : 776 Ko de code au démarrage au lieu de 1,4 Mo (Notes 631 Ko au lieu de 1,1 Mo) ; tas JavaScript de l'interface 12 Mo au lieu de 16.
   - [x] Processus principal : mails (IMAP, SMTP, lecture), mises à jour et flux RSS chargés au premier usage (95 Mo au lieu de 131, plus de 250 ms gagnées au démarrage).
-- [ ] **Étape 30 : plusieurs fenêtres Tessera.** Un onglet de page glissé hors de la fenêtre ouvre une deuxième fenêtre ; glissé sur une autre fenêtre, il la rejoint, et les fenêtres fusionnent quand la dernière page est déplacée (comme les onglets d'un navigateur).
+- [x] **Étape 30 : plusieurs fenêtres Tessera.** Comme les onglets d'un navigateur : un onglet de page glissé hors de la fenêtre ouvre une nouvelle fenêtre sous la souris ; lâché sur une autre fenêtre de Tessera (qui s'encadre pendant le survol), il la rejoint ; une fenêtre dont la dernière page part se ferme (les fenêtres fusionnent). Seule page de sa fenêtre : c'est la fenêtre qui se déplace.
+  - [x] Onglets de pages (barre du haut et menu latéral) réordonnés en les glissant ; Échap annule.
+  - [x] Menu d'une page : « Ouvrir dans une nouvelle fenêtre », et « Déplacer vers la fenêtre principale » depuis une autre fenêtre.
+  - [x] Chaque page n'est affichée que par une fenêtre ; la fenêtre principale garde toutes les pages qui ne sont pas ailleurs. Une page créée dans une autre fenêtre y reste. Aller à une page d'une autre fenêtre (notification, application qui demande à s'afficher, bloc d'un mail…) fait passer cette fenêtre devant, sur le bon bloc.
+  - [x] Fermer une fenêtre quand il en reste d'autres : ses pages rejoignent la fenêtre principale (rien n'est supprimé). Seule la dernière part dans la zone de notification.
+  - [x] Les autres fenêtres, leur place et leurs pages sont retrouvées au lancement suivant.
+  - [x] Tableau de bord tenu à jour dans toutes les fenêtres (un changement fait dans l'une n'est jamais effacé par l'autre).
+  - [x] Applications installées dans les blocs de n'importe quelle fenêtre : le cadre suit la fenêtre de son bloc (il change de propriétaire avant qu'une fenêtre ne se ferme, sans quoi Windows le détruirait avec l'application) ; masquage pendant un dialogue, plein écran et onglets de navigateur tirés propres à chaque fenêtre. Une application ouverte en onglet dans une fenêtre n'est pas fermée par une autre.
+  - [x] Son des notifications joué une seule fois (par la fenêtre principale).
 
 ## Mise en ligne (en attente)
 

@@ -2,15 +2,17 @@ import { House, PanelLeftOpen, PanelsTopLeft, Plus, Settings, X } from 'lucide-r
 import { useTranslation } from 'react-i18next'
 import type { DashboardPage } from '@shared/dashboard'
 import { useAddPage } from '../hooks/useAddPage'
+import { pageTabAttributes, startPageTabDrag, usePageDragStore } from '../hooks/usePageTabDrag'
+import { useOwnPages } from '../lib/windows'
 import { useNavActions } from '../hooks/useNavActions'
 import { usePageName } from '../hooks/usePageName'
 import { openContextMenu } from '../stores/contextMenu'
-import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
 import { setSidebarMode } from '../lib/layoutTransition'
 import { useSettingsStore } from '../stores/settings'
 import { useWebAppsStore } from '../stores/webApps'
+import { useWindowPagesStore } from '../stores/windowPages'
 import { AppIcon } from './AppIcon'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
@@ -25,7 +27,9 @@ import styles from './TopBar.module.css'
  */
 export function TopBar(): React.JSX.Element {
   const { t } = useTranslation()
-  const pages = useDashboardStore((state) => state.dashboard.pages)
+  // Pages de cette fenêtre (les autres fenêtres de Tessera ont les leurs)
+  const pages = useOwnPages()
+  const dropTarget = useWindowPagesStore((state) => state.dropTarget)
   const apps = useSettingsStore((state) => state.settings.apps.items)
   const view = useNavigationStore((state) => state.view)
   const navigate = useNavigationStore((state) => state.navigate)
@@ -39,7 +43,12 @@ export function TopBar(): React.JSX.Element {
         <Logo size={22} />
       </span>
 
-      <div className={styles.tabs} role="tablist">
+      <div
+        className={styles.tabs}
+        role="tablist"
+        data-drop-target={dropTarget}
+        title={dropTarget ? t('nav.dropPage') : undefined}
+      >
         {pages.map((page) => (
           <PageTab
             key={page.id}
@@ -125,10 +134,19 @@ function PageTab({ page, active, onClick, onContextMenu }: PageTabProps): React.
   const { t } = useTranslation()
   const name = usePageName(page)
   const openDelete = usePageDialogsStore((state) => state.openDelete)
+  const drag = usePageDragStore()
   const Icon = page.isMain ? House : PanelsTopLeft
 
   return (
-    <div className={styles.tab} data-active={active} onContextMenu={onContextMenu}>
+    // Glisser l'onglet : le ranger, ou l'ouvrir dans une autre fenêtre
+    <div
+      className={styles.tab}
+      data-active={active}
+      onContextMenu={onContextMenu}
+      onPointerDown={(event) => startPageTabDrag(event, page.id, 'x')}
+      title={t('nav.dragPage')}
+      {...pageTabAttributes(drag, page.id)}
+    >
       <button
         type="button"
         role="tab"
@@ -142,6 +160,7 @@ function PageTab({ page, active, onClick, onContextMenu }: PageTabProps): React.
       {!page.isMain && (
         <button
           type="button"
+          data-no-tab-drag
           className={styles.tabClose}
           title={t('nav.pageMenu.delete')}
           aria-label={`${t('pages.delete')} : ${name}`}

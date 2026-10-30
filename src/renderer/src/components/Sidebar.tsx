@@ -3,15 +3,17 @@ import type { LucideIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { DashboardPage } from '@shared/dashboard'
 import { useAddPage } from '../hooks/useAddPage'
+import { pageTabAttributes, startPageTabDrag, usePageDragStore } from '../hooks/usePageTabDrag'
+import { useOwnPages } from '../lib/windows'
 import { useNavActions } from '../hooks/useNavActions'
 import { usePageName } from '../hooks/usePageName'
 import { openContextMenu } from '../stores/contextMenu'
-import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
 import { setSidebarMode } from '../lib/layoutTransition'
 import { useSettingsStore } from '../stores/settings'
 import { useWebAppsStore } from '../stores/webApps'
+import { useWindowPagesStore } from '../stores/windowPages'
 import { AppIcon } from './AppIcon'
 import { Badge } from './Badge'
 import { Logo } from './Logo'
@@ -23,7 +25,9 @@ import styles from './Sidebar.module.css'
 /** Menu latéral déplié : pages, applications et paramètres. */
 export function Sidebar(): React.JSX.Element {
   const { t } = useTranslation()
-  const pages = useDashboardStore((state) => state.dashboard.pages)
+  // Pages de cette fenêtre (les autres fenêtres de Tessera ont les leurs)
+  const pages = useOwnPages()
+  const dropTarget = useWindowPagesStore((state) => state.dropTarget)
   const apps = useSettingsStore((state) => state.settings.apps.items)
   const view = useNavigationStore((state) => state.view)
   const navigate = useNavigationStore((state) => state.navigate)
@@ -50,7 +54,11 @@ export function Sidebar(): React.JSX.Element {
         </button>
       </div>
 
-      <div className={styles.group}>
+      <div
+        className={styles.group}
+        data-drop-target={dropTarget}
+        title={dropTarget ? t('nav.dropPage') : undefined}
+      >
         <div className={styles.groupHeader}>
           <h2 className={styles.groupTitle}>{t('nav.pages')}</h2>
           <button
@@ -132,10 +140,19 @@ function PageItem({ page, active, onClick, onContextMenu }: PageItemProps): Reac
   const { t } = useTranslation()
   const name = usePageName(page)
   const openDelete = usePageDialogsStore((state) => state.openDelete)
+  const drag = usePageDragStore()
   const Icon = page.isMain ? House : PanelsTopLeft
 
   return (
-    <div className={styles.pageRow} data-active={active} onContextMenu={onContextMenu}>
+    // Glisser la page : la ranger, ou l'ouvrir dans une autre fenêtre
+    <div
+      className={styles.pageRow}
+      data-active={active}
+      onContextMenu={onContextMenu}
+      onPointerDown={(event) => startPageTabDrag(event, page.id, 'y')}
+      title={t('nav.dragPage')}
+      {...pageTabAttributes(drag, page.id)}
+    >
       <button
         type="button"
         className={styles.item}
@@ -150,6 +167,7 @@ function PageItem({ page, active, onClick, onContextMenu }: PageItemProps): Reac
       {!page.isMain && (
         <button
           type="button"
+          data-no-tab-drag
           className={styles.rowAction}
           title={t('nav.pageMenu.delete')}
           aria-label={`${t('pages.delete')} : ${name}`}

@@ -9,6 +9,7 @@ import { isDesktopApp } from '@shared/user-apps'
 import { useDashboardStore } from './dashboard'
 import { useNavigationStore } from './navigation'
 import { useSettingsStore } from './settings'
+import { useWindowPagesStore } from './windowPages'
 
 /**
  * Applications installées dont la fenêtre est affichée dans Tessera.
@@ -136,7 +137,10 @@ export function useCoverDesktopApps(active: boolean, name: string): void {
   }, [active, name])
 }
 
-/** Applications installées affichées quelque part : dans un bloc (toutes pages) ou un onglet. */
+/**
+ * Applications installées affichées quelque part : dans un bloc (toutes pages, toutes fenêtres)
+ * ou un onglet (de cette fenêtre ou d'une autre).
+ */
 function usedApps(): Set<string> {
   const desktopIds = new Set(
     useSettingsStore
@@ -161,6 +165,8 @@ function usedApps(): Set<string> {
     }
   }
   for (const appId of useNavigationStore.getState().openedApps) used.add(appId)
+  // Ouvertes en onglet dans une autre fenêtre de Tessera
+  for (const appId of useWindowPagesStore.getState().appsElsewhere) used.add(appId)
   return new Set([...used].filter((appId) => desktopIds.has(appId)))
 }
 
@@ -205,4 +211,5 @@ export async function initDesktopAppsStore(): Promise<void> {
   useDashboardStore.subscribe(check)
   useNavigationStore.subscribe(check)
   useSettingsStore.subscribe(check)
+  useWindowPagesStore.subscribe(check)
 }

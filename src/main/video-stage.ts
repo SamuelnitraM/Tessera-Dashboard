@@ -96,9 +96,12 @@ function createOverlay(): BrowserWindow {
   return window
 }
 
-/** Place l'interrupteur en haut, au milieu de l'écran de Tessera. */
+/** Fenêtre de Tessera de la vidéo en plein écran. */
+let stageWindow: BrowserWindow | null = null
+
+/** Place l'interrupteur en haut, au milieu de l'écran de la fenêtre de la vidéo. */
 function position(window: BrowserWindow): void {
-  const host = getMainWindow()
+  const host = stageWindow && !stageWindow.isDestroyed() ? stageWindow : getMainWindow()
   const display = host ? screen.getDisplayMatching(host.getBounds()) : screen.getPrimaryDisplay()
   const { x, y, width } = display.bounds
   window.setBounds({
@@ -119,7 +122,8 @@ export function toggleVideoWheel(): void {
 }
 
 /** Vidéo en plein écran (ou fin) : l'interrupteur est disponible, ou retiré. */
-export function setVideoStage(active: boolean): void {
+export function setVideoStage(active: boolean, window: BrowserWindow | null = null): void {
+  if (active) stageWindow = window
   if (!active) {
     if (poll) clearInterval(poll)
     poll = null

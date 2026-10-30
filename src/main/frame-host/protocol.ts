@@ -6,7 +6,7 @@ import type { SavedWindow } from '../desktop/saved-window'
  */
 
 export type FrameCommand =
-  /** Crée un cadre masqué, propriété de `owner` (la fenêtre de Tessera). Réponse : `frame`. */
+  /** Crée un cadre masqué, propriété de `owner` (une fenêtre de Tessera). Réponse : `frame`. */
   | {
       cmd: 'create'
       id: number
@@ -15,15 +15,17 @@ export type FrameCommand =
       y: number
       width: number
       height: number
-      /** Tessera est en plein écran (voir `fullScreen`). */
+      /** La fenêtre `owner` est en plein écran (voir `fullScreen`). */
       fullScreen: boolean
     }
   /**
-   * Tessera passe en plein écran ou en sort : les cadres sont signalés à la barre des tâches comme
+   * Une fenêtre de Tessera passe en plein écran ou en sort : ses cadres sont signalés à la barre des tâches comme
    * des fenêtres plein écran, sans quoi elle repasse par-dessus Tessera dès qu'une application
    * insérée a le clavier (le cadre est alors la fenêtre active de Windows).
    */
-  | { cmd: 'fullScreen'; value: boolean }
+  | { cmd: 'fullScreen'; owner: number; value: boolean }
+  /** Le bloc du cadre est passé dans une autre fenêtre de Tessera : elle devient sa propriétaire. */
+  | { cmd: 'owner'; frame: number; owner: number }
   /** La fenêtre `window` est insérée dans `frame` : à rendre si Tessera disparaît. */
   | { cmd: 'adopt'; window: number; frame: number; saved: SavedWindow }
   /** Tessera a repris la fenêtre : le cadre est détruit. */

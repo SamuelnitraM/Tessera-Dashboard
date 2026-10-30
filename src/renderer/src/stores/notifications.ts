@@ -1,12 +1,13 @@
 import i18n from 'i18next'
 import { create } from 'zustand'
-import { MAIN_PAGE_ID, type WidgetInstance } from '@shared/dashboard'
+import type { WidgetInstance } from '@shared/dashboard'
 import { isBrowserProcess } from '@shared/browsers'
 import { BROWSER_WIDGET, DESKTOP_APP_WIDGET, isInstalledAppBlock } from '@shared/desktop-apps'
 import type { TesseraNotification } from '@shared/notifications'
 import { localize, widgetKey } from '@shared/plugins'
 import type { Language } from '@shared/settings'
 import { playSound } from '../lib/sounds'
+import { homePageId, showBlock } from '../lib/windows'
 import { getPlugins, WEB_APP_WIDGET } from '../plugins/registry'
 import { focusBlock } from './activeBlock'
 import { useDashboardStore } from './dashboard'
@@ -58,7 +59,7 @@ export const useBlockProposalStore = create<{ proposal: BlockProposal | null }>(
 export function addProposedBlock(proposal: BlockProposal): void {
   useBlockProposalStore.setState({ proposal: null })
   const { view, navigate } = useNavigationStore.getState()
-  const pageId = view.type === 'page' ? view.pageId : MAIN_PAGE_ID
+  const pageId = view.type === 'page' ? view.pageId : homePageId()
   const blockId = useDashboardStore.getState().addWidget(pageId, proposal.type, proposal.config)
   if (!blockId) return
   navigate({ type: 'page', pageId })
@@ -92,10 +93,9 @@ function findBlock(
   return null
 }
 
-/** Ouvre la page du bloc et lui donne le focus. */
+/** Ouvre la page du bloc (dans la fenêtre qui l'affiche) et lui donne le focus. */
 function goToBlock(block: { pageId: string; blockId: string }): void {
-  useNavigationStore.getState().navigate({ type: 'page', pageId: block.pageId })
-  focusBlock(block.blockId)
+  showBlock(block.pageId, block.blockId)
 }
 
 const language = (): Language => (i18n.language === 'en' ? 'en' : 'fr')

@@ -13,8 +13,8 @@ import { ContextMenuHost } from './components/ui/ContextMenuHost'
 import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
 import { setSidebarMode } from './lib/layoutTransition'
+import { showBlock } from './lib/windows'
 import { revealInstalledApp } from './plugin-sdk/apps'
-import { focusBlock } from './stores/activeBlock'
 import { useDashboardStore } from './stores/dashboard'
 import { useNavigationStore } from './stores/navigation'
 import { useResolvedAccentColor, useResolvedLanguage, useSettingsStore } from './stores/settings'
@@ -75,8 +75,7 @@ export function App(): React.JSX.Element {
         const page = pages.find((p) => showsApp(p.id))
         const block = page?.widgets.find((widget) => widget.config.embeddedAppId === appId)
         if (!page || !block) return navigate({ type: 'app', appId })
-        navigate({ type: 'page', pageId: page.id })
-        focusBlock(block.id)
+        showBlock(page.id, block.id)
       }),
     []
   )

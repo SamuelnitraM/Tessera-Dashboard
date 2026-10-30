@@ -81,8 +81,13 @@ export const en: Translation = {
       open: 'Open',
       edit: 'Edit page',
       rename: 'Rename…',
+      newWindow: 'Open in a new window',
+      toMainWindow: 'Move to the main window',
       delete: 'Delete page…'
     },
+    /** Tab dragged from another Tessera window over this one. */
+    dropPage: 'Drop the tab to move the page to this window',
+    dragPage: 'Drag the tab to reorder the page, or out of the window to open it on its own',
     appMenu: {
       open: 'Open',
       openIn: 'Open in {{browser}}',

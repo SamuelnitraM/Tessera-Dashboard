@@ -112,19 +112,25 @@ function ensureHost(): ChildProcessByStdio<Writable, Readable, null> {
   return child
 }
 
-/** Tessera en plein écran : chaque cadre créé l'est aussi pour la barre des tâches. */
-let fullScreen = false
+/** Fenêtres de Tessera en plein écran : leurs cadres le sont aussi pour la barre des tâches. */
+const fullScreenOwners = new Set<Hwnd>()
 
-export function setFramesFullScreen(value: boolean): void {
-  fullScreen = value
-  if (host) send({ cmd: 'fullScreen', value })
+export function setFramesFullScreen(owner: Hwnd, value: boolean): void {
+  if (value) fullScreenOwners.add(owner)
+  else fullScreenOwners.delete(owner)
+  if (host) send({ cmd: 'fullScreen', owner, value })
+}
+
+/** Le bloc du cadre est passé dans une autre fenêtre de Tessera : elle en devient propriétaire. */
+export function setFrameOwner(frame: Hwnd, owner: Hwnd): void {
+  if (host) send({ cmd: 'owner', frame, owner })
 }
 
 function send(command: FrameCommand): void {
   ensureHost().stdin.write(`${JSON.stringify(command)}\n`)
 }
 
-/** Nouveau cadre masqué, propriété de la fenêtre de Tessera. `0` si l'hébergeur a échoué. */
+/** Nouveau cadre masqué, propriété d'une fenêtre de Tessera. `0` si l'hébergeur a échoué. */
 export function createFrame(
   owner: Hwnd,
   rect: { x: number; y: number; width: number; height: number }
@@ -132,7 +138,7 @@ export function createFrame(
   return new Promise((resolve) => {
     const id = nextId++
     pending.set(id, resolve)
-    send({ cmd: 'create', id, owner, ...rect, fullScreen })
+    send({ cmd: 'create', id, owner, ...rect, fullScreen: fullScreenOwners.has(owner) })
   })
 }
 

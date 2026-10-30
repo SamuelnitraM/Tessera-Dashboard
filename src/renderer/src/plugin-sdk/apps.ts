@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { BrowserChoice } from '@shared/browsers'
 import { isInstalledAppBlock } from '@shared/desktop-apps'
 import { isDesktopApp, isWebApp } from '@shared/user-apps'
-import { focusBlock } from '../stores/activeBlock'
+import { showBlock } from '../lib/windows'
 import { useDashboardStore } from '../stores/dashboard'
 import { useNavigationStore } from '../stores/navigation'
 import { useSettingsStore } from '../stores/settings'
@@ -129,6 +129,7 @@ export async function openWebPage(url: string): Promise<void> {
  */
 export function revealInstalledApp(appId: string): boolean {
   const { view, navigate, openedApps } = useNavigationStore.getState()
+  // Les blocs d'une autre fenêtre comptent aussi (elle passe devant)
   const pages = [...useDashboardStore.getState().dashboard.pages].sort(
     (a, b) =>
       Number(view.type === 'page' && b.id === view.pageId) -
@@ -139,8 +140,7 @@ export function revealInstalledApp(appId: string): boolean {
       (widget) => isInstalledAppBlock(widget.type) && widget.config.appId === appId
     )
     if (block) {
-      navigate({ type: 'page', pageId: page.id })
-      focusBlock(block.id)
+      showBlock(page.id, block.id)
       return true
     }
   }
@@ -160,8 +160,7 @@ export function revealInstalledApp(appId: string): boolean {
       offset: { x: 0, y: 0 },
       parked: [...parked, ...current]
     })
-    navigate({ type: 'page', pageId: page.id })
-    focusBlock(block.id)
+    showBlock(page.id, block.id)
     return true
   }
   if (openedApps.includes(appId)) {

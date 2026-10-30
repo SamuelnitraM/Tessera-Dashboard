@@ -183,3 +183,23 @@
   background: var(--color-accent-soft);
   color: var(--color-text);
 }
+
+/* Onglet glissé : estompé ; trait d'insertion avant ou après l'onglet sous la souris */
+.tab[data-dragging='true'] {
+  opacity: 0.45;
+}
+
+.tab[data-drop='before'] {
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+.tab[data-drop='after'] {
+  box-shadow: inset -3px 0 0 var(--color-accent);
+}
+
+/* Onglet d'une autre fenêtre tiré au-dessus : la barre peut le recevoir */
+.tabs[data-drop-target='true'] {
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-soft);
+  box-shadow: inset 0 0 0 2px var(--color-accent);
+}

@@ -1,8 +1,10 @@
 import { useCallback } from 'react'
 import {
+  AppWindow,
   ExternalLink,
   FolderOpen,
   LogOut,
+  PanelsTopLeft,
   Pencil,
   SquarePen,
   Settings,
@@ -18,6 +20,8 @@ import type { MenuItem } from '../stores/contextMenu'
 import { useDesktopAppsStore } from '../stores/desktopApps'
 import { useNavigationStore } from '../stores/navigation'
 import { usePageDialogsStore } from '../stores/pageDialogs'
+import { useWindowPagesStore } from '../stores/windowPages'
+import { useOwnPages } from '../lib/windows'
 import { useBrowsers } from './useBrowsers'
 
 /**
@@ -36,6 +40,8 @@ export function useNavActions(): {
   const closeApp = useNavigationStore((state) => state.closeApp)
   const openedApps = useNavigationStore((state) => state.openedApps)
   const { openRename, openDelete } = usePageDialogsStore()
+  const ownPages = useOwnPages()
+  const primary = useWindowPagesStore((state) => state.primary)
   const openDeleteApp = useAppDialogsStore((state) => state.openDelete)
 
   /** Onglet de Tessera, ou fenêtre du navigateur choisi pour cette application web. */
@@ -69,6 +75,23 @@ export function useNavActions(): {
       }
     },
     { label: t('nav.pageMenu.rename'), icon: Pencil, onSelect: () => openRename(page.id) },
+    'separator',
+    {
+      label: t('nav.pageMenu.newWindow'),
+      icon: AppWindow,
+      // Seule page de la fenêtre : elle y reste (glisser l'onglet déplace alors la fenêtre)
+      disabled: ownPages.length <= 1,
+      onSelect: () => void window.tessera.windows.openPage(page.id)
+    },
+    ...(primary
+      ? []
+      : [
+          {
+            label: t('nav.pageMenu.toMainWindow'),
+            icon: PanelsTopLeft,
+            onSelect: () => void window.tessera.windows.movePageToMain(page.id)
+          }
+        ]),
     'separator',
     {
       label: t('nav.pageMenu.delete'),
