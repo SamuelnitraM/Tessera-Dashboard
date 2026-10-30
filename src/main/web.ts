@@ -13,6 +13,7 @@ import {
   type Session,
   type WebContents
 } from 'electron'
+import { openPageFrom } from './open-in-tessera'
 import { interpolate } from '@shared/i18n'
 import { appPartition, isWebPartition, isWebUrl, MAX_APP_ICON_LENGTH } from '@shared/web-apps'
 import { getTranslation } from './i18n'
@@ -88,12 +89,13 @@ function applyWebRules(contents: WebContents): void {
         }
       }
     }
-    // Lien ordinaire vers un nouvel onglet : ouvert dans le navigateur par défaut. Une page ne
-    // peut pas en ouvrir en rafale (une par seconde au plus, sans clic) : fenêtres en boucle
+    // Lien ordinaire vers un nouvel onglet : dans un bloc Navigateur s'il y en a un, sinon dans
+    // le navigateur par défaut. Une page ne peut pas en ouvrir en rafale (une par seconde au plus,
+    // sans clic) : fenêtres en boucle
     const now = Date.now()
     if (details.disposition === 'background-tab' || now - lastExternalOpen >= 1000) {
       lastExternalOpen = now
-      void shell.openExternal(details.url)
+      openPageFrom(contents.hostWebContents, details.url)
     }
     return { action: 'deny' }
   })
@@ -286,7 +288,11 @@ function buildContextMenu(
 
   if (isWebUrl(params.linkURL)) {
     groups.push([
-      { label: text.openLink, click: () => void shell.openExternal(params.linkURL) },
+      // Dans un bloc Navigateur s'il y en a un, sinon le navigateur par défaut
+      {
+        label: text.openLink,
+        click: () => openPageFrom(contents.hostWebContents ?? contents, params.linkURL)
+      },
       { label: text.copyLink, click: () => clipboard.writeText(params.linkURL) }
     ])
   }

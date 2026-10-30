@@ -53,7 +53,7 @@ export function PageToolbar({
   if (!editing) {
     return (
       <PageHeader title={name}>
-        <HeaderBar editing={false} />
+        <HeaderBar editing={false} page={page} />
         {screenButtons}
         <Button icon={Pencil} onClick={() => setEditing(true)}>
           {t('pages.edit')}
@@ -84,7 +84,7 @@ export function PageToolbar({
         />
       }
     >
-      <HeaderBar editing />
+      <HeaderBar editing page={page} />
       <Button
         icon={LayoutDashboard}
         title={t('pages.arrange.hint')}

@@ -218,8 +218,16 @@ D'abord ce qui gêne au quotidien (applications installées), avec les tests qui
   - [x] Applications installées et navigateurs en mode édition : floutés et grisés comme les autres blocs, barre du bloc inerte (changer de navigateur, rafraîchir, sortir). Un bloc hors de la vue montre la dernière image de sa fenêtre, prise quand elle a été masquée (au lieu de « … s'affichera à la sortie du mode édition »).
   - [x] Widget Spotify : volume à la verticale, à droite du panneau (il ne se confond plus avec la barre de lecture), toujours affiché (grisé tant que Spotify n'a pas joué de son), relu après chaque commande.
   - [x] « Prochain événement » renommé « Agenda ».
-- [ ] **Étape 34 : barre propre à chaque page.** Disposition des widgets propre à chaque page (copiée de la page principale pour une nouvelle page), contenu des widgets et alignement communs ; ajout, rangement et glisser vers la page hors du mode édition ; retrait par le clic droit.
-- [ ] **Étape 35 : liens entre blocs.** Un fichier ouvert depuis Tessera (fichiers, pièces jointes…) met en avant le bloc qui l'affiche ; réglage « prioritaire pour ouvrir les fichiers » sur un bloc ; un bloc Navigateur passe au navigateur demandé ; toutes les interactions entre blocs revues.
+- [x] **Fermeture de Tessera.**
+  - [x] Fermer la fenêtre demande s'il faut fermer complètement Tessera (plus rien ne tourne, son icône quitte la zone de notification) ou le garder en arrière-plan, avec « Ne plus demander » ; réglage « À la fermeture de la fenêtre » (Demander, Garder en arrière-plan, Fermer complètement) à la place de « Garder en arrière-plan ».
+  - [x] Réglage propre à chaque application installée et navigateur (Paramètres → Applications) : la fermer ou la laisser ouverte sur le bureau à la fermeture de Tessera, sinon le réglage commun.
+  - Icônes des applications dans les icônes cachées de la barre des tâches : écarté, Windows ne laisse que l'application elle-même retirer son icône (voir les limites connues).
+- [x] **Étape 34 : barre propre à chaque page.** Disposition des widgets propre à chaque page (une nouvelle page copie celle de la page principale), contenu des widgets et alignement communs ; « + », rangement par glisser et glisser vers la page pour en faire un bloc, aussi hors du mode édition ; retrait par le clic droit (et la croix en mode édition).
+- [x] **Étape 35 : liens entre blocs.**
+  - [x] Un fichier ouvert depuis Tessera (bloc Fichiers, favoris, pièce jointe) va au bloc qui affiche son programme habituel ; une page web ouverte depuis Tessera (lien d'un mail, d'une page web intégrée, d'un article d'Actualités, du terminal, de Git, des Services, de la Surveillance de sites) va à un bloc Navigateur. Le bloc est montré (sa page s'ouvre, il prend le focus), l'application est lancée au besoin puis reçoit le fichier ou la page dans un nouvel onglet.
+  - [x] Réglage du bloc « Prioritaire pour ouvrir les fichiers et les pages web » (blocs Application installée et Navigateur) ; sans bloc prioritaire, celui qui affiche déjà le programme, sinon un bloc Navigateur (celui de la page affichée d'abord). Sans bloc qui puisse l'afficher, Windows l'ouvre comme avant.
+  - [x] Un bloc Navigateur passe au navigateur demandé (fichier dont le programme habituel est un autre navigateur) ; le précédent reste ouvert, mis de côté.
+  - [x] Pièces jointes des mails : un clic les ouvre (copie temporaire marquée comme venue d'Internet, effacée au lancement suivant), le bouton à côté les enregistre ; un programme ou un script n'est jamais ouvert depuis un mail.
 
 ## Mise en ligne (en attente)
 

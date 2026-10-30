@@ -54,6 +54,7 @@ import {
   removeNotification,
   sendTestNotification
 } from './notifications'
+import { openInApp, openOutside, resolveOpenTarget } from './open-in-tessera'
 import type { NotifyInput } from '@shared/notifications'
 import {
   getPluginFolder,
@@ -91,6 +92,7 @@ import {
   pickUploads,
   protectMailAccounts,
   removeAccount,
+  openAttachment,
   saveAttachment,
   sendMessage,
   setGoogleClientSecret
@@ -399,6 +401,11 @@ export function registerIpcHandlers(): void {
     pickUploads(pluginId, BrowserWindow.fromWebContents(event.sender))
   )
   ipcMain.handle(
+    IpcChannels.mailOpenAttachment,
+    (_event, pluginId: string, accountId: string, id: string, index: number) =>
+      openAttachment(pluginId, accountId, id, index)
+  )
+  ipcMain.handle(
     IpcChannels.mailSaveAttachment,
     (event, pluginId: string, accountId: string, id: string, index: number) =>
       saveAttachment(pluginId, accountId, id, index, BrowserWindow.fromWebContents(event.sender))
@@ -409,8 +416,8 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.mailReconnect, (_event, pluginId: string, accountId: string) =>
     reconnectMailAccount(pluginId, accountId)
   )
-  ipcMain.handle(IpcChannels.mailOpenLink, (_event, pluginId: string, url: string) =>
-    openMailLink(pluginId, url)
+  ipcMain.handle(IpcChannels.mailOpenLink, (event, pluginId: string, url: string) =>
+    openMailLink(pluginId, url, event.sender)
   )
 
   // YouTube et Twitch : comptes (Paramètres), puis données des widgets (permission `media`)
@@ -524,6 +531,11 @@ export function registerIpcHandlers(): void {
     browserAppFor(String(browserId))
   )
   ipcMain.handle(IpcChannels.browsersOpenPage, (_event, url: string) => openWebPage(String(url)))
+  ipcMain.handle(IpcChannels.openResolve, (_event, target: unknown) => resolveOpenTarget(target))
+  ipcMain.handle(IpcChannels.openInApp, (_event, appId: unknown, target: unknown) =>
+    openInApp(appId, target)
+  )
+  ipcMain.handle(IpcChannels.openOutside, (_event, target: unknown) => openOutside(target))
   ipcMain.handle(IpcChannels.browsersOpen, (_event, browserId: string, url: string) =>
     openInBrowser(browserId, url)
   )

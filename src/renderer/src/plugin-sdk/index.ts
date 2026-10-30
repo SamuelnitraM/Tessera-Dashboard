@@ -266,6 +266,7 @@ export { normalizeWebUrl } from '@shared/web-apps'
 
 export {
   installedAppForBrowser,
+  openInTessera,
   openWebPage,
   refreshInstalledApp,
   revealInstalledApp,

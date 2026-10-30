@@ -83,6 +83,19 @@
   color: var(--color-accent);
 }
 
+/* Hors mode édition : « + » discret, plus marqué au survol */
+.bar[data-editing='false'] .add {
+  width: 1.75rem;
+  border-color: transparent;
+  opacity: 0.6;
+}
+
+.bar[data-editing='false'] .add:hover,
+.bar[data-editing='false'] .add:focus-visible {
+  border-color: var(--color-accent);
+  opacity: 1;
+}
+
 /* ---------- Bouton d'un widget ---------- */
 
 .popoverRoot {

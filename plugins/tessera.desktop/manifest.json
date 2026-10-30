@@ -44,6 +44,15 @@
           "default": true
         },
         {
+          "key": "openFiles",
+          "type": "boolean",
+          "label": {
+            "fr": "Prioritaire pour ouvrir les fichiers et les pages web",
+            "en": "Preferred for opening files and web pages"
+          },
+          "default": false
+        },
+        {
           "key": "fullScreen",
           "type": "select",
           "label": {
@@ -98,6 +107,15 @@
             "en": "Show the block bar (app name)"
           },
           "default": true
+        },
+        {
+          "key": "openFiles",
+          "type": "boolean",
+          "label": {
+            "fr": "Prioritaire pour ouvrir les fichiers et les pages web",
+            "en": "Preferred for opening files and web pages"
+          },
+          "default": false
         },
         {
           "key": "fullScreen",

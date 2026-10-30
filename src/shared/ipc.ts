@@ -121,6 +121,7 @@ export const IpcChannels = {
   mailSend: 'mail:send',
   mailPickUploads: 'mail:pick-uploads',
   mailSaveAttachment: 'mail:save-attachment',
+  mailOpenAttachment: 'mail:open-attachment',
   mailCheckNow: 'mail:check-now',
   mailReconnect: 'mail:reconnect',
   mailOpenLink: 'mail:open-link',
@@ -176,6 +177,12 @@ export const IpcChannels = {
   browsersChoices: 'browsers:choices',
   browsersAppFor: 'browsers:app-for',
   browsersOpenPage: 'browsers:open-page',
+  /** Fichier ou page ouvert depuis Tessera : ce que Windows en ferait (étape 35). */
+  openResolve: 'open:resolve',
+  openInApp: 'open:in-app',
+  openOutside: 'open:outside',
+  /** Événement main -> renderer : page à ouvrir dans un bloc (lien d'une page web, d'un mail…). */
+  openRequest: 'open:request',
   headerBarSearchPlaces: 'header-bar:search-places',
   headerBarWeather: 'header-bar:weather',
   headerBarRates: 'header-bar:rates',

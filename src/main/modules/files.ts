@@ -262,7 +262,7 @@ export function trashFiles(list: unknown): Promise<FileOperationResult> {
 }
 
 /** Programme ouvert par Windows pour cette extension (`.pdf` -> `C:\…\firefox.exe`). */
-function defaultProgram(extension: string): string | null {
+export function defaultProgram(extension: string): string | null {
   if (!extension) return null
   const out = new Uint16Array(1024)
   const length = [out.length]

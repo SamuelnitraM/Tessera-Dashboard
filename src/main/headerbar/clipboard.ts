@@ -240,12 +240,15 @@ export function initClipboardHistory(): void {
     .get()
     .map(toEntry)
     .filter((entry): entry is Entry => entry !== null)
-  // Widget dans la barre, ou en bloc sur une page
+  // Widget dans la barre d'une page (la sienne, ou la barre commune), ou en bloc sur une page
   const block = toolboxWidgetType('clipboard')
   const update = (): void =>
     setWatching(
-      getSettings().headerBar.items.includes('clipboard') ||
-        getDashboard().pages.some((page) => page.widgets.some((widget) => widget.type === block))
+      getDashboard().pages.some(
+        (page) =>
+          (page.headerItems ?? getSettings().headerBar.items).includes('clipboard') ||
+          page.widgets.some((widget) => widget.type === block)
+      )
     )
   update()
   onSettingsChange(update)

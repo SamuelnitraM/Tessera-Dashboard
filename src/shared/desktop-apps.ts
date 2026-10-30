@@ -27,6 +27,11 @@ export interface DesktopApp {
    * fenêtre d'un jeu affichée dans le bloc Jeux, qu'on ne veut pas quitter).
    */
   release?: 'close' | 'desktop'
+  /**
+   * À la fermeture de Tessera : la fermer, ou la laisser ouverte sur le bureau ; absent, le
+   * réglage commun (`apps.onQuit`).
+   */
+  onQuit?: QuitMode
 }
 
 /** Programme trouvé dans le menu Démarrer, proposé à l'ajout. */
@@ -210,6 +215,9 @@ export function sanitizeDesktopApp(input: unknown): DesktopApp | null {
         ? app.icon
         : null,
     minWidth: asSize(app.minWidth),
-    minHeight: asSize(app.minHeight)
+    minHeight: asSize(app.minHeight),
+    ...((QUIT_MODES as readonly unknown[]).includes(app.onQuit)
+      ? { onQuit: app.onQuit as QuitMode }
+      : {})
   }
 }

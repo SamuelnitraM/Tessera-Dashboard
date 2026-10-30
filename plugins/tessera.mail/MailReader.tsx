@@ -10,7 +10,8 @@ import {
   Reply,
   ReplyAll,
   Trash2,
-  type LucideIcon
+  type LucideIcon,
+  Download
 } from 'lucide-react'
 import {
   Button,
@@ -95,6 +96,17 @@ export function MailReader({
       setNotice(mailErrorMessage(failure))
     }
   }
+  // Ouverte dans le bloc qui doit l'afficher ; un programme ou un script est seulement enregistré
+  const openAttachment = async (index: number): Promise<void> => {
+    try {
+      if (!(await mail.openAttachment(accountId, id, index))) {
+        setNotice(t('reader.riskyAttachment'))
+        await save(index)
+      }
+    } catch (failure) {
+      setNotice(mailErrorMessage(failure))
+    }
+  }
 
   const tool = (icon: LucideIcon, label: string, onClick: () => void, disabled = false) => {
     const Icon = icon
@@ -172,19 +184,29 @@ export function MailReader({
             {message.attachments.length > 0 && (
               <div className={styles.attachments}>
                 {message.attachments.map((attachment) => (
-                  <button
-                    key={attachment.index}
-                    type="button"
-                    className={styles.attachment}
-                    title={t('reader.save', { name: attachment.filename })}
-                    onClick={() => void save(attachment.index)}
-                  >
-                    <Paperclip size={13} aria-hidden />
-                    <span className={styles.attachmentName}>{attachment.filename}</span>
-                    <span className={styles.attachmentSize}>
-                      {formatSize(attachment.size, language)}
-                    </span>
-                  </button>
+                  <span key={attachment.index} className={styles.attachmentGroup}>
+                    <button
+                      type="button"
+                      className={styles.attachment}
+                      title={t('reader.open', { name: attachment.filename })}
+                      onClick={() => void openAttachment(attachment.index)}
+                    >
+                      <Paperclip size={13} aria-hidden />
+                      <span className={styles.attachmentName}>{attachment.filename}</span>
+                      <span className={styles.attachmentSize}>
+                        {formatSize(attachment.size, language)}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.attachmentSave}
+                      title={t('reader.save', { name: attachment.filename })}
+                      aria-label={t('reader.save', { name: attachment.filename })}
+                      onClick={() => void save(attachment.index)}
+                    >
+                      <Download size={13} aria-hidden />
+                    </button>
+                  </span>
                 ))}
               </div>
             )}

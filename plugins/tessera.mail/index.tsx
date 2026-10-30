@@ -78,6 +78,9 @@ export default definePlugin({
         showImages: 'Afficher les images',
         save: 'Enregistrer « {{name}} »',
         saved: 'Pièce jointe enregistrée.',
+        open: 'Ouvrir « {{name}} »',
+        riskyAttachment:
+          'Un programme ou un script ne s’ouvre pas depuis un mail : enregistre-le si tu lui fais confiance.',
         frameTitle: 'Contenu du mail'
       },
       composer: {
@@ -187,6 +190,9 @@ export default definePlugin({
         showImages: 'Show images',
         save: 'Save “{{name}}”',
         saved: 'Attachment saved.',
+        open: 'Open “{{name}}”',
+        riskyAttachment:
+          'A program or script is not opened from an email: save it if you trust it.',
         frameTitle: 'Email content'
       },
       composer: {

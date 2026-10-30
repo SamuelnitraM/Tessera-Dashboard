@@ -1588,8 +1588,16 @@ export function closeRemovedApps(): void {
 
 /** Avant de quitter : les applications sont fermées, ou rendues au bureau (réglage). */
 export function releaseAllApps(mode: QuitMode): void {
+  // Réglage propre à une application (navigateur gardé ouvert…), sinon le réglage commun
+  const own = new Map(
+    getSettings()
+      .apps.items.filter(isDesktopApp)
+      .map((app) => [app.id, app.onQuit])
+  )
   // Un jeu n'est jamais fermé par Tessera (partie non sauvegardée) : rendu au bureau
-  for (const docked of [...windows.values()]) undock(docked, docked.fixedSize ? 'restore' : mode)
+  for (const docked of [...windows.values()]) {
+    undock(docked, docked.fixedSize ? 'restore' : (own.get(docked.appId) ?? mode))
+  }
 }
 
 /** Branche le gestionnaire (une fois) ; chaque fenêtre s'y ajoute par `attachDockingWindow`. */

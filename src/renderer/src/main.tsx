@@ -30,9 +30,8 @@ const { pages } = useDashboardStore.getState().dashboard
 const home = pages.find((page) => page.id === homePageId()) ?? pages[0]
 const homeCode = loadPluginCode([
   ...(home?.widgets ?? []).map((widget) => pluginOf(widget.type)),
-  ...useSettingsStore
-    .getState()
-    .settings.headerBar.items.filter((item) => item.includes('/'))
+  ...(home?.headerItems ?? useSettingsStore.getState().settings.headerBar.items)
+    .filter((item) => item.includes('/'))
     .map(pluginOf)
 ])
 

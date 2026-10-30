@@ -12,6 +12,7 @@ import {
   Trash2
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import type { QuitMode } from '@shared/desktop-apps'
 import type { UserApp } from '@shared/user-apps'
 import { normalizeWebUrl, OPEN_IN_TESSERA, WEB_APP_PRESETS, type WebApp } from '@shared/web-apps'
 import { AppIcon } from '../../../components/AppIcon'
@@ -53,8 +54,10 @@ export function ApplicationsSection(): React.JSX.Element {
     save([...apps, app])
   }
 
-  const patchApp = (id: string, patch: Partial<WebApp> | { name: string }): void =>
-    save(apps.map((app) => (app.id === id ? ({ ...app, ...patch } as UserApp) : app)))
+  const patchApp = (
+    id: string,
+    patch: Partial<WebApp> | { name: string } | { onQuit: QuitMode | undefined }
+  ): void => save(apps.map((app) => (app.id === id ? ({ ...app, ...patch } as UserApp) : app)))
 
   const move = (index: number, offset: -1 | 1): void => {
     const items = [...apps]
@@ -132,11 +135,39 @@ export function ApplicationsSection(): React.JSX.Element {
                     </select>
                   </>
                 ) : (
-                  // Le programme lancé ne se modifie pas : on supprime et on rajoute l'application
-                  <p className={styles.appPath} title={`${app.path} ${app.args}`.trim()}>
-                    <AppWindow size={13} aria-hidden />
-                    {t('settings.applications.installed')} · {app.path}
-                  </p>
+                  <>
+                    {/* Le programme lancé ne se modifie pas : on supprime et on rajoute
+                        l'application */}
+                    <p className={styles.appPath} title={`${app.path} ${app.args}`.trim()}>
+                      <AppWindow size={13} aria-hidden />
+                      {t('settings.applications.installed')} · {app.path}
+                    </p>
+                    {/* Ce qu'elle devient à la fermeture de Tessera (sinon le réglage commun) */}
+                    <select
+                      className={styles.input}
+                      value={app.onQuit ?? 'default'}
+                      aria-label={t('settings.applications.appOnQuit.label', { name: app.name })}
+                      title={t('settings.applications.appOnQuit.label', { name: app.name })}
+                      onChange={(event) =>
+                        patchApp(app.id, {
+                          onQuit:
+                            event.target.value === 'default'
+                              ? undefined
+                              : (event.target.value as QuitMode)
+                        })
+                      }
+                    >
+                      <option value="default">
+                        {t('settings.applications.appOnQuit.default', {
+                          choice: t(`settings.applications.onQuit.${onQuit}`)
+                        })}
+                      </option>
+                      <option value="close">{t('settings.applications.appOnQuit.close')}</option>
+                      <option value="restore">
+                        {t('settings.applications.appOnQuit.restore')}
+                      </option>
+                    </select>
+                  </>
                 )}
               </div>
               <div className={styles.appActions}>

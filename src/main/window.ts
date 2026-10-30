@@ -1,12 +1,14 @@
 import { join } from 'node:path'
-import { app, BrowserWindow, nativeTheme, screen, shell, type Rectangle } from 'electron'
+import { app, BrowserWindow, dialog, nativeTheme, screen, type Rectangle } from 'electron'
 import { APP_NAME } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { getAppIcons } from './app-icon'
 import { setFramesFullScreen } from './desktop/frames'
 import { getProcessId, isForegroundOf, isUncovered } from './desktop/win32'
 import { protectModuleFrames } from './plugins/module-protocol'
-import { getSettings } from './settings-store'
+import { getTranslation } from './i18n'
+import { openPageFrom } from './open-in-tessera'
+import { getSettings, updateSettings } from './settings-store'
 import { getWindowBackground } from './system'
 import { checkForUpdatesOnClose } from './updater'
 import { secureWebviews } from './web'
@@ -31,6 +33,49 @@ interface TesseraWindow {
 
 /** Fenêtres ouvertes, la principale en premier. */
 const entries: TesseraWindow[] = []
+
+/**
+ * L'app continue de tourner dans la zone de notification, fenêtre masquée (et regarde s'il y a
+ * une mise à jour).
+ */
+function goToBackground(window: BrowserWindow): void {
+  window.hide()
+  checkForUpdatesOnClose()
+}
+
+/** Question de la fermeture affichée (une seule à la fois). */
+let asking = false
+
+/**
+ * Fermeture de la dernière fenêtre (réglage « Demander ») : fermer complètement Tessera (plus rien
+ * ne tourne, son icône quitte la zone de notification), le garder en arrière-plan, ou annuler.
+ * « Ne plus demander » retient le choix (Paramètres → Général).
+ */
+async function askOnClose(window: BrowserWindow): Promise<void> {
+  if (asking) return
+  asking = true
+  try {
+    const text = getTranslation().closeDialog
+    const { response, checkboxChecked } = await dialog.showMessageBox(window, {
+      type: 'question',
+      title: APP_NAME,
+      message: text.message,
+      detail: text.detail,
+      buttons: [text.quit, text.background, text.cancel],
+      defaultId: 0,
+      cancelId: 2,
+      noLink: true,
+      checkboxLabel: text.remember
+    })
+    if (response === 2 || window.isDestroyed()) return
+    if (checkboxChecked)
+      updateSettings({ window: { onClose: response === 0 ? 'quit' : 'background' } })
+    if (response === 0) app.quit()
+    else goToBackground(window)
+  } finally {
+    asking = false
+  }
+}
 
 /** Fenêtre créée masquée (démarrage avec Windows) : elle s'agrandira à sa première ouverture. */
 let maximizeOnShow = false
@@ -161,13 +206,12 @@ export function createTesseraWindow(options: WindowOptions = {}): BrowserWindow 
     // (windows.ts)
     if (entries.length > 1) return
     saveWindowState(window)
-    // Sans arrière-plan, la fenêtre se ferme normalement et l'app quitte (voir index.ts)
-    if (!getSettings().window.closeToTray) return
-
-    // L'app continue de tourner dans la zone de notification (et regarde s'il y a une mise à jour)
+    const mode = getSettings().window.onClose
+    // Fermeture complète : la fenêtre se ferme normalement et l'app quitte (voir index.ts)
+    if (mode === 'quit') return
     event.preventDefault()
-    window.hide()
-    checkForUpdatesOnClose()
+    if (mode === 'background') goToBackground(window)
+    else void askOnClose(window)
   })
 
   window.on('closed', () => {
@@ -302,19 +346,20 @@ export function setWindowsIcon(icon: Electron.NativeImage): void {
 }
 
 /**
- * L'interface ne doit jamais quitter la page de l'app :
- * les liens externes s'ouvrent dans le navigateur par défaut.
+ * L'interface ne doit jamais quitter la page de l'app : les liens externes (article d'un bloc
+ * Actualités, lien du terminal…) vont dans un bloc Navigateur s'il y en a un, sinon dans le
+ * navigateur par défaut (`openPageFrom`).
  */
 function protectNavigation(window: BrowserWindow): void {
   window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isExternalUrl(url)) void shell.openExternal(url)
+    if (isExternalUrl(url)) openPageFrom(window.webContents, url)
     return { action: 'deny' }
   })
 
   window.webContents.on('will-navigate', (event, url) => {
     if (url !== window.webContents.getURL()) {
       event.preventDefault()
-      if (isExternalUrl(url)) void shell.openExternal(url)
+      if (isExternalUrl(url)) openPageFrom(window.webContents, url)
     }
   })
 }

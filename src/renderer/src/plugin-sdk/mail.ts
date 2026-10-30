@@ -1,4 +1,5 @@
 import { useContext, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { openInTessera } from './apps'
 import type {
   MailAccount,
   MailAccountState,
@@ -38,6 +39,11 @@ export interface PluginMail {
   pickUploads: () => Promise<MailUpload[]>
   /** Enregistre une pièce jointe où l'utilisateur le choisit (`false` si annulé). */
   saveAttachment: (accountId: string, id: string, index: number) => Promise<boolean>
+  /**
+   * Ouvre une pièce jointe dans le bloc qui doit l'afficher (sinon son programme habituel) ;
+   * `false` pour un programme ou un script, qui ne s'ouvre pas depuis un mail (à enregistrer).
+   */
+  openAttachment: (accountId: string, id: string, index: number) => Promise<boolean>
   /** Vérifie les nouveaux mails tout de suite (notifications comprises). */
   checkNow: (accountId: string) => Promise<void>
   /** Reconnecte un compte Gmail (page de connexion dans le navigateur). */
@@ -60,6 +66,12 @@ export function useMail(): PluginMail {
       send: (accountId, draft) => api.send(pluginId, accountId, draft),
       pickUploads: () => api.pickUploads(pluginId),
       saveAttachment: (accountId, id, index) => api.saveAttachment(pluginId, accountId, id, index),
+      openAttachment: async (accountId, id, index) => {
+        const path = await api.openAttachment(pluginId, accountId, id, index)
+        if (!path) return false
+        await openInTessera(path)
+        return true
+      },
       checkNow: (accountId) => api.checkNow(pluginId, accountId),
       reconnect: (accountId) => api.reconnect(pluginId, accountId),
       openLink: (url) => api.openLink(pluginId, url)

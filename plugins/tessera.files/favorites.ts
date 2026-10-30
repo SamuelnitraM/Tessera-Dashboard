@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { revealInstalledApp } from '@tessera/plugin-sdk'
+import { openInTessera, revealInstalledApp } from '@tessera/plugin-sdk'
 import type { FileFavorite } from '@shared/files'
 
 /** Un bloc Favoris demande d'ouvrir un dossier : le premier bloc Fichiers affiché répond. */
@@ -31,6 +31,11 @@ export async function openFavorite(favorite: FileFavorite): Promise<void> {
     window.dispatchEvent(new CustomEvent(NAVIGATE_EVENT, { detail }))
     if (detail.handled) return
   }
-  const { appId } = await window.tessera.files.open(favorite.path)
-  if (appId) revealInstalledApp(appId)
+  if (favorite.isDirectory) {
+    const { appId } = await window.tessera.files.open(favorite.path)
+    if (appId) revealInstalledApp(appId)
+    return
+  }
+  // Fichier : dans le bloc qui doit l'afficher (programme habituel, bloc prioritaire)
+  await openInTessera(favorite.path)
 }

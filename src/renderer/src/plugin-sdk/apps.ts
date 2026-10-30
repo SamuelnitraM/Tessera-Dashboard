@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { BrowserChoice } from '@shared/browsers'
-import { isInstalledAppBlock } from '@shared/desktop-apps'
+import { BROWSER_WIDGET, isInstalledAppBlock } from '@shared/desktop-apps'
 import { isDesktopApp, isWebApp } from '@shared/user-apps'
 import { showBlock } from '../lib/windows'
 import { useDashboardStore } from '../stores/dashboard'
+import { useDesktopAppsStore } from '../stores/desktopApps'
 import { useNavigationStore } from '../stores/navigation'
 import { useSettingsStore } from '../stores/settings'
 
@@ -115,11 +116,137 @@ export function installedAppForBrowser(browserId: string): Promise<string | null
 
 /**
  * Ouvre une page web (http ou https) dans le navigateur affiché par un bloc de Tessera, et
- * montre ce bloc ; sans navigateur dans Tessera, dans le navigateur par défaut du PC.
+ * montre ce bloc ; sans bloc Navigateur, dans le navigateur par défaut du PC.
  */
-export async function openWebPage(url: string): Promise<void> {
-  const appId = await window.tessera.browsers.openPage(url)
-  if (appId) revealInstalledApp(appId)
+export function openWebPage(url: string): Promise<void> {
+  return openInTessera(url)
+}
+
+/** Délai d'attente d'une application lancée dans son bloc avant de lui passer le fichier. */
+const LAUNCH_WAIT_MS = 20_000
+
+/** Bloc qui peut afficher une application (bloc Application installée ou Navigateur). */
+interface AppBlock {
+  pageId: string
+  blockId: string
+  browser: boolean
+  appId: string | null
+  parked: string[]
+  /** Réglage « Prioritaire pour ouvrir les fichiers et les pages ». */
+  priority: boolean
+}
+
+/** Blocs d'applications de toutes les pages (celle affichée d'abord). */
+function appBlocks(): AppBlock[] {
+  const { view } = useNavigationStore.getState()
+  const pages = [...useDashboardStore.getState().dashboard.pages].sort(
+    (a, b) =>
+      Number(view.type === 'page' && b.id === view.pageId) -
+      Number(view.type === 'page' && a.id === view.pageId)
+  )
+  return pages.flatMap((page) =>
+    page.widgets
+      .filter((widget) => isInstalledAppBlock(widget.type))
+      .map((widget) => ({
+        pageId: page.id,
+        blockId: widget.id,
+        browser: widget.type === BROWSER_WIDGET,
+        appId: typeof widget.config.appId === 'string' ? widget.config.appId : null,
+        parked: Array.isArray(widget.config.parked)
+          ? widget.config.parked.filter((id): id is string => typeof id === 'string')
+          : [],
+        priority: widget.config.openFiles === true
+      }))
+  )
+}
+
+const statusOf = (appId: string): string =>
+  useDesktopAppsStore.getState().states[appId]?.status ?? 'idle'
+
+/** Le bloc passe sur cette application (navigateur mis de côté repris), sa page s'ouvre. */
+function showAppInBlock(block: AppBlock, appId: string): void {
+  if (block.appId !== appId) {
+    useDashboardStore.getState().updateWidgetConfig(block.pageId, block.blockId, {
+      appId,
+      offset: { x: 0, y: 0 },
+      parked: [...block.parked.filter((id) => id !== appId), ...(block.appId ? [block.appId] : [])]
+    })
+  }
+  showBlock(block.pageId, block.blockId)
+}
+
+/** Attend que l'application soit lancée et affichée dans son bloc (`false` après le délai). */
+function waitShown(appId: string): Promise<boolean> {
+  const ready = (): boolean => {
+    const state = useDesktopAppsStore.getState().states[appId]
+    return state?.status === 'running' && state.hostId !== null
+  }
+  if (ready()) return Promise.resolve(true)
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => finish(false), LAUNCH_WAIT_MS)
+    const unsubscribe = useDesktopAppsStore.subscribe(() => ready() && finish(true))
+    function finish(value: boolean): void {
+      clearTimeout(timer)
+      unsubscribe()
+      resolve(value)
+    }
+  })
+}
+
+/**
+ * Ouvre un fichier ou une page web depuis Tessera, dans le bloc qui doit l'afficher :
+ * - un fichier va à son programme habituel dans Windows, s'il est affiché par un bloc : le bloc
+ *   « prioritaire pour ouvrir les fichiers » d'abord, sinon celui qui affiche déjà ce programme,
+ *   sinon (navigateur) un bloc Navigateur, qui passe sur ce navigateur ;
+ * - une page va au navigateur du bloc Navigateur prioritaire, sinon d'un bloc Navigateur dont le
+ *   navigateur est ouvert, sinon du premier bloc Navigateur.
+ * Le bloc est montré (sa page s'ouvre, il prend le focus), l'application est lancée au besoin
+ * puis reçoit le fichier. Sans bloc qui puisse l'afficher, Windows l'ouvre comme d'habitude.
+ */
+export async function openInTessera(input: string): Promise<void> {
+  const target = await window.tessera.open.resolve(input)
+  if (!target) return
+  const blocks = appBlocks()
+  let choice: { block: AppBlock; appId: string } | null = null
+  if (target.kind === 'url') {
+    const browsers = blocks.filter((block) => block.browser && block.appId)
+    const block =
+      browsers.find((candidate) => candidate.priority) ??
+      browsers.find((candidate) => statusOf(candidate.appId!) === 'running') ??
+      browsers[0]
+    if (block) choice = { block, appId: block.appId! }
+  } else {
+    const hasBrowserBlock = blocks.some((block) => block.browser)
+    // Navigateur sans application dans Tessera : elle est créée (un bloc Navigateur l'affichera)
+    const appId =
+      target.appId ??
+      (target.browserId && hasBrowserBlock
+        ? await window.tessera.browsers.appFor(target.browserId)
+        : null)
+    if (appId) {
+      const canShow = (block: AppBlock): boolean =>
+        block.appId === appId ||
+        block.parked.includes(appId) ||
+        (block.browser && !!target.browserId)
+      const block =
+        blocks.find((candidate) => candidate.priority && canShow(candidate)) ??
+        blocks.find((candidate) => candidate.appId === appId) ??
+        blocks.find((candidate) => candidate.parked.includes(appId)) ??
+        (target.browserId ? blocks.find((candidate) => candidate.browser) : undefined)
+      if (block) choice = { block, appId }
+    }
+  }
+  // Application sortie sur le bureau : elle le reçoit là où elle est
+  if (choice && statusOf(choice.appId) === 'outside') {
+    if (await window.tessera.open.inApp(choice.appId, target.target)) return
+    choice = null
+  }
+  if (!choice) return window.tessera.open.outside(target.target)
+  showAppInBlock(choice.block, choice.appId)
+  const shown = await waitShown(choice.appId)
+  if (!shown || !(await window.tessera.open.inApp(choice.appId, target.target))) {
+    await window.tessera.open.outside(target.target)
+  }
 }
 
 /**

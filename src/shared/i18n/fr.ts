@@ -6,6 +6,15 @@ export const fr = {
   app: {
     tagline: 'Toutes tes applications, une seule fenêtre.'
   },
+  closeDialog: {
+    message: 'Fermer complètement Tessera ?',
+    detail:
+      'En arrière-plan, Tessera reste dans la zone de notification de la barre des tâches (notifications, mails, rappels, mises à jour). Fermé complètement, plus rien ne tourne et son icône disparaît.',
+    quit: 'Fermer complètement',
+    background: 'Garder en arrière-plan',
+    cancel: 'Annuler',
+    remember: 'Ne plus demander (modifiable dans Paramètres → Général)'
+  },
   tray: {
     open: 'Ouvrir {{appName}}',
     doNotDisturb: 'Ne pas déranger',
@@ -916,10 +925,13 @@ export const fr = {
         description:
           'Tessera démarre avec ta session, réduit dans la zone de notification (version installée).'
       },
-      closeToTray: {
-        label: 'Garder en arrière-plan à la fermeture',
+      onClose: {
+        label: 'À la fermeture de la fenêtre',
         description:
-          'Fermer la fenêtre la masque dans la zone de notification au lieu de quitter l’app.'
+          'En arrière-plan, Tessera reste dans la zone de notification ; fermé complètement, plus rien ne tourne.',
+        ask: 'Demander',
+        background: 'Garder en arrière-plan',
+        quit: 'Fermer complètement'
       },
       videoWheel: {
         label: 'Molette sur une vidéo en plein écran',
@@ -1055,6 +1067,12 @@ export const fr = {
           'Ce que deviennent les applications installées affichées dans Tessera quand tu quittes l’app.',
         close: 'Les fermer',
         restore: 'Les rendre au bureau'
+      },
+      appOnQuit: {
+        label: 'À la fermeture de Tessera : {{name}}',
+        default: 'À la fermeture de Tessera : comme les autres ({{choice}})',
+        close: 'À la fermeture de Tessera : la fermer',
+        restore: 'À la fermeture de Tessera : la laisser ouverte sur le bureau'
       },
       addInstalledTitle: 'Ajouter une application installée',
       installedIntro:

@@ -15,7 +15,7 @@ import { changeLanguage } from './i18n'
 import { applyAccentColor } from './lib/appearance'
 import { setSidebarMode } from './lib/layoutTransition'
 import { showBlock } from './lib/windows'
-import { revealInstalledApp } from './plugin-sdk/apps'
+import { openInTessera, revealInstalledApp } from './plugin-sdk/apps'
 import { useDashboardStore } from './stores/dashboard'
 import { useNavigationStore } from './stores/navigation'
 import { useResolvedAccentColor, useResolvedLanguage, useSettingsStore } from './stores/settings'
@@ -80,6 +80,10 @@ export function App(): React.JSX.Element {
       }),
     []
   )
+
+  // Page ouverte depuis l'application (lien d'une page web intégrée, d'un mail, d'un bloc) :
+  // dans un bloc Navigateur s'il y en a un, sinon le navigateur par défaut
+  useEffect(() => window.tessera.open.onRequest((url) => void openInTessera(url)), [])
 
   return (
     <div className={styles.shell} data-sidebar={sidebar}>

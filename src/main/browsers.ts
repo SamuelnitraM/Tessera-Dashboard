@@ -135,6 +135,13 @@ function detect(): Promise<DetectedBrowser[]> {
   return detection
 }
 
+/** Navigateur installé dont `program` est l'exécutable (programme habituel d'un fichier). */
+export async function browserForProgram(program: string): Promise<InstalledBrowser | null> {
+  const name = basename(program).toLowerCase()
+  const browser = (await detect()).find((candidate) => candidate.executables.includes(name))
+  return browser ? { id: browser.id, name: browser.name } : null
+}
+
 /** Navigateurs installés (détectés une fois par lancement). */
 export async function listBrowsers(): Promise<InstalledBrowser[]> {
   return (await detect()).map(({ id, name }) => ({ id, name }))

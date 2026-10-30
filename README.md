@@ -101,7 +101,9 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 - **Notifications** : bulles dans Tessera quand tu l'as sous les yeux (dans le coin de ton choix), bannières Windows sinon ; « Marquer comme lu » et « Répondre » pour les mails, centre de notifications, sons au choix (même les tiens), réglages par application, **Ne pas déranger** (aussi à heures fixes). Un clic sur une notification t'amène au bloc qui l'a envoyée ; s'il n'en a pas encore, Tessera te propose de l'ajouter.
 - **Tout reste visible** : les panneaux de la barre, les menus et les fenêtres de dialogue passent au-dessus des vidéos et des applications installées, qui continuent de tourner autour.
 - **Thèmes** clair et sombre, **couleur d'accent** au choix, interface en **français** et en **anglais**.
-- Tessera tourne en **arrière-plan** dans la zone de notification, démarre avec Windows et **se met à jour tout seul** : il cherche les nouvelles versions au lancement, toutes les 3 heures et à la fermeture, puis une icône clignote dans le menu ; un clic, et c'est installé.
+- **Fichiers et liens au bon endroit** : un fichier, une pièce jointe ou un lien ouvert depuis Tessera arrive dans le bloc qui doit l'afficher (marque un bloc « prioritaire pour ouvrir les fichiers »), qui change de navigateur au besoin et passe à l'écran.
+- **Une barre par page** : chaque page range ses propres widgets ; ajoute-les, réordonne-les ou retire-les (clic droit) à tout moment.
+- Tessera tourne en **arrière-plan** dans la zone de notification (en fermant la fenêtre, il te demande s'il doit plutôt se fermer complètement), démarre avec Windows et **se met à jour tout seul** : il cherche les nouvelles versions au lancement, toutes les 3 heures et à la fermeture, puis une icône clignote dans le menu ; un clic, et c'est installé.
 
 ---
 

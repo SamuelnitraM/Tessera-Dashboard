@@ -4,6 +4,15 @@ export const en: Translation = {
   app: {
     tagline: 'All your apps, one window.'
   },
+  closeDialog: {
+    message: 'Close Tessera completely?',
+    detail:
+      'In the background, Tessera stays in the taskbar notification area (notifications, mail, reminders, updates). Fully closed, nothing keeps running and its icon disappears.',
+    quit: 'Close completely',
+    background: 'Keep in the background',
+    cancel: 'Cancel',
+    remember: 'Don’t ask again (can be changed in Settings → General)'
+  },
   tray: {
     open: 'Open {{appName}}',
     doNotDisturb: 'Do not disturb',
@@ -906,9 +915,13 @@ export const en: Translation = {
         description:
           'Tessera starts with your session, minimized to the notification area (installed version).'
       },
-      closeToTray: {
-        label: 'Keep running in the background when closed',
-        description: 'Closing the window hides it in the notification area instead of quitting.'
+      onClose: {
+        label: 'When closing the window',
+        description:
+          'In the background, Tessera stays in the notification area; fully closed, nothing keeps running.',
+        ask: 'Ask',
+        background: 'Keep in the background',
+        quit: 'Close completely'
       },
       videoWheel: {
         label: 'Mouse wheel on a full-screen video',
@@ -1043,6 +1056,12 @@ export const en: Translation = {
         description: 'What happens to the installed apps shown in Tessera when you quit the app.',
         close: 'Close them',
         restore: 'Give them back to the desktop'
+      },
+      appOnQuit: {
+        label: 'When Tessera closes: {{name}}',
+        default: 'When Tessera closes: like the others ({{choice}})',
+        close: 'When Tessera closes: close it',
+        restore: 'When Tessera closes: leave it open on the desktop'
       },
       addInstalledTitle: 'Add an installed app',
       installedIntro:

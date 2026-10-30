@@ -183,6 +183,23 @@ function pick<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback
 }
 
+/** Widgets valides d'une barre, sans doublon ; `null` si ce n'est pas une liste. */
+export function sanitizeHeaderItems(input: unknown): HeaderItem[] | null {
+  if (!Array.isArray(input)) return null
+  return [
+    ...new Set(
+      input
+        .map((item: unknown) =>
+          typeof item === 'string' ? (MERGED_HEADER_WIDGETS[item] ?? item) : item
+        )
+        .filter(
+          (item): item is HeaderItem =>
+            typeof item === 'string' && (isHeaderWidget(item) || PLUGIN_HEADER_ITEM.test(item))
+        )
+    )
+  ]
+}
+
 export function sanitizeHeaderBar(input: unknown): HeaderBarSettings {
   const raw = asRecord(input)
   const defaults = DEFAULT_HEADER_BAR
@@ -190,21 +207,7 @@ export function sanitizeHeaderBar(input: unknown): HeaderBarSettings {
   const screenshot = asRecord(raw.screenshot)
   const converter = asRecord(raw.converter)
   return {
-    items: Array.isArray(raw.items)
-      ? [
-          ...new Set(
-            raw.items
-              .map((item: unknown) =>
-                typeof item === 'string' ? (MERGED_HEADER_WIDGETS[item] ?? item) : item
-              )
-              .filter(
-                (item): item is HeaderItem =>
-                  typeof item === 'string' &&
-                  (isHeaderWidget(item) || PLUGIN_HEADER_ITEM.test(item))
-              )
-          )
-        ]
-      : defaults.items,
+    items: sanitizeHeaderItems(raw.items) ?? defaults.items,
     align: pick(raw.align, HEADER_ALIGNS, defaults.align),
     note: typeof raw.note === 'string' ? raw.note.slice(0, MAX_NOTE_LENGTH) : defaults.note,
     weather: { place: sanitizePlace(asRecord(raw.weather).place) },

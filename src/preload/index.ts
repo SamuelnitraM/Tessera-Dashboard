@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IpcChannels, type AppInfo, type LogName, type SystemPreferences } from '@shared/ipc'
+import type { OpenTarget } from '@shared/open'
 import type { BrowserChoice, InstalledBrowser } from '@shared/browsers'
 import type { Dashboard } from '@shared/dashboard'
 import type { PageDrop, WindowNavigate, WindowPages } from '@shared/windows'
@@ -354,6 +355,14 @@ const api = {
       index: number
     ): Promise<boolean> =>
       ipcRenderer.invoke(IpcChannels.mailSaveAttachment, pluginId, accountId, id, index),
+    /** Copie temporaire d'une pièce jointe à ouvrir, `null` pour un programme ou un script. */
+    openAttachment: (
+      pluginId: string,
+      accountId: string,
+      id: string,
+      index: number
+    ): Promise<string | null> =>
+      ipcRenderer.invoke(IpcChannels.mailOpenAttachment, pluginId, accountId, id, index),
     checkNow: (pluginId: string, accountId: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.mailCheckNow, pluginId, accountId),
     reconnect: (pluginId: string, accountId: string): Promise<void> =>
@@ -475,6 +484,19 @@ const api = {
     /** Page web dans le navigateur d'un bloc (sinon celui du PC) : application qui l'a reçue. */
     openPage: (url: string): Promise<string | null> =>
       ipcRenderer.invoke(IpcChannels.browsersOpenPage, url)
+  },
+  /**
+   * Fichier ou page ouvert depuis Tessera (étape 35) : ce que Windows en ferait, l'ouverture
+   * dans une application de Tessera (déjà dans son bloc), ou hors de Tessera.
+   */
+  open: {
+    resolve: (target: string): Promise<OpenTarget | null> =>
+      ipcRenderer.invoke(IpcChannels.openResolve, target),
+    inApp: (appId: string, target: string): Promise<boolean> =>
+      ipcRenderer.invoke(IpcChannels.openInApp, appId, target),
+    outside: (target: string): Promise<void> => ipcRenderer.invoke(IpcChannels.openOutside, target),
+    /** Page à montrer dans un bloc (lien d'une page web intégrée, d'un mail…). */
+    onRequest: (callback: (url: string) => void) => subscribe(IpcChannels.openRequest, callback)
   },
   /** Intégrations avec DevLauncher, GitSpread et Prospect Solution (permission `integrations`). */
   integrations: integrationsApi,

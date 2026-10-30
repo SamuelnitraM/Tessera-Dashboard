@@ -277,9 +277,9 @@ export function DashboardGrid({
     }
   }
 
-  // Un widget de la barre qui ne devient pas un bloc (extension sans bloc désigné) : refusé
+  // Un widget de la barre glissé sur la page (en mode édition ou non) devient un bloc ; celui
+  // qui ne devient pas un bloc (extension sans bloc désigné) est refusé
   const acceptsDrop = (event: React.DragEvent): boolean =>
-    editing &&
     event.dataTransfer.types.includes(HEADER_WIDGET_DRAG) &&
     headerItemBlock(getDraggedWidget() ?? 'datetime') !== null
 

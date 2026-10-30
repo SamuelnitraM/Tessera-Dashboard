@@ -17,7 +17,9 @@ import {
   resolveLayout,
   toCompactSize
 } from '../lib/grid'
+import type { HeaderItem } from '@shared/header-bar'
 import { getDefaultSize, getMinSize } from '../plugins/registry'
+import { useSettingsStore } from './settings'
 
 interface DashboardState {
   dashboard: Dashboard
@@ -29,6 +31,8 @@ interface DashboardState {
   /** « Automatique » : la page reste rangée vers le haut (rangée tout de suite à l'activation). */
   setAutoArrange: (pageId: string, value: boolean) => void
   setSnap: (pageId: string, value: boolean) => void
+  /** Widgets de la barre de cette page (ordre compris). */
+  setHeaderItems: (pageId: string, items: HeaderItem[]) => void
   /** « Ajuster » : remonte les blocs et comble les trous, sans changer leur taille. */
   arrangePage: (pageId: string, mode: LayoutMode) => void
   /** La page principale ne peut pas être supprimée. */
@@ -106,6 +110,8 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
 
     addPage: (name) => {
       const id = crypto.randomUUID()
+      // Barre copiée de celle de la page principale (elle évolue ensuite à part)
+      const main = get().dashboard.pages.find((candidate) => candidate.isMain)
       const page: DashboardPage = {
         id,
         name,
@@ -113,6 +119,9 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
         autoArrange: false,
         snap: true,
         fillRestore: {},
+        headerItems: [
+          ...(main?.headerItems ?? useSettingsStore.getState().settings.headerBar.items)
+        ],
         widgets: [],
         layouts: { wide: [], compact: null }
       }
@@ -139,6 +148,9 @@ export const useDashboardStore = create<DashboardState>()((set, get) => {
       updatePage(pageId, (page) => arranged({ ...page, autoArrange: value })),
 
     setSnap: (pageId, value) => updatePage(pageId, (page) => ({ ...page, snap: value })),
+
+    setHeaderItems: (pageId, items) =>
+      updatePage(pageId, (page) => ({ ...page, headerItems: [...new Set(items)] })),
 
     arrangePage: (pageId, mode) =>
       updatePage(pageId, (page) => ({

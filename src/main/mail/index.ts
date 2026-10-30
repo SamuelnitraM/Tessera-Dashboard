@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
-import { stat, writeFile } from 'node:fs/promises'
-import { basename } from 'node:path'
-import { dialog, shell, type BrowserWindow } from 'electron'
+import { mkdir, rm, stat, writeFile } from 'node:fs/promises'
+import { basename, join } from 'node:path'
+import { app, dialog, shell, type BrowserWindow, type WebContents } from 'electron'
+import { openPageFrom } from '../open-in-tessera'
 import {
   getMailErrorCode,
   isMailAddress,
@@ -405,14 +406,67 @@ export async function saveAttachment(
   return true
 }
 
-/** Lien cliqué dans un mail : ouvert dans le navigateur par défaut (http, https, mailto). */
-export async function openMailLink(pluginId: string, url: string): Promise<void> {
+/** Pièces jointes ouvertes (copies temporaires), vidé au lancement suivant de Tessera. */
+const openedAttachments = (): string =>
+  join(app.getPath('temp'), 'Tessera Dashboard', 'attachments')
+
+/** Programmes et scripts : jamais ouverts depuis un mail, seulement enregistrés. */
+const RISKY_ATTACHMENT =
+  /\.(exe|msi|msix|msixbundle|appx|appxbundle|bat|cmd|com|scr|pif|cpl|ps1|psm1|psd1|vbs|vbe|js|jse|wsf|wsh|hta|jar|lnk|url|reg|scf|inf|application|gadget|msc|dll|sys|iso|img|vhd|vhdx)$/i
+
+/**
+ * Ouvre une pièce jointe : copie dans un dossier temporaire, marquée comme venue d'Internet
+ * (Windows prévient avant d'ouvrir ce qui le demande), puis l'interface l'ouvre dans le bloc qui
+ * doit l'afficher. Renvoie son chemin, ou `null` pour un programme ou un script (à enregistrer).
+ */
+export async function openAttachment(
+  pluginId: string,
+  accountId: string,
+  id: string,
+  index: number
+): Promise<string | null> {
+  ensurePermission(pluginId)
+  let raw = rawCache.get(`${accountId}|${id}`)
+  if (!raw) {
+    raw = (await withAccount(accountId, (connection) => connection.getRaw(String(id)))).raw
+  }
+  const attachment = await extractAttachment(raw, Number(index))
+  if (!attachment) throw mailError('not-found', 'attachment')
+  const name =
+    attachment.filename
+      .replace(/[\\/:*?"<>|]/g, '_')
+      .replace(/[. ]+$/, '')
+      .slice(0, 150) || 'attachment'
+  if (RISKY_ATTACHMENT.test(name)) return null
+  const folder = join(openedAttachments(), randomUUID())
+  await mkdir(folder, { recursive: true })
+  const file = join(folder, name)
+  await writeFile(file, attachment.content)
+  await writeFile(`${file}:Zone.Identifier`, '[ZoneTransfer]\r\nZoneId=3\r\n').catch(() => {})
+  return file
+}
+
+/** Copies des pièces jointes ouvertes lors d'un lancement précédent : effacées. */
+export function clearOpenedAttachments(): void {
+  void rm(openedAttachments(), { recursive: true, force: true }).catch(() => {})
+}
+
+/**
+ * Lien cliqué dans un mail : une page (http, https) va dans un bloc Navigateur s'il y en a un
+ * (sinon le navigateur par défaut), un `mailto:` à la messagerie de Windows.
+ */
+export async function openMailLink(
+  pluginId: string,
+  url: string,
+  sender?: WebContents
+): Promise<void> {
   ensurePermission(pluginId)
   const parsed = URL.canParse(String(url)) ? new URL(String(url)) : null
   if (!parsed || !['http:', 'https:', 'mailto:'].includes(parsed.protocol)) {
     throw mailError('invalid', 'url')
   }
-  await shell.openExternal(parsed.toString())
+  if (parsed.protocol === 'mailto:') await shell.openExternal(parsed.toString())
+  else openPageFrom(sender, parsed.toString())
 }
 
 export const cancelConnect = (): void => cancelAuthorization()

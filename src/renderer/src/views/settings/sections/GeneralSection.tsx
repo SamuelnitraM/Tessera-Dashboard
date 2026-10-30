@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { CLOSE_MODES } from '@shared/settings'
 import { Select } from '../../../components/ui/Select'
 import { SegmentedControl } from '../../../components/ui/SegmentedControl'
 import { Switch } from '../../../components/ui/Switch'
@@ -65,15 +66,18 @@ export function GeneralSection(): React.JSX.Element {
         </SettingRow>
 
         <SettingRow
-          label={t('settings.window.closeToTray.label')}
-          description={t('settings.window.closeToTray.description')}
+          label={t('settings.window.onClose.label')}
+          description={t('settings.window.onClose.description')}
         >
-          {({ labelId, descriptionId }) => (
-            <Switch
+          {({ labelId }) => (
+            <Select
               aria-labelledby={labelId}
-              aria-describedby={descriptionId}
-              checked={settings.window.closeToTray}
-              onChange={(closeToTray) => void update({ window: { closeToTray } })}
+              value={settings.window.onClose}
+              onChange={(onClose) => void update({ window: { onClose } })}
+              options={CLOSE_MODES.map((mode) => ({
+                value: mode,
+                label: t(`settings.window.onClose.${mode}`)
+              }))}
             />
           )}
         </SettingRow>

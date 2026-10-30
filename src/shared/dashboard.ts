@@ -1,3 +1,5 @@
+import { sanitizeHeaderItems, type HeaderItem } from './header-bar'
+
 /**
  * Modèle du tableau de bord : les pages, leurs widgets et leur disposition sur la grille.
  * Comme pour les réglages, tout ce qui est lu sur le disque passe par `sanitizeDashboard`.
@@ -52,6 +54,11 @@ export interface DashboardPage {
    * ceux qu'il a écartés, rendues par « Taille précédente ».
    */
   fillRestore: Record<string, GridItem[]>
+  /**
+   * Widgets de la barre de cette page, dans l'ordre (leur contenu et l'alignement sont communs
+   * à toutes les pages) ; `null` : ceux de `headerBar.items` (barre d'avant l'étape 34).
+   */
+  headerItems: HeaderItem[] | null
   widgets: WidgetInstance[]
   layouts: {
     wide: GridItem[]
@@ -104,6 +111,7 @@ export const DEFAULT_DASHBOARD: Dashboard = {
       autoArrange: false,
       snap: true,
       fillRestore: {},
+      headerItems: null,
       widgets: [{ id: 'welcome-clock', type: 'tessera.clock/clock', config: {} }],
       layouts: {
         wide: [{ i: 'welcome-clock', x: 0, y: 0, w: 6, h: 3 }],
@@ -184,6 +192,7 @@ function sanitizePage(input: unknown, usedIds: Set<string>): DashboardPage | nul
     autoArrange: page.autoArrange === true,
     snap: page.snap !== false,
     fillRestore,
+    headerItems: sanitizeHeaderItems(page.headerItems),
     widgets,
     layouts: {
       wide: sanitizeLayout(layouts.wide, GRID.wideCols, widgetIds),

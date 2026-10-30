@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { readFile } from 'node:fs/promises'
 import { basename, dirname, join, resolve } from 'node:path'
 import { ipcMain, shell } from 'electron'
+import { openPageFrom } from '../open-in-tessera'
 import { BuiltinChannels as C } from '@shared/builtin-ipc'
 import type {
   GitAccount,
@@ -1189,7 +1190,8 @@ export function registerGitHandlers(): void {
       value: unknown
     ) => gitSettings(action, path, value)
   )
-  ipcMain.handle(C.gitOpenUrl, async (_event, url: unknown) => {
-    if (typeof url === 'string' && /^https:\/\/[\w.-]+\//.test(url)) await shell.openExternal(url)
+  // Page GitHub : dans un bloc Navigateur s'il y en a un, sinon le navigateur par défaut
+  ipcMain.handle(C.gitOpenUrl, (event, url: unknown) => {
+    if (typeof url === 'string' && /^https:\/\/[\w.-]+\//.test(url)) openPageFrom(event.sender, url)
   })
 }

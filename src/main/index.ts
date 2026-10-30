@@ -14,7 +14,7 @@ import {
 } from './desktop/docking'
 import { registerIpcHandlers } from './ipc'
 import { logApp, watchCrashes } from './log'
-import { flushMailState, initMail, stopMail } from './mail'
+import { flushMailState, initMail, stopMail, clearOpenedAttachments } from './mail'
 import { startCalendarReminders, stopCalendarReminders } from './calendar'
 import { initMedia, stopMedia } from './media'
 import {
@@ -118,10 +118,10 @@ if (!app.requestSingleInstanceLock()) {
     }
   })
 
-  // Avec l'arrière-plan activé, la dernière fenêtre est seulement masquée (window.ts) : cet
-  // événement n'arrive donc que si l'utilisateur a choisi de quitter l'app en fermant la fenêtre
+  // En arrière-plan, la dernière fenêtre est seulement masquée (window.ts) : cet événement
+  // n'arrive donc que si l'utilisateur a choisi de fermer complètement l'app
   app.on('window-all-closed', () => {
-    if (!getSettings().window.closeToTray) app.quit()
+    if (getSettings().window.onClose === 'quit') app.quit()
   })
 
   void app.whenReady().then(() => {
@@ -227,6 +227,8 @@ if (!app.requestSingleInstanceLock()) {
       changed: (accountId, state, fresh) =>
         broadcast(IpcChannels.mailChanged, accountId, state, fresh)
     })
+    // Pièces jointes ouvertes lors du lancement précédent : leurs copies sont effacées
+    clearOpenedAttachments()
     // Rappels de Google Agenda : notifications, tant que Tessera est ouvert
     startCalendarReminders()
     initMedia({

@@ -58,6 +58,10 @@ export type StartupMode = (typeof STARTUP_MODES)[number]
 export const VIDEO_WHEEL_MODES = ['page', 'video'] as const
 export type VideoWheelMode = (typeof VIDEO_WHEEL_MODES)[number]
 
+/** Fermeture de la dernière fenêtre de Tessera (réglage « À la fermeture de la fenêtre »). */
+export const CLOSE_MODES = ['ask', 'background', 'quit'] as const
+export type CloseMode = (typeof CLOSE_MODES)[number]
+
 export interface Settings {
   schemaVersion: 1
   general: {
@@ -82,8 +86,11 @@ export interface Settings {
   window: {
     /** `maximized` : toujours agrandie au lancement. `last` : reprend la dernière taille. */
     startupMode: StartupMode
-    /** Fermer la fenêtre la masque dans la zone de notification au lieu de quitter. */
-    closeToTray: boolean
+    /**
+     * Fermer la dernière fenêtre : `ask` demande s'il faut fermer complètement Tessera ;
+     * `background`, il reste dans la zone de notification ; `quit`, il se ferme complètement.
+     */
+    onClose: CloseMode
     /** Lancer Tessera (réduite dans la zone de notification) à l'ouverture de la session Windows. */
     launchAtStartup: boolean
     /**
@@ -155,7 +162,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   window: {
     startupMode: 'maximized',
-    closeToTray: true,
+    onClose: 'ask',
     launchAtStartup: true,
     videoWheel: 'page'
   },
@@ -228,8 +235,12 @@ export function sanitizeSettings(input: unknown): Settings {
     },
     window: {
       startupMode: pick(window.startupMode, STARTUP_MODES, defaults.window.startupMode),
-      closeToTray:
-        typeof window.closeToTray === 'boolean' ? window.closeToTray : defaults.window.closeToTray,
+      // Ancien interrupteur « Garder en arrière-plan » : décoché, Tessera se fermait
+      onClose: pick(
+        window.onClose,
+        CLOSE_MODES,
+        window.closeToTray === false ? 'quit' : defaults.window.onClose
+      ),
       launchAtStartup:
         typeof window.launchAtStartup === 'boolean'
           ? window.launchAtStartup

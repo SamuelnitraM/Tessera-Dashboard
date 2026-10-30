@@ -28,10 +28,12 @@ import {
   type HeaderItem,
   type HeaderWidget
 } from '@shared/header-bar'
+import type { DashboardPage } from '@shared/dashboard'
 import { localize } from '@shared/plugins'
 import { getHeaderWidget, listHeaderWidgets } from '../../plugins/registry'
 import { PluginContext } from '../../plugin-sdk/context'
-import { useContextMenuStore } from '../../stores/contextMenu'
+import { openContextMenu, useContextMenuStore } from '../../stores/contextMenu'
+import { useDashboardStore } from '../../stores/dashboard'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
 import { WidgetErrorBoundary } from '../grid/WidgetErrorBoundary'
 import { PluginIcon } from '../PluginIcon'
@@ -156,18 +158,29 @@ function useOverflow(barRef: React.RefObject<HTMLDivElement | null>, items: stri
 }
 
 /**
- * Petits widgets de la barre des pages (date et heure, météo…), entre le titre et
- * « Modifier », placés selon le réglage `headerBar.align`. En mode édition : un bouton pour
- * retirer chacun, un autre pour en ajouter ; on les glisse pour changer leur ordre, ou sur la
- * page pour en faire un bloc. Ceux qui ne tiennent pas passent dans un menu « … ».
+ * Petits widgets de la barre de la page (date et heure, météo…), entre le titre et
+ * « Modifier », placés selon le réglage `headerBar.align`. Chaque page a sa disposition
+ * (`page.headerItems`) ; le contenu des widgets et l'alignement sont communs. À tout moment :
+ * « + » pour en ajouter, glisser pour changer leur ordre ou en faire un bloc sur la page, clic
+ * droit pour en retirer un ; en mode édition, une croix aussi. Ceux qui ne tiennent pas passent
+ * dans un menu « … ».
  */
-export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element | null {
+export function HeaderBar({
+  editing,
+  page
+}: {
+  editing: boolean
+  page: DashboardPage
+}): React.JSX.Element | null {
   const { t } = useTranslation()
   const language = useResolvedLanguage()
-  const items = useSettingsStore((state) => state.settings.headerBar.items)
+  const sharedItems = useSettingsStore((state) => state.settings.headerBar.items)
+  // Page sans disposition à elle (barre d'avant l'étape 34) : la liste commune
+  const items = page.headerItems ?? sharedItems
   const align = useSettingsStore((state) => state.settings.headerBar.align)
   const disabledPlugins = useSettingsStore((state) => state.settings.plugins.disabled)
-  const update = useSettingsStore((state) => state.update)
+  const setHeaderItems = useDashboardStore((state) => state.setHeaderItems)
+  const save = (next: HeaderItem[]): void => setHeaderItems(page.id, next)
   const barRef = useRef<HTMLDivElement>(null)
 
   /** Widget de Tessera ou d'une extension (`null` : extension absente ou désactivée). */
@@ -208,7 +221,6 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
       .filter((widget) => !items.includes(widget.key as HeaderItem))
       .map((widget) => entryOf(widget.key as HeaderItem)!)
   ]
-  if (!editing && entries.length === 0) return null
 
   const visible = entries.slice(0, entries.length - hidden)
   const folded = entries.slice(entries.length - hidden)
@@ -226,7 +238,7 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
   }
 
   const onDragOver = (event: React.DragEvent): void => {
-    if (!editing || !event.dataTransfer.types.includes(HEADER_WIDGET_DRAG)) return
+    if (!event.dataTransfer.types.includes(HEADER_WIDGET_DRAG)) return
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
     setDropIndex(indexAt(event.clientX))
@@ -235,12 +247,12 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
   const onDrop = (event: React.DragEvent): void => {
     const widget = event.dataTransfer.getData(HEADER_WIDGET_DRAG) as HeaderItem
     setDropIndex(null)
-    if (!editing || !shown.includes(widget)) return
+    if (!shown.includes(widget)) return
     event.preventDefault()
     const index = indexAt(event.clientX)
     const before = shown.slice(0, index).filter((item) => item !== widget)
     const after = shown.slice(index).filter((item) => item !== widget)
-    void update({ headerBar: { items: [...before, widget, ...after, ...absent] } })
+    save([...before, widget, ...after, ...absent])
   }
 
   const openAddMenu = (event: React.MouseEvent<HTMLButtonElement>): void => {
@@ -253,10 +265,12 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
         .map((entry) => ({
           label: entry.name,
           icon: entry.icon,
-          onSelect: () => void update({ headerBar: { items: [...items, entry.item] } })
+          onSelect: () => save([...items, entry.item])
         }))
     )
   }
+
+  const remove = (widget: HeaderItem): void => save(items.filter((item) => item !== widget))
 
   const renderItem = (entry: HeaderEntry, index?: number): React.JSX.Element => {
     const widget = entry.item
@@ -266,8 +280,17 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
         className={styles.item}
         data-widget={index === undefined ? undefined : widget}
         data-drop-before={dropIndex === index}
-        draggable={editing}
+        draggable
         title={editing ? t('headerBar.dragHint') : undefined}
+        // Retrait par le clic droit, en mode édition ou non
+        onContextMenu={openContextMenu([
+          {
+            label: t('headerBar.remove', { name: entry.name }),
+            icon: X,
+            danger: true,
+            onSelect: () => remove(widget)
+          }
+        ])}
         onDragStart={(event) => {
           event.dataTransfer.setData(HEADER_WIDGET_DRAG, widget)
           event.dataTransfer.effectAllowed = 'copyMove'
@@ -285,9 +308,7 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
             className={styles.remove}
             title={t('headerBar.remove', { name: entry.name })}
             aria-label={t('headerBar.remove', { name: entry.name })}
-            onClick={() =>
-              void update({ headerBar: { items: items.filter((item) => item !== widget) } })
-            }
+            onClick={() => remove(widget)}
           >
             <X size={11} strokeWidth={2.5} aria-hidden />
           </button>
@@ -330,7 +351,7 @@ export function HeaderBar({ editing }: { editing: boolean }): React.JSX.Element 
           )}
         </HeaderPopover>
       )}
-      {editing && missing.length > 0 && (
+      {missing.length > 0 && (
         <button
           type="button"
           className={styles.add}

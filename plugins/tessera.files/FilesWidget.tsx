@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import {
   openContextMenu,
-  revealInstalledApp,
+  openInTessera,
   useLanguage,
   useLatest,
   usePluginTranslation,
@@ -219,10 +219,8 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
       go(entry.path)
       return
     }
-    api
-      .open(entry.path)
-      .then(({ appId }) => appId && revealInstalledApp(appId))
-      .catch(() => flash(t('cannotOpenFile')))
+    // Dans le bloc qui doit l'afficher (programme habituel, bloc prioritaire), sinon Windows
+    openInTessera(entry.path).catch(() => flash(t('cannotOpenFile')))
   }
 
   const selectedPaths = (): string[] =>
@@ -454,8 +452,7 @@ export function FilesWidget({ config, setConfig }: WidgetProps<FilesConfig>): Re
           {
             label: t('open'),
             icon: File,
-            onSelect: () =>
-              void api.open(target).then(({ appId }) => appId && revealInstalledApp(appId))
+            onSelect: () => void openInTessera(target).catch(() => flash(t('cannotOpenFile')))
           },
           { label: t('showInExplorer'), icon: Folder, onSelect: () => void api.show(target) },
           'separator',
