@@ -47,7 +47,8 @@ const ALL_ACCOUNTS = 'all'
 
 type View =
   | { kind: 'list' }
-  | { kind: 'read'; id: string }
+  /** `reply` : la réponse s'ouvre dès le mail chargé (bouton « Répondre » d'une notification). */
+  | { kind: 'read'; id: string; reply?: boolean }
   /** `accountId` : compte d'envoi (réponse : celui du mail d'origine). */
   | { kind: 'compose'; request: ComposeRequest; accountId?: string }
 
@@ -155,9 +156,9 @@ function AccountInbox({
   }
 
   // Clic sur la notification d'un mail de ce compte (ou de l'un d'eux) : il s'ouvre ici
-  useMailOpenRequest(scopeIds, (messageId, accountId) =>
+  useMailOpenRequest(scopeIds, (messageId, accountId, { reply }) =>
     leaveComposer(() =>
-      setView({ kind: 'read', id: unified ? joinMailId(accountId, messageId) : messageId })
+      setView({ kind: 'read', id: unified ? joinMailId(accountId, messageId) : messageId, reply })
     )
   )
 
@@ -374,6 +375,7 @@ function AccountInbox({
               accountId={accountOf(view.id).id}
               id={splitMailId(view.id, account.id).id}
               remoteImages={remoteImages}
+              startReply={view.reply}
               onBack={() => setView({ kind: 'list' })}
               onAct={(action) => inbox.act(view.id, action)}
               onCompose={(mode, message) =>

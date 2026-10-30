@@ -130,6 +130,14 @@ const api = {
     user32,
     'int __stdcall SetWindowRgn(intptr_t hwnd, intptr_t region, bool redraw)'
   ),
+  CreateRoundRectRgn: fn(
+    gdi32,
+    'intptr_t __stdcall CreateRoundRectRgn(int left, int top, int right, int bottom, int w, int h)'
+  ),
+  CombineRgn: fn(
+    gdi32,
+    'int __stdcall CombineRgn(intptr_t dest, intptr_t a, intptr_t b, int mode)'
+  ),
   CreateRectRgn: fn(
     gdi32,
     'intptr_t __stdcall CreateRectRgn(int left, int top, int right, int bottom)'
@@ -177,6 +185,11 @@ const api = {
     dwmapi,
     'int32_t __stdcall DwmGetWindowAttribute(intptr_t hwnd, uint32_t attr, _Out_ RECT *value, uint32_t size)'
   ),
+  DwmGetWindowFlag: fn(
+    dwmapi,
+    'int32_t __stdcall DwmGetWindowAttribute(intptr_t hwnd, uint32_t attr, _Out_ uint32_t *value, uint32_t size)'
+  ),
+  GetForegroundWindow: fn(user32, 'intptr_t __stdcall GetForegroundWindow()'),
   RegOpenKeyExW: fn(
     advapi32,
     'long __stdcall RegOpenKeyExW(intptr_t key, str16 subKey, uint32_t options, uint32_t access, _Out_ intptr_t *result)'
@@ -216,6 +229,7 @@ export const WS = {
 } as const
 export const WS_EX_APPWINDOW = 0x00040000
 const WS_EX_TOOLWINDOW = 0x00000080
+const WS_EX_TRANSPARENT = 0x00000020
 
 export const SWP = {
   NOSIZE: 0x1,
@@ -247,6 +261,7 @@ export const WinEvent = {
 } as const
 
 const DWMWA_EXTENDED_FRAME_BOUNDS = 9
+const DWMWA_CLOAKED = 14
 
 // ---------------------------------------------------------------------------
 // Fenêtres
@@ -484,6 +499,45 @@ export function setWindowRegion(hwnd: Hwnd, region: Rect | null): void {
   if (!api.SetWindowRgn(hwnd, handle, true) && handle) api.DeleteObject(handle)
 }
 
+/** Trou découpé dans une fenêtre (px physiques, relatifs à elle), coins arrondis de `radius`. */
+export interface RegionHole {
+  x: number
+  y: number
+  width: number
+  height: number
+  radius: number
+}
+
+/**
+ * Fenêtre de `width` × `height` dont les trous ne sont pas affichés (ce qui est dessous se
+ * voit, et y reçoit la souris) ; sans trou, toute la fenêtre est affichée.
+ */
+export function setWindowHoles(
+  hwnd: Hwnd,
+  width: number,
+  height: number,
+  holes: RegionHole[]
+): void {
+  if (holes.length === 0) {
+    api.SetWindowRgn(hwnd, 0, true)
+    return
+  }
+  const region = api.CreateRectRgn(0, 0, width, height)
+  for (const hole of holes) {
+    const right = hole.x + hole.width
+    const bottom = hole.y + hole.height
+    const diameter = Math.round(hole.radius * 2)
+    const cut =
+      diameter > 1
+        ? api.CreateRoundRectRgn(hole.x, hole.y, right + 1, bottom + 1, diameter, diameter)
+        : api.CreateRectRgn(hole.x, hole.y, right, bottom)
+    api.CombineRgn(region, region, cut, 4 /* RGN_DIFF */)
+    api.DeleteObject(cut)
+  }
+  // Windows garde la région (et la libère) quand elle est acceptée
+  if (!api.SetWindowRgn(hwnd, region, true)) api.DeleteObject(region)
+}
+
 /** Rectangle de la partie affichée de la fenêtre (`setWindowRegion`), `null` sans région. */
 export function getWindowRegion(hwnd: Hwnd): Rect | null {
   const rect = { left: 0, top: 0, right: 0, bottom: 0 }
@@ -553,6 +607,65 @@ export function findTopWindows(
     return true
   }, 0)
   return found.sort((a, b) => b.width * b.height - a.width * a.height)
+}
+
+/**
+ * Fenêtre au premier plan (celle qui a le clavier) : `hwnd` ou une fenêtre qui lui appartient
+ * (cadre d'une application insérée, menu…).
+ */
+export function isForegroundOf(hwnd: Hwnd): boolean {
+  let current = Number(api.GetForegroundWindow())
+  current = current ? Number(api.GetAncestor(current, 2 /* GA_ROOT */)) : 0
+  for (let depth = 0; current && depth < 8; depth++) {
+    if (current === hwnd) return true
+    current = Number(api.GetWindow(current, GW_OWNER))
+  }
+  return false
+}
+
+/** Fenêtre cachée par Windows sans être masquée (autre bureau virtuel, application suspendue). */
+const isCloaked = (hwnd: Hwnd): boolean => {
+  const value = [0]
+  return api.DwmGetWindowFlag(hwnd, DWMWA_CLOAKED, value, 4) === 0 && value[0] !== 0
+}
+
+/** `hwnd` est-elle `owner` ou une fenêtre qui lui appartient (propriétaire en propriétaire) ? */
+function isOwnedBy(hwnd: Hwnd, owner: Hwnd): boolean {
+  let current = hwnd
+  for (let depth = 0; current && depth < 8; depth++) {
+    if (current === owner) return true
+    current = Number(api.GetWindow(current, GW_OWNER))
+  }
+  return false
+}
+
+/**
+ * Fenêtre visible, non réduite, et qu'aucune autre fenêtre ne recouvre, même en partie. Ne
+ * comptent pas : ses propres fenêtres (cadres, menus), les fenêtres masquées, transparentes à la
+ * souris, flottantes (outils, superpositions), la barre des tâches, et celles que `ignore` écarte.
+ */
+export function isUncovered(hwnd: Hwnd, ignore: (other: Hwnd) => boolean = () => false): boolean {
+  if (!api.IsWindowVisible(hwnd) || api.IsIconic(hwnd) || isCloaked(hwnd)) return false
+  const own = getFrameRect(hwnd)
+  for (
+    let other = windowAbove(hwnd), count = 0;
+    other && count < 500;
+    other = windowAbove(other), count++
+  ) {
+    if (!api.IsWindowVisible(other) || api.IsIconic(other) || isOwnedBy(other, hwnd)) continue
+    if (getExStyle(other) & (WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW)) continue
+    if (isCloaked(other) || ignore(other)) continue
+    const name = getClassName(other)
+    if (name === 'Shell_TrayWnd' || name === 'Shell_SecondaryTrayWnd') continue
+    const rect = getFrameRect(other)
+    const overlaps =
+      rect.left < own.right &&
+      rect.right > own.left &&
+      rect.top < own.bottom &&
+      rect.bottom > own.top
+    if (overlaps) return false
+  }
+  return true
 }
 
 /** Fenêtre de premier niveau visible, sans propriétaire (pas une bulle ni un menu). */

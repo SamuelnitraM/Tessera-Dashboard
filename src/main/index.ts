@@ -219,7 +219,9 @@ if (!app.requestSingleInstanceLock()) {
       activate: (notification) => {
         showMainWindow()
         getMainWindow()?.webContents.send(IpcChannels.notificationsActivated, notification)
-      }
+      },
+      toast: (window, notification) =>
+        window.webContents.send(IpcChannels.notificationsToast, notification)
     })
     initMail({
       changed: (accountId, state, fresh) =>

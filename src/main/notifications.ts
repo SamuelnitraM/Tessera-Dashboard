@@ -42,12 +42,13 @@ import { errorText, getTranslation } from './i18n'
 import { JsonStore } from './json-store'
 import { hasPermission } from './plugins/manifests'
 import { getSettings, updateSettings } from './settings-store'
-import { getMainWindow } from './window'
+import { getDisplayedWindow, getMainWindow } from './window'
 import { systemProgram } from './executables'
 
 /**
- * Notifications : historique (centre de notifications), bannières Windows, sons et
- * Ne pas déranger. Toutes les notifications passent par `notify`, qui applique les réglages.
+ * Notifications : historique (centre de notifications), bulles (dans Tessera quand sa fenêtre
+ * est affichée, sinon bannières Windows), sons et Ne pas déranger. Toutes les notifications
+ * passent par `notify`, qui applique les réglages.
  */
 
 const history = new JsonStore<TesseraNotification[]>('notifications.json', sanitizeNotifications)
@@ -62,9 +63,16 @@ interface NotificationListeners {
   play: (sound: SoundId, volume: number) => void
   /** Clic sur une bannière : l'interface va vers la source. */
   activate: (notification: TesseraNotification) => void
+  /** Bulle à afficher dans cette fenêtre de Tessera (affichée, voir `getDisplayedWindow`). */
+  toast: (window: BrowserWindow, notification: TesseraNotification) => void
 }
 
-let listeners: NotificationListeners = { changed: () => {}, play: () => {}, activate: () => {} }
+let listeners: NotificationListeners = {
+  changed: () => {},
+  play: () => {},
+  activate: () => {},
+  toast: () => {}
+}
 
 export function setNotificationListeners(next: NotificationListeners): void {
   listeners = next
@@ -205,8 +213,14 @@ export async function notify(
   if (isDoNotDisturbActive(settings) && own.priority !== 'high') return notification
 
   const sound = resolveSound(settings, source)
-  if (settings.banners) showBanner(notification, sound === 'system')
-  if (sound !== 'system' && sound !== 'none') listeners.play(sound, settings.volume)
+  // Fenêtre de Tessera affichée : bulle dans Tessera (son de Windows joué par l'interface, au
+  // volume du système), sinon bannière de Windows (qui joue elle-même le son de Windows)
+  const window = settings.banners ? getDisplayedWindow() : null
+  if (window) listeners.toast(window, notification)
+  else if (settings.banners) showBanner(notification, sound === 'system')
+  if (sound === 'system') {
+    if (window || !settings.banners) listeners.play(sound, 100)
+  } else if (sound !== 'none') listeners.play(sound, settings.volume)
   return notification
 }
 
@@ -233,8 +247,11 @@ function showBanner(notification: TesseraNotification, systemSound: boolean): vo
   banner.show()
 }
 
-/** Ouvre une notification (clic sur la bannière ou dans le centre) : la page web est prévenue. */
-export function activateNotification(id: string): void {
+/**
+ * Ouvre une notification (clic sur la bannière ou dans le centre) : la page web est prévenue.
+ * `fromInterface` : clic dans une fenêtre de Tessera, qui va elle-même vers la source.
+ */
+export function activateNotification(id: string, fromInterface = false): void {
   const notification = history.get().find((item) => item.id === id)
   if (!notification) return
   markRead([id])
@@ -242,7 +259,7 @@ export function activateNotification(id: string): void {
   if (page && !page.contents.isDestroyed()) {
     page.contents.send(WebviewChannels.notificationEvent, page.pageId, 'click')
   }
-  listeners.activate(notification)
+  if (!fromInterface) listeners.activate(notification)
 }
 
 export function markRead(ids: string[] | 'all'): void {
@@ -401,8 +418,45 @@ export async function deleteSound(id: string): Promise<void> {
   await rm(join(soundsFolder(), sound.file), { force: true })
 }
 
-/** Contenu d'un son importé, décodé et joué par l'interface. */
+const SYSTEM_SOUND_KEY = 'HKCU\\AppEvents\\Schemes\\Apps\\.Default\\Notification.Default\\.Current'
+
+/** Fichier du son « Notification » de Windows (Paramètres → Son), `null` s'il n'y en a pas. */
+function systemSoundFile(): Promise<string | null> {
+  const fallback = join(
+    process.env.WINDIR ?? 'C:\\Windows',
+    'Media',
+    'Windows Notify System Generic.wav'
+  )
+  return new Promise((resolve) => {
+    execFile(
+      systemProgram('reg.exe'),
+      ['query', SYSTEM_SOUND_KEY, '/ve'],
+      { windowsHide: true },
+      (error, stdout) => {
+        if (error) return resolve(fallback)
+        const value = /REG_(?:EXPAND_)?SZ[ \t]*(.*)$/m.exec(stdout)?.[1]?.trim() ?? ''
+        // Valeur vide : « Aucun » son choisi dans Windows
+        resolve(value ? value.replace(/%([^%]+)%/g, (all, name) => process.env[name] ?? all) : null)
+      }
+    )
+  })
+}
+
+/** Contenu d'un son importé (ou du son de Windows), décodé et joué par l'interface. */
 export async function getSoundData(sound: SoundId): Promise<Uint8Array | null> {
+  if (sound === 'system') {
+    const file = await systemSoundFile()
+    const extension = extname(file ?? '')
+      .slice(1)
+      .toLowerCase()
+    if (!file || !(SOUND_EXTENSIONS as readonly string[]).includes(extension)) return null
+    try {
+      const data = await readFile(file)
+      return data.length <= MAX_SOUND_BYTES ? data : null
+    } catch {
+      return null
+    }
+  }
   const custom = getSettings().notifications.sounds.find((item) => customSound(item.id) === sound)
   if (!custom) return null
   try {

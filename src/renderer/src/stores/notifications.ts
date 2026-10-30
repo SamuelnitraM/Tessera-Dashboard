@@ -16,17 +16,25 @@ import { useMediaStatusStore } from './mediaStatus'
 import { useNavigationStore } from './navigation'
 import { useSettingsStore } from './settings'
 
-/** Centre de notifications : historique (tenu par le processus principal) et panneau ouvert. */
+/**
+ * Centre de notifications : historique (tenu par le processus principal) et panneau ouvert ;
+ * bulles de cette fenêtre (dans l'ordre d'arrivée), tant que leur notification n'est ni lue
+ * ni supprimée.
+ */
 interface NotificationsState {
   notifications: TesseraNotification[]
   open: boolean
   setOpen: (open: boolean) => void
+  toasts: TesseraNotification[]
+  dismissToast: (id: string) => void
 }
 
 export const useNotificationsStore = create<NotificationsState>()((set) => ({
   notifications: [],
   open: false,
-  setOpen: (open) => set({ open })
+  setOpen: (open) => set({ open }),
+  toasts: [],
+  dismissToast: (id) => set((state) => ({ toasts: state.toasts.filter((item) => item.id !== id) }))
 }))
 
 export function useUnreadCount(): number {
@@ -169,9 +177,9 @@ export function openNotificationSource(notification: TesseraNotification): void 
  * Ouvre un mail dans un bloc Mails : celui du compte (sinon un autre bloc Mails, la boîte
  * commune comprise), dont la page s'ouvre. Sans bloc Mails, propose d'en ajouter un.
  */
-export function openMailMessage(accountId: string, messageId: string | null): void {
+export function openMailMessage(accountId: string, messageId: string | null, reply = false): void {
   const openMail = (): void => {
-    if (messageId) useMailStore.getState().requestOpen(accountId, messageId)
+    if (messageId) useMailStore.getState().requestOpen(accountId, messageId, reply)
   }
   const block = findBlock(
     (widget) => widget.type === MAIL_WIDGET_TYPE,
@@ -196,7 +204,19 @@ export function openMailMessage(accountId: string, messageId: string | null): vo
 export async function initNotificationsStore(): Promise<void> {
   useNotificationsStore.setState({ notifications: await window.tessera.notifications.list() })
   window.tessera.notifications.onChange((notifications) =>
-    useNotificationsStore.setState({ notifications })
+    useNotificationsStore.setState((state) => {
+      // Notification lue, supprimée ou remplacée (même étiquette) : sa bulle disparaît
+      const unread = new Set(notifications.filter((item) => !item.read).map((item) => item.id))
+      const toasts = state.toasts.filter((item) => unread.has(item.id))
+      return {
+        notifications,
+        toasts: toasts.length === state.toasts.length ? state.toasts : toasts
+      }
+    })
+  )
+  // Fenêtre affichée à l'arrivée de la notification : bulle dans Tessera
+  window.tessera.notifications.onToast((notification) =>
+    useNotificationsStore.setState((state) => ({ toasts: [...state.toasts, notification] }))
   )
   window.tessera.notifications.onPlay((sound, volume) => void playSound(sound, volume))
   // Clic sur une bannière Windows

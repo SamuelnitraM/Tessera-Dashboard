@@ -6,6 +6,7 @@ import { releaseLeftoverDoNotDisturb } from './components/headerbar/focusDoNotDi
 import { MediaLayer } from './components/media/MediaLayer'
 import { BlockProposalDialog } from './components/notifications/BlockProposalDialog'
 import { NotificationCenter } from './components/notifications/NotificationCenter'
+import { ToastStack } from './components/notifications/ToastStack'
 import { PageDialogs } from './components/PageDialogs'
 import { Sidebar } from './components/Sidebar'
 import { TopBar } from './components/TopBar'
@@ -95,6 +96,7 @@ export function App(): React.JSX.Element {
       <ProgramPickerHost />
       <MediaLayer />
       <NotificationCenter />
+      <ToastStack />
       <BlockProposalDialog />
     </div>
   )

@@ -155,10 +155,10 @@
 
 /* ---------- Panneau déplié ---------- */
 
+/* Au niveau de la fenêtre (posé dans <body>), au-dessus de la couche des lecteurs vidéo ; sa
+   place sous le bouton est donnée par HeaderPopover */
 .panel {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
+  position: fixed;
   z-index: 900;
   padding: 0.75rem;
   background: var(--color-surface);
@@ -533,10 +533,4 @@
 
 .overflowRow > span {
   white-space: nowrap;
-}
-
-/* Panneau d'un widget replié : à gauche du menu, sans le recouvrir */
-.overflow .panel {
-  top: -0.375rem;
-  right: calc(100% + 0.75rem + 8px);
 }

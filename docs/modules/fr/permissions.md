@@ -53,7 +53,7 @@ Chaque section donne la phrase que voit l'utilisateur (en français et en anglai
 > « Peut t'envoyer des notifications »
 > “Can send you notifications”
 
-- **Permet** : envoyer des notifications (centre de notifications, bannière Windows, son), et savoir laquelle l'utilisateur a cliquée.
+- **Permet** : envoyer des notifications (centre de notifications, bulle dans Tessera ou bannière Windows, son), et savoir laquelle l'utilisateur a cliquée.
 - L'utilisateur règle ton module comme les autres sources (Paramètres → Notifications) ; Ne pas déranger s'applique.
 - **API** : [`useNotifications()`, `useNotificationTarget()`](sdk.md#notifications-notifications).
 

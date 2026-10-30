@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { usePresence } from '../../hooks/usePresence'
-import { useCoverDesktopApps } from '../../stores/desktopApps'
+import { useDesktopAppsHole } from '../../stores/desktopApps'
 import styles from './Dialog.module.css'
 
 interface DialogProps {
@@ -24,8 +24,8 @@ export function Dialog({ title, open, onClose, children, wide }: DialogProps): R
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const { mounted } = usePresence(open)
-  // Les fenêtres des applications installées passeraient devant : remplacées par leur image
-  useCoverDesktopApps(mounted, `fenêtre « ${title} »`)
+  // Découpée dans les fenêtres des applications installées (elles restent affichées autour)
+  useDesktopAppsHole(dialogRef, open, `fenêtre « ${title} »`)
 
   useEffect(() => {
     const dialog = dialogRef.current

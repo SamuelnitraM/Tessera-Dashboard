@@ -95,6 +95,18 @@ export interface HostRect {
   stage?: boolean
 }
 
+/**
+ * Élément de l'interface ouvert par-dessus les blocs (panneau, menu, fenêtre de dialogue), en px
+ * CSS de la fenêtre, coins arrondis de `radius` : découpé dans les cadres des applications.
+ */
+export interface HostHole {
+  x: number
+  y: number
+  width: number
+  height: number
+  radius: number
+}
+
 /** Plein écran d'une vidéo : tout l'écran, ou seulement le bloc (réglage du bloc). */
 export type FullScreenMode = 'screen' | 'block'
 

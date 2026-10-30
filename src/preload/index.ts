@@ -49,7 +49,8 @@ import type {
   DesktopAppSnapshot,
   DesktopAppState,
   HostRect,
-  InstalledProgram
+  InstalledProgram,
+  HostHole
 } from '@shared/desktop-apps'
 import type { CustomSound, NotifyInput, TesseraNotification } from '@shared/notifications'
 import type {
@@ -224,6 +225,12 @@ const api = {
       ipcRenderer.invoke(IpcChannels.desktopAppsCapture),
     setSuspended: (value: boolean, reasons = ''): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsSetSuspended, value, reasons),
+    /**
+     * Éléments de l'interface ouverts par-dessus les blocs (px CSS) : découpés dans les cadres des
+     * applications, qui restent affichées autour. `names` : pour le journal.
+     */
+    setHoles: (holes: HostHole[], names = ''): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.desktopAppsSetHoles, holes, names),
     /** Ligne du journal des applications installées (ce que montre un bloc…). */
     log: (message: string): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.desktopAppsLog, message),
@@ -282,6 +289,9 @@ const api = {
       ipcRenderer.invoke(IpcChannels.notificationsBannersBlocked),
     openSystemSettings: (): Promise<void> =>
       ipcRenderer.invoke(IpcChannels.notificationsOpenSystemSettings),
+    /** Notification d'un mail : le mail est marqué comme lu, la notification aussi. */
+    mailRead: (id: string): Promise<void> =>
+      ipcRenderer.invoke(IpcChannels.notificationsMailRead, id),
     onChange: (callback: (notifications: TesseraNotification[]) => void) =>
       subscribe(IpcChannels.notificationsChanged, callback),
     onPlay: (callback: (sound: string, volume: number) => void) => {
@@ -291,7 +301,10 @@ const api = {
       return () => ipcRenderer.removeListener(IpcChannels.notificationsPlay, listener)
     },
     onActivated: (callback: (notification: TesseraNotification) => void) =>
-      subscribe(IpcChannels.notificationsActivated, callback)
+      subscribe(IpcChannels.notificationsActivated, callback),
+    /** Bulle à afficher dans cette fenêtre (elle est affichée quand la notification arrive). */
+    onToast: (callback: (notification: TesseraNotification) => void) =>
+      subscribe(IpcChannels.notificationsToast, callback)
   },
   /** Comptes : « Se connecter avec Google / Twitch » (Paramètres → Comptes). */
   accounts: {

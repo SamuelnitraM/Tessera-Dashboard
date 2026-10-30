@@ -38,13 +38,14 @@ Ce que Tessera Dashboard ne sait pas (encore) faire, et pourquoi.
 - Minuteur (compte à rebours et Concentration) et chronomètre s'arrêtent si l'on quitte Tessera. Le Minuteur fait une chose à la fois : pendant une séance de Concentration, le compte à rebours attend qu'elle soit arrêtée.
 - **Horloge** : les horloges du monde sont les mêmes dans la barre et dans tous les blocs Horloge (8 villes au plus).
 - **Grands blocs** : seuls Météo, Système et Prochain événement changent d'affichage quand le bloc est grand. Les courbes du bloc Système partent de l'ouverture de Tessera (une minute d'historique) ; le processeur total est mesuré une fois par seconde comme le Gestionnaire des tâches (les deux peuvent différer d'un point ou deux, leurs mesures ne tombant pas au même instant) ; le processeur par programme est mesuré entre deux relevés (le premier affiche 0 %) et la mémoire est l'« ensemble de travail » (un peu plus que la colonne Mémoire du Gestionnaire des tâches).
-- Pendant qu'un panneau de la barre est ouvert, les applications installées sont remplacées par une image figée (comme pour les menus et fenêtres de dialogue). Un clic dans une page web intégrée ne referme pas le panneau.
+- Un panneau de la barre, un menu du clic droit, une fenêtre de dialogue ou le centre de notifications ouvert par-dessus une application installée y est découpé : l'application reste affichée et active autour. Le voile qui assombrit la page derrière une fenêtre de dialogue ne couvre pas les applications installées. Un clic dans une page web intégrée ne referme pas le panneau. En mode édition, les applications installées restent remplacées par une image figée.
 
 ## Notifications
 
 - Les **applications installées** (Discord, Obsidian…) affichent leurs propres notifications Windows : Tessera ne les voit pas, elles se règlent dans l'application.
 - Une application web ouverte **dans un navigateur** (« Ouvrir avec ») envoie ses notifications par ce navigateur.
-- Le son « Son de Windows » est joué par la bannière : sans bannière (désactivée, ou notifications coupées dans Windows), il n'y a pas de son. Les sons de Tessera et les sons importés fonctionnent toujours.
+- **Bulles dans Tessera** : seulement quand sa fenêtre est au premier plan ou qu'aucune autre fenêtre ne la recouvre, même en partie (les fenêtres flottantes, comme les superpositions des jeux, ne comptent pas) ; sinon, bannière Windows. Elles restent 5 s (la durée de Windows par défaut, pas le réglage « Afficher les notifications pendant » de l'accessibilité de Windows).
+- Le « Son de Windows » d'une bulle dans Tessera est le son « Notification » choisi dans Windows : un changement est pris en compte au lancement suivant de Tessera. Avec une bannière, c'est la bannière qui le joue : notifications coupées dans Windows, il n'y a pas de son. Les sons de Tessera et les sons importés fonctionnent toujours.
 
 ## Applications installées
 

@@ -89,11 +89,11 @@ export function useMailArrivals(accountId: string | readonly string[]): number {
 /**
  * Clic sur la notification d'un mail de ce compte (ou de l'un des comptes) : `onOpen` reçoit son
  * identifiant et son compte (y compris si la demande précède l'affichage du bloc). Un seul bloc
- * ouvre chaque mail.
+ * ouvre chaque mail. `reply` : bouton « Répondre » de la bulle, le bloc ouvre la réponse.
  */
 export function useMailOpenRequest(
   accountId: string | readonly string[],
-  onOpen: (messageId: string, accountId: string) => void
+  onOpen: (messageId: string, accountId: string, options: { reply: boolean }) => void
 ): void {
   const onOpenRef = useRef(onOpen)
   useLayoutEffect(() => {
@@ -106,7 +106,7 @@ export function useMailOpenRequest(
     const handle = (request: MailStoreRequest): void => {
       if (!request || !ids.includes(request.accountId)) return
       useMailStore.getState().clearOpenRequest(request.nonce)
-      onOpenRef.current(request.messageId, request.accountId)
+      onOpenRef.current(request.messageId, request.accountId, { reply: request.reply })
     }
     handle(useMailStore.getState().openRequest)
     return useMailStore.subscribe((state) => handle(state.openRequest))

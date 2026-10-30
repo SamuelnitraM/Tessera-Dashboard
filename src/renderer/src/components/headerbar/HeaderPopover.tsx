@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { usePresence } from '../../hooks/usePresence'
-import { useCoverDesktopApps } from '../../stores/desktopApps'
+import { useDesktopAppsHole } from '../../stores/desktopApps'
 import styles from './HeaderBar.module.css'
 
 interface HeaderPopoverProps {
@@ -23,9 +24,10 @@ interface HeaderPopoverProps {
 
 /**
  * Widget de la barre des pages : un bouton qui déplie un panneau en dessous. Le panneau se
- * ferme au clic ailleurs ou avec Échap ; les fenêtres d'applications installées sont masquées
- * pendant qu'il est ouvert (sinon elles passeraient devant). Le focus entre dans le panneau à
- * l'ouverture et revient au bouton à la fermeture.
+ * ferme au clic ailleurs ou avec Échap. Il est posé au niveau de la fenêtre, au-dessus de tous
+ * les blocs (lecteurs vidéo compris), et découpé dans les fenêtres des applications installées
+ * (elles restent affichées autour). Le focus entre dans le panneau à l'ouverture et revient au
+ * bouton à la fermeture.
  */
 export function HeaderPopover({
   button,
@@ -52,7 +54,7 @@ export function HeaderPopover({
   const buttonRef = useRef<HTMLButtonElement>(null)
   // Panneau gardé le temps de sa disparition
   const { mounted, closing } = usePresence(open)
-  useCoverDesktopApps(mounted, `widget « ${label} »`)
+  useDesktopAppsHole(panelRef, open, `widget « ${label} »`)
 
   // Focus dans le panneau (s'il n'y est pas déjà : champ de la calculatrice…), puis rendu au
   // bouton, sauf si l'utilisateur l'a mis ailleurs (clic sur un autre champ)
@@ -69,12 +71,25 @@ export function HeaderPopover({
     }
   }, [open])
 
-  // Panneau aligné à droite du bouton, décalé s'il sort de la zone de la page (fenêtre étroite)
+  // Panneau sous le bouton, aligné à sa droite, décalé s'il sort de la zone de la page (fenêtre
+  // étroite) ; suit le bouton quand la page défile ou que la fenêtre change de taille
   useLayoutEffect(() => {
     const panel = panelRef.current
-    const area = rootRef.current?.closest('header')
-    if (!open || !panel || !area) return
+    const root = rootRef.current
+    const area = root?.closest('header')
+    if (!mounted || !panel || !root || !area) return
+    // Widget replié dans le menu de la barre : son panneau s'ouvre à gauche du menu
+    const folded = root.closest(`.${styles.overflow}`)
     const place = (): void => {
+      const button = root.getBoundingClientRect()
+      if (folded) {
+        const menu = folded.getBoundingClientRect()
+        panel.style.top = `${Math.round(button.top - 6)}px`
+        panel.style.right = `${Math.round(window.innerWidth - menu.left + 8)}px`
+      } else {
+        panel.style.top = `${Math.round(button.bottom + 6)}px`
+        panel.style.right = `${Math.round(window.innerWidth - button.right)}px`
+      }
       panel.style.translate = ''
       const rect = panel.getBoundingClientRect()
       const bounds = area.getBoundingClientRect()
@@ -89,13 +104,22 @@ export function HeaderPopover({
     place()
     const observer = new ResizeObserver(place)
     observer.observe(panel)
-    return () => observer.disconnect()
-  }, [open])
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [mounted])
 
   useEffect(() => {
     if (!open) return
+    // Le panneau est posé ailleurs dans la page (au niveau de la fenêtre) : il compte aussi
     const onPointerDown = (event: PointerEvent): void => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpenRef.current(false)
+      const target = event.target as Node
+      if (rootRef.current?.contains(target) || panelRef.current?.contains(target)) return
+      setOpenRef.current(false)
     }
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.key === 'Escape') setOpenRef.current(false)
@@ -128,18 +152,20 @@ export function HeaderPopover({
       >
         {button}
       </button>
-      {mounted && (
-        <div
-          ref={panelRef}
-          className={styles.panel}
-          role="dialog"
-          aria-label={label}
-          tabIndex={-1}
-          data-closing={closing || undefined}
-        >
-          {children(() => setOpen(false))}
-        </div>
-      )}
+      {mounted &&
+        createPortal(
+          <div
+            ref={panelRef}
+            className={styles.panel}
+            role="dialog"
+            aria-label={label}
+            tabIndex={-1}
+            data-closing={closing || undefined}
+          >
+            {children(() => setOpen(false))}
+          </div>,
+          document.body
+        )}
     </div>
   )
 }

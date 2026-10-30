@@ -298,7 +298,7 @@ await notify({ title: 'Minuteur terminé', body: '5 minutes écoulées.', tag: i
 | `tag`    | Une notification avec la même étiquette remplace la précédente             |
 | `target` | Ce que désigne la notification (un identifiant de ton choix), reçu au clic |
 
-Tessera applique les réglages de l'utilisateur pour ton module (Paramètres → Notifications : activé, son, priorité) et le mode Ne pas déranger, puis affiche la notification dans le centre, en bannière Windows et avec un son. Un clic dessus ouvre la page qui contient un bloc de ton module ; pour réagir à `target` :
+Tessera applique les réglages de l'utilisateur pour ton module (Paramètres → Notifications : activé, son, priorité) et le mode Ne pas déranger, puis affiche la notification dans le centre, en bulle (dans la fenêtre de Tessera quand elle est affichée, sinon en bannière Windows) et avec un son. Un clic dessus ouvre la page qui contient un bloc de ton module ; pour réagir à `target` :
 
 ```tsx
 useNotificationTarget((target) => openItem(target)) // même si le clic a eu lieu avant l'affichage du bloc

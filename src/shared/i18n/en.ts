@@ -283,6 +283,12 @@ export const en: Translation = {
     },
     testTitle: 'Test notification',
     testBody: 'Tessera notifications are working.',
+    toast: {
+      region: 'Notification bubbles',
+      close: 'Close',
+      markRead: 'Mark as read',
+      reply: 'Reply'
+    },
     center: {
       title: 'Notifications',
       open: 'Notifications',
@@ -958,9 +964,17 @@ export const en: Translation = {
     },
     notifications: {
       banners: {
-        label: 'Windows banners',
+        label: 'Notification bubbles',
         description:
-          'Shows notifications at the bottom right of the screen, even when Tessera is in the background.'
+          'Inside Tessera when its window is displayed (in the foreground, or with no other window over it), otherwise as Windows banners at the bottom right of the screen.'
+      },
+      toastCorner: {
+        label: 'Bubble position in Tessera',
+        description: 'Corner of the window where bubbles stack.',
+        'bottom-right': 'Bottom right',
+        'bottom-left': 'Bottom left',
+        'top-right': 'Top right',
+        'top-left': 'Top left'
       },
       sound: {
         label: 'Default sound',

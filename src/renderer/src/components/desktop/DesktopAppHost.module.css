@@ -177,3 +177,8 @@
     opacity: 0;
   }
 }
+
+/* Élément de l'interface par-dessus (panneau, menu) : sous son trou, rien à signaler */
+:global(:root[data-app-holes]) .missing {
+  visibility: hidden;
+}

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { isDoNotDisturbActive, type TesseraNotification } from '@shared/notifications'
 import { useNotificationSources } from '../../hooks/useNotificationSources'
 import { usePresence } from '../../hooks/usePresence'
-import { useCoverDesktopApps } from '../../stores/desktopApps'
+import { useDesktopAppsHole } from '../../stores/desktopApps'
 import { useNavigationStore } from '../../stores/navigation'
 import { openNotificationSource, useNotificationsStore } from '../../stores/notifications'
 import { useResolvedLanguage, useSettingsStore } from '../../stores/settings'
@@ -45,10 +45,10 @@ export function NotificationCenter(): React.JSX.Element | null {
   const panelRef = useRef<HTMLElement>(null)
   const dndLabel = useId()
 
-  // Les fenêtres des applications installées passeraient devant le panneau
   // Panneau gardé le temps de sa disparition
   const { mounted, closing } = usePresence(open)
-  useCoverDesktopApps(mounted, 'centre de notifications')
+  // Découpé dans les fenêtres des applications installées (elles restent affichées autour)
+  useDesktopAppsHole(panelRef, open, 'centre de notifications')
 
   // Fermeture : Échap, clic ailleurs. Les notifications vues sont alors marquées comme lues.
   useEffect(() => {

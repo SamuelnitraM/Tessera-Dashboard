@@ -3,8 +3,9 @@ import type { SoundId } from '@shared/notifications'
 /**
  * Sons des notifications, joués par l'interface :
  * - sons de Tessera (`chime`, `pop`, `bell`) : synthétisés, aucun fichier à fournir ;
- * - sons importés (`custom:<id>`) : fichiers lus par le processus principal.
- * Le son de Windows (`system`) est joué par la bannière elle-même.
+ * - sons importés (`custom:<id>`) et son « Notification » de Windows (`system`, quand la
+ *   notification s'affiche en bulle dans Tessera) : fichiers lus par le processus principal.
+ * Avec une bannière Windows, le son de Windows est joué par la bannière elle-même.
  */
 
 let context: AudioContext | null = null
@@ -75,7 +76,7 @@ async function load(sound: SoundId): Promise<AudioBuffer | null> {
 
 /** Joue un son de notification (volume de 0 à 100). */
 export async function playSound(sound: SoundId, volume: number): Promise<void> {
-  if (sound === 'none' || sound === 'system' || volume <= 0) return
+  if (sound === 'none' || volume <= 0) return
   const ctx = audio()
   const output = ctx.createGain()
   output.gain.value = volume / 100

@@ -7,6 +7,8 @@ import {
   DEFAULT_SOUND,
   resolveSound,
   sourceSettings,
+  TOAST_CORNERS,
+  type ToastCorner,
   type NotificationSource,
   type SourceSettings
 } from '@shared/notifications'
@@ -86,6 +88,26 @@ export function NotificationsSection(): React.JSX.Element {
             />
           )}
         </SettingRow>
+        {settings.banners && (
+          <SettingRow
+            label={t('settings.notifications.toastCorner.label')}
+            description={t('settings.notifications.toastCorner.description')}
+          >
+            {({ labelId }) => (
+              <Select
+                aria-labelledby={labelId}
+                value={settings.toastCorner}
+                options={TOAST_CORNERS.map((corner) => ({
+                  value: corner,
+                  label: t(`settings.notifications.toastCorner.${corner}`)
+                }))}
+                onChange={(toastCorner) =>
+                  void update({ notifications: { toastCorner: toastCorner as ToastCorner } })
+                }
+              />
+            )}
+          </SettingRow>
+        )}
         {blocked && settings.banners && (
           <div className={styles.warning} role="alert">
             <TriangleAlert size={16} aria-hidden />
@@ -276,7 +298,7 @@ export function NotificationsSection(): React.JSX.Element {
   )
 }
 
-/** Écoute d'un son (le son de Windows ne peut être joué que par une bannière). */
+/** Écoute d'un son (le son de Windows au volume du système, comme dans une bannière). */
 function PlayButton({
   sound,
   volume,
@@ -294,8 +316,8 @@ function PlayButton({
       className={styles.iconButton}
       title={text}
       aria-label={text}
-      disabled={sound === 'system' || sound === 'none'}
-      onClick={() => void playSound(sound, volume)}
+      disabled={sound === 'none'}
+      onClick={() => void playSound(sound, sound === 'system' ? 100 : volume)}
     >
       <Play size={16} aria-hidden />
     </button>

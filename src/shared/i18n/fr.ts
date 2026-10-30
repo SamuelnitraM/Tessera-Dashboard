@@ -290,6 +290,12 @@ export const fr = {
     },
     testTitle: 'Notification de test',
     testBody: 'Les notifications de Tessera fonctionnent.',
+    toast: {
+      region: 'Bulles de notification',
+      close: 'Fermer',
+      markRead: 'Marquer comme lu',
+      reply: 'Répondre'
+    },
     center: {
       title: 'Notifications',
       open: 'Notifications',
@@ -969,9 +975,17 @@ export const fr = {
     },
     notifications: {
       banners: {
-        label: 'Bannières Windows',
+        label: 'Bulles de notification',
         description:
-          'Affiche les notifications en bas à droite de l’écran, même quand Tessera est en arrière-plan.'
+          'Dans Tessera quand sa fenêtre est affichée (au premier plan, ou sans autre fenêtre par-dessus), sinon en bannières Windows, en bas à droite de l’écran.'
+      },
+      toastCorner: {
+        label: 'Place des bulles dans Tessera',
+        description: 'Coin de la fenêtre où les bulles s’empilent.',
+        'bottom-right': 'En bas, à droite',
+        'bottom-left': 'En bas, à gauche',
+        'top-right': 'En haut, à droite',
+        'top-left': 'En haut, à gauche'
       },
       sound: {
         label: 'Son par défaut',

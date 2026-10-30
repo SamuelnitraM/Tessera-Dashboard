@@ -32,6 +32,7 @@ import {
   launchApp,
   moveHost,
   refreshApp,
+  setHoles,
   setSuspended,
   takeOutApp,
   focusApp
@@ -85,6 +86,7 @@ import {
   getMessage,
   listFolders,
   listMessages,
+  markMessageRead,
   openMailLink,
   pickUploads,
   protectMailAccounts,
@@ -288,6 +290,23 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.desktopAppsRefresh, (_event, appId: string) => refreshApp(appId))
   ipcMain.handle(IpcChannels.desktopAppsFocus, (_event, appId: string) => focusApp(String(appId)))
   ipcMain.handle(IpcChannels.desktopAppsCapture, () => captureApps())
+  ipcMain.handle(IpcChannels.desktopAppsSetHoles, (event, holes: unknown, names: unknown) => {
+    const window = tesseraWindowOf(event.sender)
+    if (!window) return
+    const number = (value: unknown): number =>
+      typeof value === 'number' && Number.isFinite(value) ? value : 0
+    const rects = (Array.isArray(holes) ? holes : []).slice(0, 20).map((hole) => {
+      const item = (hole ?? {}) as Record<string, unknown>
+      return {
+        x: number(item.x),
+        y: number(item.y),
+        width: Math.max(0, number(item.width)),
+        height: Math.max(0, number(item.height)),
+        radius: Math.max(0, Math.min(64, number(item.radius)))
+      }
+    })
+    setHoles(window, rects, typeof names === 'string' ? names.slice(0, 300) : '')
+  })
   ipcMain.handle(IpcChannels.desktopAppsSetSuspended, (event, value: boolean, reasons: unknown) => {
     const window = tesseraWindowOf(event.sender)
     if (window) {
@@ -307,8 +326,9 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IpcChannels.notificationsRemove, (_event, id: string) => removeNotification(id))
   ipcMain.handle(IpcChannels.notificationsClear, () => clearNotifications())
+  // Clic dans le centre ou sur une bulle : la fenêtre va elle-même vers la source
   ipcMain.handle(IpcChannels.notificationsActivate, (_event, id: string) =>
-    activateNotification(id)
+    activateNotification(id, true)
   )
   ipcMain.handle(IpcChannels.notificationsTest, () => sendTestNotification())
   ipcMain.handle(IpcChannels.notificationsNotify, (_event, pluginId: string, input: NotifyInput) =>
@@ -326,6 +346,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.notificationsOpenSystemSettings, () =>
     openSystemNotificationSettings()
   )
+  ipcMain.handle(IpcChannels.notificationsMailRead, async (_event, id: string) => {
+    const notification = getNotifications().find((item) => item.id === id)
+    const accountId = notification?.source.match(/^mail:(.+)$/s)?.[1]
+    if (!notification || !accountId || !notification.target) return
+    await markMessageRead(accountId, notification.target)
+    markRead([id])
+  })
 
   // Comptes : « Se connecter avec Google / Twitch » (Paramètres → Comptes)
   ipcMain.handle(IpcChannels.accountsProviders, () => getAccountProviders())

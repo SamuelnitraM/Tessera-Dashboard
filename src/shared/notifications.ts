@@ -1,8 +1,9 @@
 /**
  * Notifications de Tessera : celles des applications web (Discord web…), des widgets et
  * modules, et de Tessera elle-même. Elles passent toutes par le processus principal, qui
- * applique les réglages (par source, Ne pas déranger), affiche la bannière Windows, joue le
- * son et les garde dans le centre de notifications.
+ * applique les réglages (par source, Ne pas déranger), affiche une bulle (dans Tessera quand sa
+ * fenêtre est affichée, sinon une bannière Windows), joue le son et les garde dans le centre de
+ * notifications.
  *
  * Les applications installées (Discord, Obsidian…) affichent leurs propres notifications
  * Windows : Tessera ne les voit pas.
@@ -30,7 +31,8 @@ export const NOTIFICATION_PRIORITIES = ['normal', 'high'] as const
 
 /**
  * Son d'une notification :
- * - `system` : son de la bannière Windows
+ * - `system` : son « Notification » de Windows (joué par la bannière, ou par Tessera pour une
+ *   bulle dans sa fenêtre)
  * - `none` : aucun son
  * - `chime`, `pop`, `bell` : sons de Tessera (synthétisés, aucun fichier)
  * - `custom:<id>` : son importé par l'utilisateur
@@ -57,7 +59,7 @@ export interface SourceSettings {
   enabled: boolean
   /** `default` ou un son. */
   sound: string
-  /** Prioritaire : passe même en mode Ne pas déranger, et la bannière reste affichée. */
+  /** Prioritaire : passe même en mode Ne pas déranger, et la bulle reste affichée. */
   priority: NotificationPriority
 }
 
@@ -67,9 +69,23 @@ export const DEFAULT_SOURCE_SETTINGS: SourceSettings = {
   priority: 'normal'
 }
 
+/** Coin de la fenêtre où s'empilent les bulles de notification. */
+export type ToastCorner = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left'
+export const TOAST_CORNERS: readonly ToastCorner[] = [
+  'bottom-right',
+  'bottom-left',
+  'top-right',
+  'top-left'
+]
+
 export interface NotificationSettings {
-  /** Bannières Windows (en bas à droite de l'écran). */
+  /**
+   * Bulles de notification : dans Tessera quand sa fenêtre est affichée (au premier plan, ou sans
+   * autre fenêtre par-dessus), sinon bannières Windows (en bas à droite de l'écran).
+   */
   banners: boolean
+  /** Coin de la fenêtre des bulles affichées dans Tessera. */
+  toastCorner: ToastCorner
   /** Son par défaut. */
   sound: SoundId
   /** Volume des sons de Tessera et des sons importés (0 à 100). */
@@ -85,6 +101,7 @@ export interface NotificationSettings {
 
 export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   banners: true,
+  toastCorner: 'bottom-right',
   sound: 'chime',
   volume: 70,
   doNotDisturb: false,
@@ -206,6 +223,9 @@ export function sanitizeNotificationSettings(input: unknown): NotificationSettin
 
   return {
     banners: typeof root.banners === 'boolean' ? root.banners : defaults.banners,
+    toastCorner: TOAST_CORNERS.includes(root.toastCorner as ToastCorner)
+      ? (root.toastCorner as ToastCorner)
+      : defaults.toastCorner,
     sound: isSound(root.sound) && soundExists(root.sound) ? root.sound : defaults.sound,
     volume:
       typeof root.volume === 'number' && Number.isFinite(root.volume)

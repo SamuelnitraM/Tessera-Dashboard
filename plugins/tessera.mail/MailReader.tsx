@@ -33,6 +33,8 @@ interface MailReaderProps {
   id: string
   /** Réglage du bloc : images distantes toujours affichées. */
   remoteImages: boolean
+  /** Ouvre la réponse dès le mail chargé (bouton « Répondre » d'une notification). */
+  startReply?: boolean
   onBack: () => void
   onAct: (action: MailAction) => Promise<void>
   onCompose: (mode: ComposeMode, message: MailMessage) => void
@@ -43,6 +45,7 @@ export function MailReader({
   accountId,
   id,
   remoteImages,
+  startReply = false,
   onBack,
   onAct,
   onCompose
@@ -66,6 +69,7 @@ export function MailReader({
         setMessage(loaded)
         // Ouvert = lu
         if (loaded.unread) void onAct('read').catch(() => {})
+        if (startReply) onCompose('reply', loaded)
       },
       (failure) => !cancelled && setError(mailErrorMessage(failure))
     )

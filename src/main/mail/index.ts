@@ -304,6 +304,12 @@ export async function actOnMessage(
   void checkAccount(accountId)
 }
 
+/** Mail marqué comme lu depuis sa notification (bouton de la bulle, action de Tessera). */
+export async function markMessageRead(accountId: string, id: string): Promise<void> {
+  await withAccount(accountId, (connection) => connection.act(String(id), 'read'))
+  void checkAccount(accountId)
+}
+
 export async function sendMessage(
   pluginId: string,
   accountId: string,

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLingering } from '../../hooks/usePresence'
 import { useContextMenuStore, type MenuAction } from '../../stores/contextMenu'
-import { useCoverDesktopApps } from '../../stores/desktopApps'
+import { useDesktopAppsHole } from '../../stores/desktopApps'
 import styles from './ContextMenuHost.module.css'
 
 /**
@@ -15,7 +15,8 @@ export function ContextMenuHost(): React.JSX.Element | null {
   const listRef = useRef<HTMLUListElement>(null)
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null)
   const { shown, closing } = useLingering(menu)
-  useCoverDesktopApps(shown !== null, 'menu du clic droit')
+  // Découpé dans les fenêtres des applications installées (elles restent affichées autour)
+  useDesktopAppsHole(listRef, shown !== null, 'menu du clic droit')
 
   // Le menu reste entièrement visible, même ouvert près d'un bord de la fenêtre
   useLayoutEffect(() => {

@@ -104,7 +104,7 @@ export interface Settings {
     /** À la fermeture de Tessera : fermer les applications installées, ou les rendre au bureau. */
     onQuit: QuitMode
   }
-  /** Notifications : bannières, sons, Ne pas déranger, réglages par source. */
+  /** Notifications : bulles, sons, Ne pas déranger, réglages par source. */
   notifications: NotificationSettings
   /** Mails : identifiant de connexion Google, comptes, vérification. */
   mail: MailSettings

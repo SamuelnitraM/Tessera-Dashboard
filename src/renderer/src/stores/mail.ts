@@ -10,9 +10,12 @@ interface MailStore {
   states: Record<string, MailAccountState>
   /** Augmente quand de nouveaux mails arrivent sur un compte : les listes se rechargent. */
   arrivals: Record<string, number>
-  /** Mail demandé par une notification (consommé par le premier bloc du compte). */
-  openRequest: { accountId: string; messageId: string; nonce: number } | null
-  requestOpen: (accountId: string, messageId: string) => void
+  /**
+   * Mail demandé par une notification (consommé par le premier bloc du compte) ; `reply` :
+   * bouton « Répondre » de la bulle, la réponse s'ouvre dès le mail chargé.
+   */
+  openRequest: { accountId: string; messageId: string; reply: boolean; nonce: number } | null
+  requestOpen: (accountId: string, messageId: string, reply?: boolean) => void
   clearOpenRequest: (nonce: number) => void
 }
 
@@ -23,8 +26,8 @@ export const useMailStore = create<MailStore>()((set) => ({
   states: {},
   arrivals: {},
   openRequest: null,
-  requestOpen: (accountId, messageId) =>
-    set({ openRequest: { accountId, messageId, nonce: Date.now() } }),
+  requestOpen: (accountId, messageId, reply = false) =>
+    set({ openRequest: { accountId, messageId, reply, nonce: Date.now() } }),
   clearOpenRequest: (nonce) =>
     set((state) => (state.openRequest?.nonce === nonce ? { openRequest: null } : state))
 }))

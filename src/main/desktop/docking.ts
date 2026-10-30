@@ -8,7 +8,8 @@ import type {
   DesktopAppTabDrag,
   FullScreenMode,
   HostRect,
-  QuitMode
+  QuitMode,
+  HostHole
 } from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
 import { getSettings } from '../settings-store'
@@ -101,6 +102,8 @@ interface DockedWindow {
    * pour cette couleur, pas de nouvelle relance tant qu'elle reste la même (page unie voulue).
    */
   blank: number | null
+  /** Trous découpés dans le cadre (éléments de l'interface par-dessus), pour ne pas les refaire. */
+  holes: string
   /** Sa molette fait défiler la page (l'hébergeur le sait), même après un clic (`always`). */
   pageWheel: boolean
   wheelAlways: boolean
@@ -175,6 +178,13 @@ let listeners: DockingListeners = {
   middleClick: () => {},
   tabDrag: () => {}
 }
+/**
+ * Éléments de l'interface ouverts par-dessus les blocs (panneau d'un widget de la barre, menu,
+ * fenêtre de dialogue, centre de notifications), par fenêtre de Tessera (px CSS) : leur forme est
+ * découpée dans les cadres, l'application reste affichée (et active) tout autour.
+ */
+const holesOf = new Map<BrowserWindow, { rects: HostHole[]; names: string }>()
+
 /** Fenêtres de Tessera recouvertes par leur interface (dialogue, mode édition…), et pourquoi. */
 const suspendedWindows = new Map<BrowserWindow, { reasons: string; since: number }>()
 
@@ -435,7 +445,10 @@ function place(docked: DockedWindow): void {
 
   const key = JSON.stringify({ layout, insets })
   const current = w.getWindowRect(docked.hwnd)
-  if (docked.shown && key === docked.target && sameRect(docked.placed, current)) return
+  if (docked.shown && key === docked.target && sameRect(docked.placed, current)) {
+    applyHoles(docked, layout)
+    return
+  }
 
   normalize(docked.hwnd)
   // Demandes postées : une application occupée (ou l'hébergeur qui l'attend) ne bloque pas
@@ -454,6 +467,8 @@ function place(docked: DockedWindow): void {
   }
   docked.target = key
   docked.size = { width: window.width, height: window.height }
+  // Interface par-dessus le bloc (panneau, menu…) : découpée dans le cadre
+  applyHoles(docked, layout)
   // Étirée : son cadre passe au-dessus des autres (applications, blocs voisins)
   if (layout.raised && !docked.raised) {
     const flags = (quiet & ~w.SWP.NOZORDER) | w.SWP.NOMOVE | w.SWP.NOSIZE
@@ -477,6 +492,51 @@ function place(docked: DockedWindow): void {
 
 function placeAll(): void {
   for (const docked of windows.values()) place(docked)
+}
+
+/** Découpe dans le cadre les éléments de l'interface qui passent par-dessus son bloc. */
+function applyHoles(docked: DockedWindow, layout: Layout): void {
+  const window = hostWindowOf(docked.appId)
+  const overlay = window ? holesOf.get(window) : undefined
+  const { frame } = layout
+  let holes: w.RegionHole[] = []
+  if (window && overlay && overlay.rects.length > 0) {
+    const scale = scaleOf(window)
+    const origin = w.clientOrigin(hwndOf(window))
+    holes = overlay.rects
+      .map((rect) => ({
+        x: Math.round(origin.x + rect.x * scale - frame.x),
+        y: Math.round(origin.y + rect.y * scale - frame.y),
+        width: Math.round(rect.width * scale),
+        height: Math.round(rect.height * scale),
+        radius: rect.radius * scale
+      }))
+      .filter(
+        (hole) =>
+          hole.x < frame.width &&
+          hole.y < frame.height &&
+          hole.x + hole.width > 0 &&
+          hole.y + hole.height > 0
+      )
+  }
+  const key = holes.length ? JSON.stringify([frame.width, frame.height, holes]) : ''
+  if (key === docked.holes) return
+  docked.holes = key
+  w.setWindowHoles(docked.frame, frame.width, frame.height, holes)
+  if (holes.length) note(docked, `découpée sous l'interface (${overlay?.names || '?'})`)
+}
+
+/**
+ * Éléments de l'interface ouverts par-dessus les blocs de cette fenêtre (px CSS, `names` pour le
+ * journal) : découpés dans les cadres des applications.
+ */
+export function setHoles(window: BrowserWindow, rects: HostHole[], names: string): void {
+  if (rects.length) holesOf.set(window, { rects, names })
+  else holesOf.delete(window)
+  for (const docked of windows.values()) {
+    const layout = docked.shown ? layoutFor(docked) : null
+    if (layout) applyHoles(docked, layout)
+  }
 }
 
 /** Le cadre appartient désormais à cette fenêtre de Tessera (tout de suite, puis l'hébergeur). */
@@ -616,6 +676,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       logged: '',
       problem: '',
       blank: null,
+      holes: '',
       unwatch: () => {}
     }
     docked.unwatch = w.watchProcessWindows(pid, (event, target) => {
@@ -1622,6 +1683,7 @@ export function attachDockingWindow(window: BrowserWindow): void {
   window.on('closed', () => {
     hostWindows.delete(window)
     suspendedWindows.delete(window)
+    holesOf.delete(window)
     forgetHostsOf(window)
     placeAll()
   })

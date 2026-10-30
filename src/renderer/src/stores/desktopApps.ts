@@ -125,8 +125,88 @@ export async function coverDesktopApps(name: string): Promise<() => void> {
   return () => changeOverlays(name, -1)
 }
 
+/* ---------- Éléments découpés dans les fenêtres ---------- */
+
+/** Éléments ouverts par-dessus les blocs, par clé ; leur forme est découpée dans les fenêtres. */
+const holes = new Map<symbol, { element: HTMLElement; name: string }>()
+let holesFrame = 0
+let sentHoles = ''
+
+/** Envoie la forme des éléments ouverts (une fois par image au plus). */
+function sendHoles(): void {
+  cancelAnimationFrame(holesFrame)
+  holesFrame = requestAnimationFrame(() => {
+    const list = [...holes.values()]
+    const rects = list
+      .map(({ element }) => {
+        const box = element.getBoundingClientRect()
+        return {
+          x: box.left,
+          y: box.top,
+          width: box.width,
+          height: box.height,
+          radius: parseFloat(getComputedStyle(element).borderTopLeftRadius) || 0
+        }
+      })
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+    // Sous un trou, le bloc ne dit pas « l'application n'apparaît pas ? » (le temps qu'il s'ouvre)
+    document.documentElement.toggleAttribute('data-app-holes', rects.length > 0)
+    const key = JSON.stringify(rects)
+    if (key === sentHoles) return
+    sentHoles = key
+    const names = [...new Set(list.map((hole) => hole.name))].join(', ')
+    void window.tessera.desktopApps.setHoles(rects, names)
+  })
+}
+
+/** Après l'ouverture : la forme est suivie image par image pendant ce temps (animation, place). */
+const HOLE_FOLLOW_MS = 400
+
 /**
- * Masque les fenêtres d'applications tant que `active` est vrai (dialogue ouvert…). `name` dit
+ * Élément de l'interface ouvert par-dessus les blocs (panneau d'un widget de la barre, menu,
+ * fenêtre de dialogue…) : sa forme est découpée dans les fenêtres des applications installées
+ * tant que `active` est vrai. Elles restent affichées (et actives) autour, sans être figées.
+ */
+export function useDesktopAppsHole(
+  ref: React.RefObject<HTMLElement | null>,
+  active: boolean,
+  name: string
+): void {
+  useEffect(() => {
+    const element = ref.current
+    if (!active || !element) return
+    const key = Symbol(name)
+    holes.set(key, { element, name })
+    sendHoles()
+    const observer = new ResizeObserver(sendHoles)
+    observer.observe(element)
+    window.addEventListener('resize', sendHoles)
+    window.addEventListener('scroll', sendHoles, true)
+    element.addEventListener('animationend', sendHoles)
+    element.addEventListener('transitionend', sendHoles)
+    // Animation d'ouverture, panneau décalé pour tenir dans la fenêtre : suivis un instant
+    const start = performance.now()
+    let follow = 0
+    const tick = (): void => {
+      sendHoles()
+      if (performance.now() - start < HOLE_FOLLOW_MS) follow = requestAnimationFrame(tick)
+    }
+    follow = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(follow)
+      holes.delete(key)
+      observer.disconnect()
+      window.removeEventListener('resize', sendHoles)
+      window.removeEventListener('scroll', sendHoles, true)
+      element.removeEventListener('animationend', sendHoles)
+      element.removeEventListener('transitionend', sendHoles)
+      sendHoles()
+    }
+  }, [ref, active, name])
+}
+
+/**
+ * Masque les fenêtres d'applications tant que `active` est vrai (mode édition…). `name` dit
  * ce qui passe par-dessus, dans le journal.
  */
 export function useCoverDesktopApps(active: boolean, name: string): void {

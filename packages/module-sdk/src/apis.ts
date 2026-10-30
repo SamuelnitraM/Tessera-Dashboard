@@ -159,7 +159,8 @@ export function useProcesses(): PluginProcesses {
 
 export interface PluginNotifications {
   /**
-   * Envoie une notification : centre de notifications, bannière Windows et son, selon les
+   * Envoie une notification : centre de notifications, bulle (dans Tessera, ou bannière Windows
+   * quand Tessera est en arrière-plan) et son, selon les
    * réglages de l'utilisateur (Paramètres → Notifications) et le mode Ne pas déranger.
    */
   notify: (input: NotifyInput) => Promise<void>

@@ -68,6 +68,7 @@ export const IpcChannels = {
   desktopAppsRefresh: 'desktop-apps:refresh',
   desktopAppsCapture: 'desktop-apps:capture',
   desktopAppsSetSuspended: 'desktop-apps:set-suspended',
+  desktopAppsSetHoles: 'desktop-apps:set-holes',
   desktopAppsLog: 'desktop-apps:log',
   /** Événement main -> renderer : état d'une application installée (identifiant, état). */
   desktopAppsChanged: 'desktop-apps:changed',
@@ -98,12 +99,15 @@ export const IpcChannels = {
   notificationsGetSound: 'notifications:get-sound',
   notificationsBannersBlocked: 'notifications:banners-blocked',
   notificationsOpenSystemSettings: 'notifications:open-system-settings',
+  notificationsMailRead: 'notifications:mail-read',
   /** Événement main -> renderer : l'historique des notifications a changé. */
   notificationsChanged: 'notifications:changed',
   /** Événement main -> renderer : son à jouer (son, volume). */
   notificationsPlay: 'notifications:play',
   /** Événement main -> renderer : clic sur une bannière (notification). */
   notificationsActivated: 'notifications:activated',
+  /** Événement main -> renderer : bulle à afficher dans cette fenêtre (notification). */
+  notificationsToast: 'notifications:toast',
   mailGetConfig: 'mail:get-config',
   mailSetGoogleSecret: 'mail:set-google-secret',
   mailCancelConnect: 'mail:cancel-connect',

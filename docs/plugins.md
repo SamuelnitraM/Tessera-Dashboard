@@ -298,7 +298,7 @@ await notify({ title: 'Sauvegarde terminée', body: '12 fichiers copiés', tag: 
 | `tag`    | Une notification avec la même étiquette remplace la précédente                                     |
 | `target` | Ce que désigne la notification (ex. une chaîne) : reçu au clic par `useNotificationTarget(onOpen)` |
 
-Tessera applique les réglages de l'utilisateur pour l'extension (activée, son, priorité) et le mode Ne pas déranger, puis affiche la notification dans le centre, en bannière Windows et avec un son. Un clic dessus ouvre la page qui contient un bloc de l'extension.
+Tessera applique les réglages de l'utilisateur pour l'extension (activée, son, priorité) et le mode Ne pas déranger, puis affiche la notification dans le centre, en bulle (dans la fenêtre de Tessera quand elle est affichée, sinon en bannière Windows) et avec un son. Un clic dessus ouvre la page qui contient un bloc de l'extension.
 
 ### Applications installées (`InstalledAppView`)
 
@@ -350,15 +350,15 @@ await mail.send(accountId, {
 })
 ```
 
-| Fonction                                                              | Rôle                                                                                                                                        |
-| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `list`, `get`, `act`, `send`                                          | Boîte de réception, mail complet, classement, envoi (réponse : `replyTo`, transfert : `forwardFrom`)                                        |
-| `pickUploads()`                                                       | Fichiers à joindre, choisis par l'utilisateur                                                                                               |
-| `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                                                                  |
-| `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                                                            |
-| `openMail(accountId, messageId)`                                      | Ouvre un mail dans un bloc Mails (celui du compte, sinon un autre), comme une notification cliquée                                          |
-| `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée (un compte ou plusieurs ; `onOpen` reçoit le mail et son compte) |
-| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                                                             |
+| Fonction                                                              | Rôle                                                                                                                                                                                                          |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list`, `get`, `act`, `send`                                          | Boîte de réception, mail complet, classement, envoi (réponse : `replyTo`, transfert : `forwardFrom`)                                                                                                          |
+| `pickUploads()`                                                       | Fichiers à joindre, choisis par l'utilisateur                                                                                                                                                                 |
+| `saveAttachment(accountId, id, index)`                                | Enregistre une pièce jointe là où l'utilisateur le choisit                                                                                                                                                    |
+| `checkNow`, `reconnect`, `openLink`                                   | Vérifier tout de suite, reconnecter un compte, ouvrir un lien dans le navigateur                                                                                                                              |
+| `openMail(accountId, messageId)`                                      | Ouvre un mail dans un bloc Mails (celui du compte, sinon un autre), comme une notification cliquée                                                                                                            |
+| `useMailArrivals(accountId)`, `useMailOpenRequest(accountId, onOpen)` | Recharger à l'arrivée de mails ; ouvrir le mail d'une notification cliquée (un compte ou plusieurs ; `onOpen` reçoit le mail, son compte et `{ reply }` : bouton « Répondre » d'une bulle, ouvrir la réponse) |
+| `openMailSettings()`, `mailErrorMessage(error)`                       | Paramètres → Comptes ; message d'erreur traduit                                                                                                                                                               |
 
 Le HTML d'un mail (`message.html`) n'est **pas nettoyé** : l'afficher sans précaution exposerait Tessera. L'extension **Mails** (`plugins/tessera.mail`) montre comment le nettoyer (DOMPurify) et l'isoler dans un cadre sans scripts, images distantes bloquées. Les notifications des nouveaux mails sont envoyées par Tessera elle-même (source par compte).
 

@@ -53,7 +53,7 @@ Each section gives the sentence the user sees (in English and in French).
 > “Can send you notifications”
 > « Peut t'envoyer des notifications »
 
-- **Allows**: sending notifications (notification center, Windows banner, sound), and knowing which one the user clicked.
+- **Allows**: sending notifications (notification center, bubble in Tessera or Windows banner, sound), and knowing which one the user clicked.
 - The user configures your module like any other source (Settings → Notifications); Do Not Disturb applies.
 - **API**: [`useNotifications()`, `useNotificationTarget()`](sdk.md#notifications-notifications).
 

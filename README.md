@@ -96,7 +96,8 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 
 - **Comptes** : « Se connecter avec Google » (Gmail, YouTube, Agenda et Tasks en une fois), « Se connecter avec Twitch » et Spotify, sur la page officielle, dans ton navigateur. Chaque bloc qui a besoin d'un compte propose le même bouton. Tessera ne voit jamais ton mot de passe, et tes jetons sont chiffrés par Windows.
 - **Journal** : Paramètres → À propos → Journal montre les erreurs de Tessera et ce qu'il fait des applications installées, pour comprendre ou signaler un problème.
-- **Notifications** : centre de notifications, bannières Windows, sons au choix (même les tiens), réglages par application, **Ne pas déranger** (aussi à heures fixes). Un clic sur une notification t'amène au bloc qui l'a envoyée ; s'il n'en a pas encore, Tessera te propose de l'ajouter.
+- **Notifications** : bulles dans Tessera quand tu l'as sous les yeux (dans le coin de ton choix), bannières Windows sinon ; « Marquer comme lu » et « Répondre » pour les mails, centre de notifications, sons au choix (même les tiens), réglages par application, **Ne pas déranger** (aussi à heures fixes). Un clic sur une notification t'amène au bloc qui l'a envoyée ; s'il n'en a pas encore, Tessera te propose de l'ajouter.
+- **Tout reste visible** : les panneaux de la barre, les menus et les fenêtres de dialogue passent au-dessus des vidéos et des applications installées, qui continuent de tourner autour.
 - **Thèmes** clair et sombre, **couleur d'accent** au choix, interface en **français** et en **anglais**.
 - Tessera tourne en **arrière-plan** dans la zone de notification, démarre avec Windows et **se met à jour tout seul** : il cherche les nouvelles versions au lancement, toutes les 3 heures et à la fermeture, puis une icône clignote dans le menu ; un clic, et c'est installé.
 

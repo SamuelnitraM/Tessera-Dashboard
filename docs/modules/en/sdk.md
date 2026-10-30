@@ -298,7 +298,7 @@ await notify({ title: 'Timer finished', body: '5 minutes are up.', tag: instance
 | `tag`    | A notification with the same tag replaces the previous one                |
 | `target` | What the notification points to (an id of your choice), received on click |
 
-Tessera applies the user's settings for your module (Settings → Notifications: on/off, sound, priority) and Do Not Disturb, then shows the notification in the notification center, as a Windows banner and with a sound. Clicking it opens the page that holds one of your module's blocks; to react to `target`:
+Tessera applies the user's settings for your module (Settings → Notifications: on/off, sound, priority) and Do Not Disturb, then shows the notification in the notification center, as a bubble (inside Tessera's window when it is displayed, otherwise as a Windows banner) and with a sound. Clicking it opens the page that holds one of your module's blocks; to react to `target`:
 
 ```tsx
 useNotificationTarget((target) => openItem(target)) // even if the click happened before the block was shown

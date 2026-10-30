@@ -4,6 +4,7 @@ import { APP_NAME } from '@shared/app'
 import { IpcChannels } from '@shared/ipc'
 import { getAppIcons } from './app-icon'
 import { setFramesFullScreen } from './desktop/frames'
+import { getProcessId, isForegroundOf, isUncovered } from './desktop/win32'
 import { protectModuleFrames } from './plugins/module-protocol'
 import { getSettings } from './settings-store'
 import { getWindowBackground } from './system'
@@ -56,6 +57,22 @@ export function getTesseraWindows(): BrowserWindow[] {
 /** Poignée Windows (HWND) d'une fenêtre. */
 export const hwndOf = (window: BrowserWindow): number =>
   Number(window.getNativeWindowHandle().readBigInt64LE(0))
+
+/**
+ * Fenêtre de Tessera « affichée » : au premier plan, sinon visible sans aucune autre fenêtre
+ * par-dessus. Les notifications s'y montrent en bulles ; sans elle, en bannières de Windows.
+ * Les fenêtres auxiliaires de Tessera (vidéo, captures) ne la recouvrent pas.
+ */
+export function getDisplayedWindow(): BrowserWindow | null {
+  const shown = entries
+    .map((entry) => entry.window)
+    .filter((window) => !window.isDestroyed() && window.isVisible() && !window.isMinimized())
+  const focused = shown.find((window) => isForegroundOf(hwndOf(window)))
+  if (focused) return focused
+  const own = new Set(shown.map(hwndOf))
+  const ignore = (hwnd: number): boolean => !own.has(hwnd) && getProcessId(hwnd) === process.pid
+  return shown.find((window) => isUncovered(hwndOf(window), ignore)) ?? null
+}
 
 /** Fenêtre de Tessera qui contient cette interface (`null` : une autre fenêtre). */
 export function tesseraWindowOf(contents: Electron.WebContents): BrowserWindow | null {
