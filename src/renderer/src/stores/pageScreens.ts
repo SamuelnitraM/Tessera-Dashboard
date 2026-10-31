@@ -72,22 +72,38 @@ function allScreenStops(area: HTMLElement): number[] {
   return [...(inside.length ? inside : [0]), ...(max > 1 ? [max] : [])]
 }
 
+/** Défilement en cours vers un écran (raccourci), de `from` à `to` (px). */
+let heading: { area: HTMLElement; from: number; to: number; at: number } | null = null
+/** Au-delà, le défilement doux est forcément fini (ou interrompu). */
+const HEADING_MS = 1500
+
 /**
  * Raccourci d'écran : suivant (`next`), précédent (`previous`) ou écran `n` (1 à 9, le dernier
- * s'il y en a moins) de la page affichée.
+ * s'il y en a moins) de la page affichée. Pendant le défilement vers un écran, le suivant part de
+ * cet écran : on enchaîne les écrans sans attendre la fin de l'animation.
  */
 export function goToScreen(target: 'next' | 'previous' | number): void {
   const area = document.querySelector<HTMLElement>('[data-page-scroller]')
   if (!area) return
   const stops = allScreenStops(area)
-  const top = area.scrollTop
+  const current = area.scrollTop
+  const moving =
+    heading &&
+    heading.area === area &&
+    Date.now() - heading.at < HEADING_MS &&
+    current >= Math.min(heading.from, heading.to) - 2 &&
+    current <= Math.max(heading.from, heading.to) + 2 &&
+    Math.abs(current - heading.to) > 1
+  const top = moving && heading ? heading.to : current
   const next =
     target === 'next'
       ? stops.find((stop) => stop > top + 1)
       : target === 'previous'
         ? [...stops].reverse().find((stop) => stop < top - 1)
         : stops[Math.min(target, stops.length) - 1]
-  if (next !== undefined) area.scrollTo({ top: next, behavior: 'smooth' })
+  if (next === undefined) return
+  heading = { area, from: current, to: next, at: Date.now() }
+  area.scrollTo({ top: next, behavior: 'smooth' })
 }
 
 /** Écran suivant (`1`) ou précédent (`-1`) de la page, depuis la position `top` (px). */

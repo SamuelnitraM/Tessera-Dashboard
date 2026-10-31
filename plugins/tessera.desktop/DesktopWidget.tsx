@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AppWindow, ExternalLink, Globe, Pencil, Plus, RotateCw } from 'lucide-react'
+import { AppWindow, ExternalLink, Globe, HatGlasses, Pencil, Plus, RotateCw } from 'lucide-react'
 import {
   BlockSettingsButton,
   addInstalledApp,
@@ -12,6 +12,7 @@ import {
   useBrowserChoices,
   useInstalledApps,
   useLatest,
+  usePrivateWindow,
   usePluginTranslation,
   useTabDragOver,
   type BrowserChoice,
@@ -31,6 +32,12 @@ interface DesktopConfig {
   parked?: string[]
   /** Plein écran de l'application (vidéo d'un navigateur…) : tout l'écran, ou le bloc. */
   fullScreen?: string
+  /**
+   * Bloc Navigateur en navigation privée : il affiche une fenêtre privée du navigateur, dont les
+   * onglets restent privés ; la fenêtre normale reste ouverte, cachée. En sortir ferme la fenêtre
+   * privée.
+   */
+  private?: boolean
 }
 
 /** Bloc « Application installée » : un programme du PC (pas un navigateur). */
@@ -63,6 +70,9 @@ function InstalledBlock({
   // caché, avec ses onglets : y revenir l'affiche aussitôt.
   const browsers = useBrowserChoices()
   const browser = app ? browsers.find((choice) => choice.appId === app.id) : undefined
+  // Navigation privée (bloc Navigateur) : fenêtre privée du navigateur affiché
+  const privateId = usePrivateWindow(kind === 'browser' ? app?.id : null)
+  const shownId = privateId && config.private ? privateId : app?.id
   // Réglages les plus récents : deux clics rapprochés ne doivent pas perdre un navigateur mis
   // de côté (la réponse arrive après le clic, `config` du rendu peut être dépassé)
   const latestConfigRef = useLatest(config)
@@ -168,24 +178,36 @@ function InstalledBlock({
               <span className={styles.name}>{app?.name}</span>
             </>
           )}
-          {app && (
+          {privateId && (
+            <button
+              type="button"
+              className={`${styles.privateButton} no-drag`}
+              aria-pressed={config.private === true}
+              title={config.private ? t('privateOff') : t('privateOn')}
+              onClick={() => update({ private: !config.private })}
+            >
+              <HatGlasses size={14} aria-hidden />
+              <span>{t('private')}</span>
+            </button>
+          )}
+          {shownId && (
             <button
               type="button"
               className={`${styles.iconButton} no-drag`}
               title={t('refresh')}
               aria-label={t('refresh')}
-              onClick={() => void refreshInstalledApp(app.id)}
+              onClick={() => void refreshInstalledApp(shownId)}
             >
               <RotateCw size={14} aria-hidden />
             </button>
           )}
-          {app && (
+          {shownId && (
             <button
               type="button"
               className={`${styles.iconButton} no-drag`}
               title={t('takeOut')}
               aria-label={t('takeOut')}
-              onClick={() => void takeOutInstalledApp(app.id)}
+              onClick={() => void takeOutInstalledApp(shownId)}
             >
               <ExternalLink size={14} aria-hidden />
             </button>
@@ -205,9 +227,9 @@ function InstalledBlock({
         </div>
       )}
       <div className={styles.window}>
-        {app ? (
+        {app && shownId ? (
           <InstalledAppView
-            appId={app.id}
+            appId={shownId}
             fullScreen={config.fullScreen === 'block' ? 'block' : 'screen'}
             hostId={instanceId}
             offset={config.offset}

@@ -76,6 +76,45 @@
               }
             }
           ]
+        },
+        {
+          "key": "onQuit",
+          "type": "select",
+          "label": {
+            "fr": "À la fermeture de Tessera",
+            "en": "When Tessera quits"
+          },
+          "default": "default",
+          "options": [
+            {
+              "value": "default",
+              "label": {
+                "fr": "Réglage de l’application (Paramètres → Applications)",
+                "en": "The app’s setting (Settings → Apps)"
+              }
+            },
+            {
+              "value": "close",
+              "label": {
+                "fr": "Fermer",
+                "en": "Close"
+              }
+            },
+            {
+              "value": "restore",
+              "label": {
+                "fr": "Garder ouvert",
+                "en": "Keep open"
+              }
+            },
+            {
+              "value": "show",
+              "label": {
+                "fr": "Ouvert et affiché (fenêtre sur le bureau)",
+                "en": "Open and shown (window on the desktop)"
+              }
+            }
+          ]
         }
       ]
     },
@@ -138,6 +177,54 @@
               "label": {
                 "fr": "Dans le bloc",
                 "en": "In the block"
+              }
+            }
+          ]
+        },
+        {
+          "key": "private",
+          "type": "boolean",
+          "label": {
+            "fr": "Navigation privée (la fenêtre normale du navigateur reste ouverte, cachée)",
+            "en": "Private browsing (the browser’s normal window stays open, hidden)"
+          },
+          "default": false
+        },
+        {
+          "key": "onQuit",
+          "type": "select",
+          "label": {
+            "fr": "À la fermeture de Tessera",
+            "en": "When Tessera quits"
+          },
+          "default": "default",
+          "options": [
+            {
+              "value": "default",
+              "label": {
+                "fr": "Réglage de l’application (Paramètres → Applications)",
+                "en": "The app’s setting (Settings → Apps)"
+              }
+            },
+            {
+              "value": "close",
+              "label": {
+                "fr": "Fermer",
+                "en": "Close"
+              }
+            },
+            {
+              "value": "restore",
+              "label": {
+                "fr": "Garder ouvert",
+                "en": "Keep open"
+              }
+            },
+            {
+              "value": "show",
+              "label": {
+                "fr": "Ouvert et affiché (fenêtre sur le bureau)",
+                "en": "Open and shown (window on the desktop)"
               }
             }
           ]

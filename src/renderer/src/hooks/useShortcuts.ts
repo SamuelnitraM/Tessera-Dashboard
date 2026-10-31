@@ -14,6 +14,25 @@ import { goToScreen } from '../stores/pageScreens'
 import { useSettingsStore } from '../stores/settings'
 import { useAddPage } from './useAddPage'
 
+/**
+ * Éléments qui gardent les touches servant à écrire ou à se déplacer (flèches, Pg suiv…) : champs
+ * de texte, listes, menus, curseurs.
+ */
+const TYPING_TARGETS = [
+  'input',
+  'textarea',
+  'select',
+  '[contenteditable="true"]',
+  ...['slider', 'listbox', 'menu', 'menubar', 'radiogroup', 'tablist', 'tree', 'grid'].map(
+    (role) => `[role="${role}"]`
+  ),
+  '[role="spinbutton"]',
+  '[role="combobox"]'
+].join(', ')
+
+/** Raccourcis répétés quand la touche reste enfoncée (écran après écran). */
+const REPEATED = new Set(['nextScreen', 'previousScreen'])
+
 /** Un raccourci de Tessera est en cours d'enregistrement (Paramètres → Raccourcis). */
 let recording = false
 export function setRecordingShortcut(value: boolean): void {
@@ -92,7 +111,7 @@ export function useShortcuts(): void {
     }
 
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (recording || event.defaultPrevented || event.repeat) return
+      if (recording || event.defaultPrevented) return
       const key = {
         key: event.key,
         code: event.code,
@@ -102,16 +121,10 @@ export function useShortcuts(): void {
         meta: event.metaKey
       }
       const hit = matchShortcut(useSettingsStore.getState().settings.shortcuts, key)
-      if (!hit) return
+      if (!hit || (event.repeat && !REPEATED.has(hit.action))) return
       const target = event.target as HTMLElement | null
       const combo = comboOf(key)
-      if (
-        combo &&
-        typingCombo(combo) &&
-        target?.closest?.('input, textarea, select, [contenteditable="true"]')
-      ) {
-        return
-      }
+      if (combo && typingCombo(combo) && target?.closest?.(TYPING_TARGETS)) return
       event.preventDefault()
       run(hit)
     }

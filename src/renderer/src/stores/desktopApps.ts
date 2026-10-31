@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { create } from 'zustand'
+import { privateAppId, publicAppId } from '@shared/browsers'
 import {
   isInstalledAppBlock,
   type DesktopAppSnapshot,
@@ -234,6 +235,10 @@ function usedApps(): Set<string> {
       if (!isInstalledAppBlock(widget.type)) continue
       const { appId, parked } = widget.config
       if (typeof appId === 'string') used.add(appId)
+      // Bloc Navigateur en navigation privée : sa fenêtre privée (fermée quand il en sort)
+      if (typeof appId === 'string' && widget.config.private === true) {
+        used.add(privateAppId(appId))
+      }
       // Navigateurs mis de côté par le bloc (changement de navigateur) : ouverts, cachés
       if (Array.isArray(parked)) {
         for (const id of parked) if (typeof id === 'string') used.add(id)
@@ -247,7 +252,7 @@ function usedApps(): Set<string> {
   for (const appId of useNavigationStore.getState().openedApps) used.add(appId)
   // Ouvertes en onglet dans une autre fenêtre de Tessera
   for (const appId of useWindowPagesStore.getState().appsElsewhere) used.add(appId)
-  return new Set([...used].filter((appId) => desktopIds.has(appId)))
+  return new Set([...used].filter((appId) => desktopIds.has(publicAppId(appId))))
 }
 
 /**

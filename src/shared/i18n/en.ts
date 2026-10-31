@@ -316,6 +316,7 @@ export const en: Translation = {
     }
   },
   desktopApps: {
+    privateName: '{{name}} (private browsing)',
     starting: 'Opening {{name}}…',
     closed: '{{name}} is closed.',
     missing: 'Is {{name}} not showing?',
@@ -888,7 +889,7 @@ export const en: Translation = {
     },
     shortcuts: {
       intro:
-        'Keyboard shortcuts of the Tessera window, also in an embedded web page (except those used for typing, like Ctrl + letter or PgDn). An installed app’s window keeps its own shortcuts. Digits are those of the top row or the numeric keypad. Click a shortcut then press the keys you want: Esc cancels, Backspace removes it.',
+        'Keyboard shortcuts of the Tessera window, also in an embedded web page. Those used for typing or moving around (Ctrl + letter, PgDn, the arrows…) stay with the text field, list or web page that has the keyboard. An installed app’s window keeps its own shortcuts. Digits are those of the top row or the numeric keypad. Click a shortcut then press the keys you want: Esc cancels, Backspace removes it.',
       groups: {
         pagesTitle: 'Pages',
         pagesHint: 'Next page, previous page, pages 1 to 9 (the last one if there are fewer)',
@@ -1118,16 +1119,18 @@ export const en: Translation = {
       onQuit: {
         label: 'Default closing',
         description:
-          'What happens to the installed apps and browsers shown in Tessera when it quits completely: closed, or kept open on the desktop. Each app can have its own setting (Closing).',
+          'What happens to the installed apps and browsers shown in Tessera when it quits completely: closed, kept open as they were (an app closed to its notification area stays there), or kept open and shown on the desktop. Each app, and each block, can have its own setting (Closing).',
         close: 'Close',
-        restore: 'Keep open'
+        restore: 'Keep open',
+        show: 'Open and shown'
       },
       appOnQuit: {
         label: 'Closing:',
         aria: 'Closing {{name}} with Tessera',
         default: 'Default ({{choice}})',
         close: 'Close',
-        restore: 'Keep open'
+        restore: 'Keep open',
+        show: 'Open and shown'
       },
       addInstalledTitle: 'Add an installed app',
       installedIntro:

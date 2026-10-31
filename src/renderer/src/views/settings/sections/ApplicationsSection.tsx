@@ -167,6 +167,7 @@ export function ApplicationsSection(): React.JSX.Element {
                         <option value="restore">
                           {t('settings.applications.appOnQuit.restore')}
                         </option>
+                        <option value="show">{t('settings.applications.appOnQuit.show')}</option>
                       </select>
                     </label>
                   </>
@@ -221,7 +222,8 @@ export function ApplicationsSection(): React.JSX.Element {
               onChange={(value) => void update({ apps: { onQuit: value } })}
               options={[
                 { value: 'close', label: t('settings.applications.onQuit.close') },
-                { value: 'restore', label: t('settings.applications.onQuit.restore') }
+                { value: 'restore', label: t('settings.applications.onQuit.restore') },
+                { value: 'show', label: t('settings.applications.onQuit.show') }
               ]}
             />
           )}

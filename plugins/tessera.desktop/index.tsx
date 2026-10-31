@@ -22,6 +22,10 @@ export default definePlugin({
       switchTo: 'Passer à {{name}} (le navigateur actuel reste ouvert, caché)',
       refresh: 'Rafraîchir le bloc (fenêtre grise ou absente)',
       takeOut: 'Sortir la fenêtre de Tessera (sur le bureau)',
+      private: 'Privée',
+      privateOn:
+        'Navigation privée : le bloc affiche une fenêtre privée du navigateur (la fenêtre normale reste ouverte, cachée)',
+      privateOff: 'Quitter la navigation privée (la fenêtre privée et ses onglets se ferment)',
       cancel: 'Annuler',
       missing: 'Cette application a été supprimée de Tessera.'
     },
@@ -39,6 +43,10 @@ export default definePlugin({
       switchTo: 'Switch to {{name}} (the current browser stays open, hidden)',
       refresh: 'Refresh the block (grey or missing window)',
       takeOut: 'Take the window out of Tessera (to the desktop)',
+      private: 'Private',
+      privateOn:
+        'Private browsing: the block shows a private window of the browser (the normal window stays open, hidden)',
+      privateOff: 'Leave private browsing (the private window and its tabs close)',
       cancel: 'Cancel',
       missing: 'This app was removed from Tessera.'
     }

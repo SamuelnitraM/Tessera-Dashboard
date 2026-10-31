@@ -323,6 +323,7 @@ export const fr = {
     }
   },
   desktopApps: {
+    privateName: '{{name}} (navigation privée)',
     starting: 'Ouverture de {{name}}…',
     closed: '{{name}} est fermé.',
     missing: '{{name}} n’apparaît pas ?',
@@ -898,7 +899,7 @@ export const fr = {
     },
     shortcuts: {
       intro:
-        'Raccourcis clavier de la fenêtre de Tessera, aussi dans une page web intégrée (sauf ceux qui servent à écrire, comme Ctrl + lettre ou Pg suiv). La fenêtre d’une application installée garde ses propres raccourcis. Les chiffres sont ceux de la rangée du haut (& é " \' ( …) ou du pavé numérique. Clique sur un raccourci puis appuie sur les touches voulues : Échap annule, Retour arrière le retire.',
+        'Raccourcis clavier de la fenêtre de Tessera, aussi dans une page web intégrée. Ceux qui servent à écrire ou à se déplacer (Ctrl + lettre, Pg suiv, les flèches…) restent au champ de texte, à la liste ou à la page web qui a le clavier. La fenêtre d’une application installée garde ses propres raccourcis. Les chiffres sont ceux de la rangée du haut (& é " \' ( …) ou du pavé numérique. Clique sur un raccourci puis appuie sur les touches voulues : Échap annule, Retour arrière le retire.',
       groups: {
         pagesTitle: 'Pages',
         pagesHint: 'Page suivante, précédente, pages 1 à 9 (la dernière s’il y en a moins)',
@@ -1134,16 +1135,18 @@ export const fr = {
       onQuit: {
         label: 'Fermeture par défaut',
         description:
-          'Ce que deviennent les applications installées et les navigateurs affichés dans Tessera quand il se ferme complètement : fermés, ou gardés ouverts sur le bureau. Chaque application peut avoir son propre réglage (Fermeture).',
+          'Ce que deviennent les applications installées et les navigateurs affichés dans Tessera quand il se ferme complètement : fermés, gardés ouverts tels qu’ils étaient (une application fermée dans sa zone de notification y reste), ou gardés ouverts et affichés sur le bureau. Chaque application, et chaque bloc, peut avoir son propre réglage (Fermeture).',
         close: 'Fermer',
-        restore: 'Garder ouvert'
+        restore: 'Garder ouvert',
+        show: 'Ouvert et affiché'
       },
       appOnQuit: {
         label: 'Fermeture :',
         aria: 'Fermeture de {{name}} avec Tessera',
         default: 'Défaut ({{choice}})',
         close: 'Fermer',
-        restore: 'Garder ouvert'
+        restore: 'Garder ouvert',
+        show: 'Ouvert et affiché'
       },
       addInstalledTitle: 'Ajouter une application installée',
       installedIntro:

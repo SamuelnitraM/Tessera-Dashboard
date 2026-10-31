@@ -1,4 +1,6 @@
-import { useContext } from 'react'
+import { useContext, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
+import { isPrivateAppId, privateApp, publicAppId } from '@shared/browsers'
 import type { FullScreenMode } from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
 import { DesktopAppHost, type PanOffset } from '../components/desktop/DesktopAppHost'
@@ -8,7 +10,10 @@ import { PluginContext } from './context'
 export type { PanOffset }
 
 export interface InstalledAppViewProps {
-  /** Application installée à afficher (voir `useInstalledApps`). */
+  /**
+   * Application installée à afficher (voir `useInstalledApps`), ou navigation privée d'un
+   * navigateur (voir `usePrivateWindow`).
+   */
   appId: string
   /** Identifiant unique de l'emplacement, en général l'`instanceId` du widget. */
   hostId: string
@@ -35,10 +40,17 @@ export function InstalledAppView({
   hostId,
   ...pan
 }: InstalledAppViewProps): React.JSX.Element {
+  const { t } = useTranslation()
   const plugin = useContext(PluginContext)
-  const app = useSettingsStore((state) =>
-    state.settings.apps.items.find((item) => item.id === appId)
+  const found = useSettingsStore((state) =>
+    state.settings.apps.items.find((item) => item.id === publicAppId(appId))
   )
+  // Navigation privée : fenêtre privée du même navigateur, sous son propre identifiant
+  const app = useMemo(() => {
+    if (!found || !isDesktopApp(found) || !isPrivateAppId(appId)) return found
+    const shown = privateApp(found)
+    return shown && { ...shown, name: t('desktopApps.privateName', { name: found.name }) }
+  }, [found, appId, t])
   if (!plugin?.permissions.includes('apps')) {
     return <p role="alert">Permission « apps » manquante dans le manifeste de l’extension.</p>
   }

@@ -273,6 +273,7 @@ export {
   takeOutInstalledApp,
   useBrowserChoices,
   useInstalledApps,
+  usePrivateWindow,
   type BrowserChoice,
   type UserInstalledApp,
   useTabDragOver,

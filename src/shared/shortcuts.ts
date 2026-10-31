@@ -58,11 +58,11 @@ const numbered = (actions: readonly string[], combo: (n: number) => string) =>
 
 export const DEFAULT_SHORTCUTS: ShortcutSettings = {
   keys: {
-    nextPage: 'Ctrl+Tab',
-    previousPage: 'Ctrl+Shift+Tab',
+    nextPage: 'PageUp',
+    previousPage: 'PageDown',
     ...numbered(PAGE_ACTIONS, (n) => `Ctrl+${n}`),
-    nextScreen: 'PageDown',
-    previousScreen: 'PageUp',
+    nextScreen: 'ArrowDown',
+    previousScreen: 'ArrowUp',
     ...numbered(SCREEN_ACTIONS, (n) => `Alt+${n}`),
     toggleSidebar: 'Ctrl+B',
     toggleEdit: 'Ctrl+E',

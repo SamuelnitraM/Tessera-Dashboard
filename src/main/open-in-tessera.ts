@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { basename, dirname, extname, resolve } from 'node:path'
 import { shell, type WebContents } from 'electron'
+import { isPrivateAppId, privateApp, publicAppId } from '@shared/browsers'
 import { IpcChannels } from '@shared/ipc'
 import type { OpenTarget } from '@shared/open'
 import { isDesktopApp } from '@shared/user-apps'
@@ -61,9 +62,12 @@ export async function resolveOpenTarget(input: unknown): Promise<OpenTarget | nu
  * reçoit, ex. dans un nouvel onglet). `false` si ce n'est pas possible.
  */
 export async function openInApp(appId: unknown, input: unknown): Promise<boolean> {
-  const app = getSettings()
+  if (typeof appId !== 'string') return false
+  const found = getSettings()
     .apps.items.filter(isDesktopApp)
-    .find((candidate) => candidate.id === appId)
+    .find((candidate) => candidate.id === publicAppId(appId))
+  // Navigation privée : la page s'ouvre dans sa fenêtre privée
+  const app = found && isPrivateAppId(appId) ? privateApp(found) : found
   const target = await resolveOpenTarget(input)
   if (!app || !target || !/\.exe$/i.test(app.path) || !existsSync(app.path)) return false
   // Application du Microsoft Store (lancée par l'Explorateur) : elle ne reçoit rien ainsi

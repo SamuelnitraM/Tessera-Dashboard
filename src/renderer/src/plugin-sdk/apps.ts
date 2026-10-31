@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { BrowserChoice } from '@shared/browsers'
+import { hasPrivateWindow, privateAppId, publicAppId, type BrowserChoice } from '@shared/browsers'
 import { BROWSER_WIDGET, isInstalledAppBlock } from '@shared/desktop-apps'
 import { isDesktopApp, isWebApp } from '@shared/user-apps'
 import { showBlock } from '../lib/windows'
@@ -52,6 +52,19 @@ export function refreshInstalledApp(appId: string): Promise<void> {
 }
 
 export type { BrowserChoice }
+
+/**
+ * Navigation privée du navigateur `appId` (bloc Navigateur) : identifiant à donner à
+ * `InstalledAppView` pour afficher une fenêtre de navigation privée, `null` si ce navigateur ne
+ * sait pas en ouvrir. Sa fenêtre normale reste ouverte, cachée ; la fenêtre privée est fermée dès
+ * que plus aucun bloc ne l'affiche (réglage `private` du bloc retiré, bloc supprimé).
+ */
+export function usePrivateWindow(appId: string | null | undefined): string | null {
+  const app = useSettingsStore((state) =>
+    state.settings.apps.items.find((item) => item.id === appId)
+  )
+  return app && isDesktopApp(app) && hasPrivateWindow(app) ? privateAppId(app.id) : null
+}
 
 /**
  * Navigateurs installés sur le PC, avec l'application installée de Tessera qui affiche chacun
@@ -134,6 +147,8 @@ interface AppBlock {
   parked: string[]
   /** Réglage « Prioritaire pour ouvrir les fichiers et les pages ». */
   priority: boolean
+  /** Bloc Navigateur en navigation privée : ses pages s'ouvrent dans la fenêtre privée. */
+  private: boolean
 }
 
 /** Blocs d'applications de toutes les pages (celle affichée d'abord). */
@@ -155,7 +170,8 @@ function appBlocks(): AppBlock[] {
         parked: Array.isArray(widget.config.parked)
           ? widget.config.parked.filter((id): id is string => typeof id === 'string')
           : [],
-        priority: widget.config.openFiles === true
+        priority: widget.config.openFiles === true,
+        private: widget.type === BROWSER_WIDGET && widget.config.private === true
       }))
   )
 }
@@ -164,7 +180,9 @@ const statusOf = (appId: string): string =>
   useDesktopAppsStore.getState().states[appId]?.status ?? 'idle'
 
 /** Le bloc passe sur cette application (navigateur mis de côté repris), sa page s'ouvre. */
-function showAppInBlock(block: AppBlock, appId: string): void {
+function showAppInBlock(block: AppBlock, shownId: string): void {
+  // Navigation privée du navigateur du bloc : le bloc reste sur son navigateur
+  const appId = publicAppId(shownId)
   if (block.appId !== appId) {
     useDashboardStore.getState().updateWidgetConfig(block.pageId, block.blockId, {
       appId,
@@ -214,7 +232,8 @@ export async function openInTessera(input: string): Promise<void> {
       browsers.find((candidate) => candidate.priority) ??
       browsers.find((candidate) => statusOf(candidate.appId!) === 'running') ??
       browsers[0]
-    if (block) choice = { block, appId: block.appId! }
+    // Bloc en navigation privée : la page s'ouvre dans sa fenêtre privée
+    if (block) choice = { block, appId: block.private ? privateAppId(block.appId!) : block.appId! }
   } else {
     const hasBrowserBlock = blocks.some((block) => block.browser)
     // Navigateur sans application dans Tessera : elle est créée (un bloc Navigateur l'affichera)

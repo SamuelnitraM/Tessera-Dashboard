@@ -47,13 +47,13 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 - **Plein écran** (comme F11) : un bouton dans le menu latéral.
 - **Plusieurs fenêtres**, comme les onglets d'un navigateur : glisse l'onglet d'une page hors de la fenêtre pour l'ouvrir à part (sur un autre écran, par exemple), ou sur une autre fenêtre de Tessera pour l'y ramener ; les onglets se rangent aussi en les glissant. Les fenêtres et leurs pages sont retrouvées au lancement suivant.
 - **Changer de navigateur** : la barre d'un bloc qui affiche un navigateur montre tous tes navigateurs installés (logo et nom) ; un clic passe de Brave à Chrome, Firefox… Le précédent reste ouvert, caché, avec ses onglets. Un fichier ou un site ouvert depuis Tessera arrive dans ce bloc, qui change de navigateur au besoin.
-- **Rafraîchir** : un bouton dans la barre d'un bloc d'application remet sa fenêtre en place et la force à se redessiner (fenêtre grise ou absente).
+- **Fenêtres toujours dessinées** : une application ou un navigateur dont le bloc quitte l'écran (défilement, autre page, mode édition, panneau) n'est plus masqué, seulement retiré de l'écran : il ne revient jamais gris. Le bouton **Rafraîchir** de la barre du bloc remet la fenêtre en place et la force à se redessiner si besoin.
 - Le bloc où tu viens de cliquer a sa **barre colorée** : tu sais toujours où tu en es.
 - **Ajouter un bloc** : widgets, applications et modules rangés par catégorie, avec une recherche.
 - **Clic droit** sur un bloc ou une page : réglages, retrait, renommage…
 - Une disposition **compacte** prend le relais automatiquement quand la fenêtre est étroite.
 - **Menu latéral** avec tes pages et tes applications, ou des onglets en haut de la fenêtre (Ctrl+B, par défaut).
-- **Raccourcis clavier**, tous modifiables (Paramètres → Raccourcis) : Ctrl+1 à 9 (Ctrl+& é " ' (…) pour aller d'une page à l'autre, Ctrl+Tab pour la suivante, Pg suiv et Alt+1 à 9 pour passer d'un écran à l'autre, mode édition, nouvelle page, notifications, et un raccourci pour afficher Tessera depuis n'importe quelle application.
+- **Raccourcis clavier**, tous modifiables (Paramètres → Raccourcis) : Ctrl+1 à 9 (Ctrl+& é " ' (…) pour aller d'une page à l'autre, Pg préc et Pg suiv pour la suivante et la précédente, les flèches ↓ ↑ et Alt+1 à 9 pour passer d'un écran à l'autre, mode édition, nouvelle page, notifications, et un raccourci pour afficher Tessera depuis n'importe quelle application.
 - **Recherche dans les paramètres** (Ctrl+F) : tape un mot, Tessera t'amène au réglage.
 - **Écrans** : une page longue se découpe en écrans de la hauteur de la fenêtre ; la molette s'y cale doucement, des boutons passent d'un écran à l'autre, et un bloc peut prendre un écran entier.
 - **Vidéo en plein écran** (YouTube, Twitch, navigateur inséré) : la molette la fait glisser vers le haut pour montrer ta page, et la ramène tout en haut ; un clic molette (ou l'interrupteur en haut de l'écran) choisit si la molette va à la page ou à la vidéo.
@@ -61,9 +61,11 @@ Toutes les versions et leurs notes : **[page des versions](https://github.com/Sa
 ### Tes applications, dans Tessera
 
 - **Applications installées** : la vraie fenêtre de tes programmes (Discord, VS Code, Obsidian, VLC…) s'affiche dans un bloc ou un onglet, avec ta connexion et tes réglages habituels.
-- **Navigateur** : ton navigateur (Brave, Chrome, Edge, Firefox…) dans un bloc, avec ses onglets et ses extensions ; on passe d'un navigateur à l'autre en un clic, on y glisse un onglet d'une autre fenêtre, et ses vidéos en plein écran occupent tout l'écran (ou restent dans le bloc). Une fenêtre plus grande que son bloc est rognée : tu choisis la partie affichée. Besoin de plus de place un instant ? **Étire-la** par-dessus les autres blocs : elle reprend sa taille à ta prochaine action.
+- **Navigateur** : ton navigateur (Brave, Chrome, Edge, Firefox…) dans un bloc, avec ses onglets et ses extensions ; on passe d'un navigateur à l'autre en un clic, on y glisse un onglet d'une autre fenêtre, et ses vidéos en plein écran occupent tout l'écran (ou restent dans le bloc). Le bouton **Privée** passe le bloc en navigation privée : une fenêtre privée du navigateur s'y affiche, ta fenêtre habituelle reste ouverte, et la quitter referme la fenêtre privée. Une fenêtre plus grande que son bloc est rognée : tu choisis la partie affichée. Besoin de plus de place un instant ? **Étire-la** par-dessus les autres blocs : elle reprend sa taille à ta prochaine action.
 - **Applications web** (Discord, WhatsApp, Slack… ou n'importe quel site) : dans un onglet de Tessera avec leurs messages non lus, dans un bloc, ou dans ton navigateur habituel.
 - Besoin d'une application sur le bureau ? **Sors sa fenêtre** de Tessera d'un clic, puis ramène-la dans son bloc.
+- **À la fermeture de Tessera**, chaque application et chaque navigateur est **fermé**, **gardé ouvert**, ou **ouvert et affiché** sur le bureau : un réglage commun, un par application, et un par bloc.
+- **Aussi rapides qu'en dehors de Tessera** : les blocs d'applications et de navigateurs suivent la page au défilement, même enchaîné et même quand l'application est occupée ; une application dont la fenêtre n'a pas de barre de titre s'ouvre sans attendre.
 
 ### Les blocs fournis avec Tessera
 

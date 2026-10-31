@@ -1,17 +1,22 @@
 import { basename, dirname } from 'node:path'
 import { nativeImage, screen, type BrowserWindow } from 'electron'
-import type {
-  DesktopApp,
-  DesktopAppPan,
-  DesktopAppSnapshot,
-  DesktopAppState,
-  DesktopAppTabDrag,
-  FullScreenMode,
-  HostRect,
-  QuitMode,
-  HostHole
+import { isPrivateAppId, privateApp, privateAppId, publicAppId } from '@shared/browsers'
+import {
+  isInstalledAppBlock,
+  mostOpen,
+  QUIT_MODES,
+  type DesktopApp,
+  type DesktopAppPan,
+  type DesktopAppSnapshot,
+  type DesktopAppState,
+  type DesktopAppTabDrag,
+  type FullScreenMode,
+  type HostRect,
+  type QuitMode,
+  type HostHole
 } from '@shared/desktop-apps'
 import { isDesktopApp } from '@shared/user-apps'
+import { getDashboard } from '../dashboard-store'
 import { getSettings } from '../settings-store'
 import {
   adoptWindow,
@@ -69,6 +74,11 @@ interface DockedWindow {
   min: { width: number; height: number }
   /** Cadre affiché. */
   shown: boolean
+  /**
+   * Cadre retiré de l'écran sans être masqué (région vide, voir `hideFrame`) : la fenêtre reste
+   * visible pour l'application, qui continue de se dessiner.
+   */
+  cut: boolean
   /** Fenêtre rognée (plus grande que son bloc) : l'hébergeur le sait, pour le clic gauche + droit. */
   pannable: boolean
   /** Masquée par l'application elle-même (Discord fermé dans sa zone de notification…). */
@@ -78,6 +88,10 @@ interface DockedWindow {
   hiddenByUsAt: number
   /** Rectangle de la fenêtre (écran) après le dernier placement, et emplacement visé. */
   placed: w.Rect | null
+  /** Partie visible du bloc (écran) après le dernier placement. */
+  visible: w.Rect | null
+  /** Place de la fenêtre dans son cadre au dernier placement (elle n'y bouge pas au défilement). */
+  inFrame: string
   target: string | null
   /** Taille de la fenêtre (px physiques), pour les captures. */
   size: { width: number; height: number }
@@ -104,6 +118,8 @@ interface DockedWindow {
   blank: number | null
   /** Trous découpés dans le cadre (éléments de l'interface par-dessus), pour ne pas les refaire. */
   holes: string
+  /** Dernière vérification de ce qui est à l'écran sur elle (`checkPainted`). */
+  paintCheckedAt: number
   /**
    * Dernière image de la fenêtre (prise quand elle est masquée, ou par `captureApps`) : montrée
    * en mode édition par un bloc hors de la vue, dont la fenêtre ne peut plus être photographiée.
@@ -166,8 +182,13 @@ const LAUNCH_TIMEOUT_MS = 30_000
 const MIN_MAIN_WINDOW = { width: 400, height: 300 }
 /** Fenêtre avec barre de titre ou bord : plus petite, ce n'est qu'une boîte de dialogue. */
 const MIN_FRAMED_WINDOW = { width: 240, height: 160 }
-/** Après ce délai, une fenêtre sans barre de titre ni bord est prise pour la fenêtre principale. */
-const UNFRAMED_AFTER_MS = 12_000
+/**
+ * Après ce délai, une fenêtre sans barre de titre ni bord est prise pour la fenêtre principale
+ * (avant, ce peut être un écran de démarrage). Si c'en était un, la fenêtre qui le remplace à sa
+ * fermeture est insérée à sa place (`OBJECT_DESTROY`). 12 s faisaient attendre d'autant les
+ * applications dont la fenêtre principale n'a ni barre de titre ni bord.
+ */
+const UNFRAMED_AFTER_MS = 4000
 /** Fenêtre détruite, programme encore ouvert : délai d'attente de la fenêtre qui la remplace. */
 const REPLACE_TIMEOUT_MS = 8000
 
@@ -215,9 +236,22 @@ const cancelled = new Set<string>()
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 function findApp(appId: string): DesktopApp | undefined {
-  return getSettings().apps.items.find(
-    (item): item is DesktopApp => item.id === appId && isDesktopApp(item)
+  const app = getSettings().apps.items.find(
+    (item): item is DesktopApp => item.id === publicAppId(appId) && isDesktopApp(item)
   )
+  // Navigation privée d'un navigateur : même programme, fenêtre privée
+  if (app && isPrivateAppId(appId)) return privateApp(app) ?? undefined
+  return app
+}
+
+/**
+ * Fenêtres de premier niveau déjà ouvertes par le programme : une navigation privée ne prend
+ * jamais l'une d'elles (fenêtre normale du navigateur sur le bureau), seulement celle qu'elle
+ * ouvre.
+ */
+function existingWindows(desktopApp: DesktopApp): Set<w.Hwnd> | undefined {
+  if (!isPrivateAppId(desktopApp.id)) return undefined
+  return new Set(w.findTopWindows(desktopApp.processName).map((found) => found.hwnd))
 }
 
 export function getAppState(appId: string): DesktopAppState {
@@ -261,8 +295,13 @@ function scaleOf(window: BrowserWindow | null): number {
 }
 
 interface Layout {
-  /** Cadre : partie visible du bloc, à l'écran. */
+  /** Cadre : le bloc entier, à l'écran. */
   frame: { x: number; y: number; width: number; height: number }
+  /**
+   * Partie visible du bloc (page qui défile), relative au cadre : seule affichée (région du
+   * cadre). La fenêtre ne bouge pas dans son cadre quand le bloc est coupé par le bord de la page.
+   */
+  visible: { x: number; y: number; width: number; height: number }
   /** Fenêtre de l'application, relative au cadre. */
   window: { x: number; y: number; width: number; height: number }
   /** Fenêtre plus grande que le bloc. */
@@ -327,8 +366,9 @@ function layoutFor(docked: DockedWindow): Layout | null {
   const offsetX = Math.min(Math.max(0, px(rect.offset?.x ?? 0)), Math.max(0, width - block.width))
   const offsetY = Math.min(Math.max(0, px(rect.offset?.y ?? 0)), Math.max(0, height - block.height))
   return {
-    frame: { x: block.x + clip.x, y: block.y + clip.y, width: clip.width, height: clip.height },
-    window: { x: -clip.x - offsetX, y: -clip.y - offsetY, width, height },
+    frame: block,
+    visible: clip,
+    window: { x: -offsetX, y: -offsetY, width, height },
     cropped: width > block.width || height > block.height,
     raised: rect.raised === true,
     pageWheel: rect.pageWheel === true,
@@ -339,21 +379,55 @@ function layoutFor(docked: DockedWindow): Layout | null {
 }
 
 /**
- * Masque le cadre et la fenêtre qu'il contient. La fenêtre est masquée elle aussi : une
- * application Chromium (Discord, navigateurs) sait alors qu'elle n'est plus visible, et se
- * redessine quand elle réapparaît. Sans cela, elle pouvait rester grise.
+ * Comment retirer le cadre de l'écran : découpé (`cut`) tant que sa fenêtre de Tessera est
+ * affichée, vraiment masqué (`hide`) quand Tessera est réduit ou caché (Windows masque de toute
+ * façon les cadres d'une fenêtre réduite) ou quand l'application s'est masquée elle-même.
  */
-function hideFrame(docked: DockedWindow): void {
-  if (!docked.shown) return
+function hideMode(docked: DockedWindow): 'cut' | 'hide' {
+  if (docked.hiddenByApp) return 'hide'
+  return isShown(hostWindowOf(docked.appId) ?? docked.owner) ? 'cut' : 'hide'
+}
+
+/**
+ * Retire le cadre de l'écran.
+ *
+ * `cut` (bloc hors de la vue, autre page, interface par-dessus, mode édition) : le cadre reste
+ * affiché, avec une région vide (rien à l'écran, aucun clic). Pour l'application, rien ne change :
+ * sa fenêtre reste visible et se dessine. Masquer la fenêtre la faisait passer pour cachée
+ * (Chromium, Firefox : contenu des pages libéré, rendu arrêté) et, réaffichée, elle restait
+ * parfois grise, au clic, au défilement ou au retour d'un panneau.
+ *
+ * `hide` : le cadre et la fenêtre sont masqués ; réaffichée, elle est relancée (`nudge`).
+ */
+function hideFrame(docked: DockedWindow, mode = hideMode(docked)): void {
+  const live = docked.shown || docked.cut
+  if (mode === 'cut') {
+    // Déjà découpé, ou masqué (le reste ; un cadre réaffiché par Windows au retour de Tessera
+    // réduit, lui, est découpé)
+    if (docked.cut || (!docked.shown && !w.isVisible(docked.frame))) return
+    docked.shown = false
+    docked.cut = true
+    // Clavier dans l'application : rendu à Tessera (une fenêtre masquée le perdait d'elle-même)
+    if (w.isForegroundOf(docked.frame) && !docked.owner.isDestroyed()) docked.owner.focus()
+    w.setWindowRegion(docked.frame, { left: 0, top: 0, right: 0, bottom: 0 })
+    // Région rétablie au réaffichage
+    docked.holes = CUT
+    return
+  }
+  if (!live) return
   // Image gardée avant de masquer (au plus une toutes les 2 s : rien en plus quand le mode
   // édition vient de photographier toutes les fenêtres)
   if (Date.now() - docked.lastShotAt > SHOT_REUSE_MS && !w.isHung(docked.hwnd)) snapshot(docked)
   docked.shown = false
+  docked.cut = false
   docked.hiddenByUs = true
   docked.hiddenByUsAt = Date.now()
   w.showWindowAsync(docked.hwnd, w.SW.HIDE)
   w.showWindow(docked.frame, w.SW.HIDE)
 }
+
+/** `holes` d'un cadre découpé en entier : la région sera refaite au réaffichage. */
+const CUT = 'cut'
 
 /** Remet la fenêtre dans l'état normal (ni réduite ni agrandie). */
 function normalize(hwnd: w.Hwnd): void {
@@ -372,8 +446,10 @@ function place(docked: DockedWindow): void {
   if (docked.tabDrop) return
   const layout = layoutFor(docked)
   if (!layout) {
-    note(docked, `masquée : ${hiddenReason(docked) ?? 'raison inconnue'}`)
-    return hideFrame(docked)
+    const mode = hideMode(docked)
+    const reason = hiddenReason(docked) ?? 'raison inconnue'
+    note(docked, `${mode === 'cut' ? 'retirée de l’écran' : 'masquée'} : ${reason}`)
+    return hideFrame(docked, mode)
   }
   note(docked, `affichée dans ${activeHosts.get(docked.appId)}`)
   // Bloc passé dans une autre fenêtre de Tessera : le cadre suit (il reste au-dessus d'elle)
@@ -450,7 +526,10 @@ function place(docked: DockedWindow): void {
     setFrameMiddle(docked.frame, layout.stage)
   }
   // Cadre masqué sans nous (fenêtre de Tessera réduite puis rendue…) : il sera réaffiché
-  if (docked.shown && !w.isVisible(docked.frame) && isShown(owner)) docked.shown = false
+  if ((docked.shown || docked.cut) && !w.isVisible(docked.frame) && isShown(owner)) {
+    docked.shown = false
+    docked.cut = false
+  }
 
   const key = JSON.stringify({ layout, insets })
   const current = w.getWindowRect(docked.hwnd)
@@ -460,24 +539,66 @@ function place(docked: DockedWindow): void {
   }
 
   normalize(docked.hwnd)
-  // Demandes postées : une application occupée (ou l'hébergeur qui l'attend) ne bloque pas
-  // Tessera. La position visée est retenue, la fenêtre y sera dans un instant.
+  // Demandes postées : une application occupée ne bloque pas Tessera. La position visée est
+  // retenue, la fenêtre y sera dans un instant.
   const quiet = w.SWP.NOACTIVATE | w.SWP.NOZORDER | w.SWP.NOOWNERZORDER | w.SWP.ASYNCWINDOWPOS
-  w.setWindowPos(docked.frame, frame.x, frame.y, frame.width, frame.height, quiet)
+  // Le cadre suit le bloc entier ; seule sa partie visible est affichée (région). Au défilement,
+  // seul le cadre bouge, et l'hébergeur des cadres répond toujours vite : la fenêtre, qui ne
+  // bouge pas dans son cadre, suit la page même quand l'application est occupée (Discord,
+  // navigateur). La déplacer dans son cadre, quand le bloc passait sous le bord de la page,
+  // attendait l'application, et le bloc traînait derrière la page.
+  const visible = {
+    left: frame.x + layout.visible.x,
+    top: frame.y + layout.visible.y,
+    right: frame.x + layout.visible.x + layout.visible.width,
+    bottom: frame.y + layout.visible.y + layout.visible.height
+  }
+  const region = regionOf(docked, layout)
+  const now = w.getWindowRect(docked.frame)
+  const moved =
+    now.left !== frame.x ||
+    now.top !== frame.y ||
+    now.right - now.left !== frame.width ||
+    now.bottom - now.top !== frame.height
+  // Cadre découpé qui revient : en place avant que sa région soit rétablie (sinon un éclair à
+  // son ancienne place)
+  const revealed = !docked.shown && docked.cut
+  // Région et position changent ensemble : dans l'ordre qui ne montre jamais, entre les deux, la
+  // fenêtre hors des parties visibles d'avant et d'après ; le déplacement attend alors
+  // l'hébergeur (sans quoi la région passerait avant lui)
+  const reshaped = region.key !== docked.holes
+  const regionFirst =
+    reshaped && moved && !revealed && regionBeforeMove(docked.visible, visible, now, layout)
+  if (regionFirst) applyRegion(docked, region)
+  if (moved) {
+    const flags = reshaped || revealed ? quiet & ~w.SWP.ASYNCWINDOWPOS : quiet
+    w.setWindowPos(docked.frame, frame.x, frame.y, frame.width, frame.height, flags)
+  }
   // Plein écran gardé dans le bloc : Chromium refuse toute autre taille que celle de l'écran
   // pendant son plein écran, la demande lui est imposée
   const forced = docked.fullScreen && layout.fullScreen === 'block' ? w.SWP.NOSENDCHANGING : 0
-  w.setWindowPos(docked.hwnd, window.x, window.y, window.width, window.height, quiet | forced)
+  // Place dans le cadre inchangée (défilement) : rien n'est demandé à l'application
+  const inFrame = JSON.stringify([window, forced])
+  const atPlace =
+    current.left - now.left === window.x &&
+    current.top - now.top === window.y &&
+    current.right - current.left === window.width &&
+    current.bottom - current.top === window.height
+  if (inFrame !== docked.inFrame || !atPlace) {
+    w.setWindowPos(docked.hwnd, window.x, window.y, window.width, window.height, quiet | forced)
+    docked.inFrame = inFrame
+  }
   docked.placed = {
     left: frame.x + window.x,
     top: frame.y + window.y,
     right: frame.x + window.x + window.width,
     bottom: frame.y + window.y + window.height
   }
+  docked.visible = visible
   docked.target = key
   docked.size = { width: window.width, height: window.height }
-  // Interface par-dessus le bloc (panneau, menu…) : découpée dans le cadre
-  applyHoles(docked, layout)
+  // Partie visible, moins l'interface par-dessus le bloc (panneau, menu…)
+  if (!regionFirst) applyRegion(docked, region)
   // Étirée : son cadre passe au-dessus des autres (applications, blocs voisins)
   if (layout.raised && !docked.raised) {
     const flags = (quiet & ~w.SWP.NOZORDER) | w.SWP.NOMOVE | w.SWP.NOSIZE
@@ -485,15 +606,24 @@ function place(docked: DockedWindow): void {
   }
   docked.raised = layout.raised
 
-  // Cadre d'abord, puis la fenêtre : elle apparaît déjà visible à l'écran, et se redessine
+  // Cadre découpé : sa région vient d'être rétablie (`applyHoles`), la fenêtre n'a jamais
+  // cessé de se dessiner. Cadre masqué : cadre d'abord, puis la fenêtre, qui est relancée
+  // (redessin forcé) et vérifiée à l'écran.
   if (!docked.shown) {
+    const hidden = !docked.cut || !(w.getStyle(docked.hwnd) & w.WS.VISIBLE)
     docked.shown = true
-    w.showWindow(docked.frame, w.SW.SHOWNA)
-    // Jamais dans la barre des tâches tant qu'elle est dans un bloc (l'application peut l'y
-    // remettre d'elle-même en se réaffichant)
-    setTaskbarButton(docked.hwnd, false)
-    // Réaffichée : l'application se redessine-t-elle ? (sinon relancée)
-    setTimeout(() => checkPainted(docked), PAINT_CHECK_MS)
+    docked.cut = false
+    if (!w.isVisible(docked.frame)) w.showWindow(docked.frame, w.SW.SHOWNA)
+    if (hidden) {
+      // Jamais dans la barre des tâches tant qu'elle est dans un bloc (l'application peut l'y
+      // remettre d'elle-même en se réaffichant)
+      setTaskbarButton(docked.hwnd, false)
+      setTimeout(() => {
+        if (windows.get(docked.appId) === docked && !docked.fullScreen) nudge(docked)
+      }, NUDGE_AFTER_SHOW_MS)
+      // Vérifiée à l'écran (une fenêtre découpée, elle, ne cesse jamais de se dessiner)
+      setTimeout(() => checkPainted(docked), PAINT_CHECK_MS)
+    }
   }
   if (!(w.getStyle(docked.hwnd) & w.WS.VISIBLE)) w.showWindowAsync(docked.hwnd, w.SW.SHOWNA)
   docked.hiddenByUs = false
@@ -503,11 +633,27 @@ function placeAll(): void {
   for (const docked of windows.values()) place(docked)
 }
 
-/** Découpe dans le cadre les éléments de l'interface qui passent par-dessus son bloc. */
-function applyHoles(docked: DockedWindow, layout: Layout): void {
+/**
+ * Région du cadre : la partie visible du bloc, moins les éléments de l'interface qui passent
+ * par-dessus. `key` vide : tout le cadre est affiché (pas de région).
+ */
+interface FrameRegion {
+  key: string
+  shown: w.Rect | null
+  holes: w.RegionHole[]
+  names: string
+}
+
+function regionOf(docked: DockedWindow, layout: Layout): FrameRegion {
   const window = hostWindowOf(docked.appId)
   const overlay = window ? holesOf.get(window) : undefined
-  const { frame } = layout
+  const { frame, visible } = layout
+  const part = {
+    left: visible.x,
+    top: visible.y,
+    right: visible.x + visible.width,
+    bottom: visible.y + visible.height
+  }
   let holes: w.RegionHole[] = []
   if (window && overlay && overlay.rects.length > 0) {
     const scale = scaleOf(window)
@@ -522,17 +668,56 @@ function applyHoles(docked: DockedWindow, layout: Layout): void {
       }))
       .filter(
         (hole) =>
-          hole.x < frame.width &&
-          hole.y < frame.height &&
-          hole.x + hole.width > 0 &&
-          hole.y + hole.height > 0
+          hole.x < part.right &&
+          hole.y < part.bottom &&
+          hole.x + hole.width > part.left &&
+          hole.y + hole.height > part.top
       )
   }
-  const key = holes.length ? JSON.stringify([frame.width, frame.height, holes]) : ''
-  if (key === docked.holes) return
-  docked.holes = key
-  w.setWindowHoles(docked.frame, frame.width, frame.height, holes)
-  if (holes.length) note(docked, `découpée sous l'interface (${overlay?.names || '?'})`)
+  const whole =
+    part.left <= 0 && part.top <= 0 && part.right >= frame.width && part.bottom >= frame.height
+  if (whole && holes.length === 0) return { key: '', shown: null, holes, names: '' }
+  return { key: JSON.stringify([part, holes]), shown: part, holes, names: overlay?.names || '?' }
+}
+
+function applyRegion(docked: DockedWindow, region: FrameRegion): void {
+  if (region.key === docked.holes) return
+  docked.holes = region.key
+  w.setWindowHoles(docked.frame, region.shown, region.holes)
+  if (region.holes.length) note(docked, `découpée sous l'interface (${region.names})`)
+}
+
+/** Refait la région du cadre (partie visible, interface par-dessus), sans le déplacer. */
+function applyHoles(docked: DockedWindow, layout: Layout): void {
+  applyRegion(docked, regionOf(docked, layout))
+}
+
+/**
+ * Région à changer avant de déplacer le cadre (sinon après) : celle des deux étapes
+ * intermédiaires qui reste dans les parties visibles d'avant et d'après. Défilement vers le bas
+ * (bloc qui passe sous le haut de la page) : la région rétrécit d'abord ; vers le haut : le cadre
+ * bouge d'abord. L'autre ordre montrerait un instant la fenêtre par-dessus la barre de la page.
+ */
+function regionBeforeMove(
+  before: w.Rect | null,
+  after: w.Rect,
+  frameNow: w.Rect,
+  layout: Layout
+): boolean {
+  if (!before) return false
+  const { visible } = layout
+  const between = {
+    left: frameNow.left + visible.x,
+    top: frameNow.top + visible.y,
+    right: frameNow.left + visible.x + visible.width,
+    bottom: frameNow.top + visible.y + visible.height
+  }
+  return (
+    between.left >= Math.min(before.left, after.left) &&
+    between.top >= Math.min(before.top, after.top) &&
+    between.right <= Math.max(before.right, after.right) &&
+    between.bottom <= Math.max(before.bottom, after.bottom)
+  )
 }
 
 /**
@@ -567,12 +752,13 @@ function forget(docked: DockedWindow): void {
 
 /**
  * Sort la fenêtre de son cadre. `close` : elle est fermée comme par son bouton ✕ (sans jamais
- * apparaître sur le bureau). Sinon, elle retrouve sa place et son apparence d'origine.
+ * apparaître sur le bureau). Sinon, elle retrouve sa place et son apparence d'origine
+ * (`restore` : masquée si l'application l'avait masquée), ou est affichée sur le bureau
+ * (`show`).
  */
-function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
-  logDocking(
-    `${docked.appId} : sortie du cadre (${mode === 'close' ? 'fermée' : 'rendue au bureau'})`
-  )
+function undock(docked: DockedWindow, mode: QuitMode): void {
+  const outcome = { close: 'fermée', restore: 'rendue au bureau', show: 'affichée sur le bureau' }
+  logDocking(`${docked.appId} : sortie du cadre (${outcome[mode]})`)
   docked.unwatch()
   if (windows.get(docked.appId) === docked) windows.delete(docked.appId)
   if (w.isWindow(docked.hwnd)) {
@@ -581,9 +767,10 @@ function undock(docked: DockedWindow, mode: 'close' | 'restore'): void {
     if (w.isHung(docked.hwnd)) {
       logDocking(`${docked.appId} : ne répond plus, fenêtre laissée à l'hébergeur des cadres`)
     } else {
-      returnWindow(docked.hwnd, docked.saved, mode === 'restore' && !docked.hiddenByApp)
+      const visible = mode === 'show' || (mode === 'restore' && !docked.hiddenByApp)
+      returnWindow(docked.hwnd, docked.saved, visible, mode === 'show')
       // Rendue au bureau : son bouton revient dans la barre des tâches
-      if (mode === 'restore' && !docked.hiddenByApp) setTaskbarButton(docked.hwnd, true)
+      if (visible) setTaskbarButton(docked.hwnd, true)
     }
     if (mode === 'close') w.postMessage(docked.hwnd, w.WM_CLOSE)
   }
@@ -665,11 +852,14 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       saved,
       min,
       shown: false,
+      cut: false,
       pannable: false,
       hiddenByApp: false,
       hiddenByUs: false,
       hiddenByUsAt: 0,
       placed: null,
+      visible: null,
+      inFrame: '',
       target: null,
       size: { width: 0, height: 0 },
       corrections: { count: 0, since: 0 },
@@ -686,6 +876,7 @@ async function dock(appId: string, hwnd: w.Hwnd, pid: number): Promise<void> {
       problem: '',
       blank: null,
       holes: '',
+      paintCheckedAt: 0,
       lastShot: null,
       lastShotAt: 0,
       unwatch: () => {}
@@ -719,7 +910,8 @@ function onWindowEvent(docked: DockedWindow, event: number): void {
       const alive = (): boolean => processAlive(docked.pid)
       if (desktopApp && activeHosts.has(docked.appId) && alive()) {
         setState(docked.appId, { status: 'starting', error: null })
-        void waitForWindow(desktopApp, REPLACE_TIMEOUT_MS, alive).then((found) => {
+        const exclude = existingWindows(desktopApp)
+        void waitForWindow(desktopApp, REPLACE_TIMEOUT_MS, alive, exclude).then((found) => {
           if (found) return logDocking(`${docked.appId} : fenêtre remplacée, insérée à sa place`)
           if (!windows.has(docked.appId)) setState(docked.appId, { status: 'closed' })
         })
@@ -865,7 +1057,7 @@ function keepPopupInBlock(docked: DockedWindow, popup: w.Hwnd, event: number): v
   if (event !== w.WinEvent.OBJECT_SHOW && event !== w.WinEvent.OBJECT_LOCATIONCHANGE) return
   if (!docked.shown || w.getOwner(popup) !== docked.hwnd || !w.isVisible(popup)) return
   if (!isChromium(popup)) return
-  const block = w.getWindowRect(docked.frame)
+  const block = docked.visible ?? w.getWindowRect(docked.frame)
   const rect = w.getWindowRect(popup)
   const width = rect.right - rect.left
   const height = rect.bottom - rect.top
@@ -993,7 +1185,7 @@ function followTabDrag(): void {
 function openToTab(docked: DockedWindow): void {
   if (!w.isWindow(docked.hwnd) || !w.isVisible(docked.frame)) return
   const rect = w.getWindowRect(docked.hwnd)
-  const frame = w.getWindowRect(docked.frame)
+  const frame = docked.visible ?? w.getWindowRect(docked.frame)
   // Seule la partie visible du bloc reçoit la souris (ni la bande du bord, ni ce qui dépasse d'un
   // bloc rogné). Windows ne rogne pas l'image d'une fenêtre Chromium (DirectComposition) : la
   // bande du bord se voit le temps du glisser.
@@ -1054,13 +1246,17 @@ function closeToTab(docked: DockedWindow): void {
 // ---------------------------------------------------------------------------
 
 /** Fenêtre principale de l'application, si elle est ouverte (hors de Tessera). */
-function findMainWindow(desktopApp: DesktopApp, allowUnframed = true): w.TopWindow | undefined {
+function findMainWindow(
+  desktopApp: DesktopApp,
+  allowUnframed = true,
+  exclude?: ReadonlySet<w.Hwnd>
+): w.TopWindow | undefined {
   // Une vraie fenêtre (barre de titre ou bord) peut être petite : l'application a pu garder la
   // taille d'un bloc (fermée de force pendant son insertion). Sans cadre, c'est souvent un écran
   // de démarrage : il doit être grand.
   const usable = (list: w.TopWindow[]): w.TopWindow[] =>
     list.filter((candidate) => {
-      if (candidate.title === '') return false
+      if (candidate.title === '' || exclude?.has(candidate.hwnd)) return false
       if (w.isMinimized(candidate.hwnd)) return true
       const min = candidate.framed ? MIN_FRAMED_WINDOW : MIN_MAIN_WINDOW
       return candidate.width >= min.width && candidate.height >= min.height
@@ -1101,7 +1297,8 @@ function processAlive(pid: number): boolean {
 async function waitForWindow(
   desktopApp: DesktopApp,
   timeoutMs: number,
-  keepWaiting: () => boolean = () => true
+  keepWaiting: () => boolean = () => true,
+  exclude?: ReadonlySet<w.Hwnd>
 ): Promise<boolean> {
   const appId = desktopApp.id
   const name = `\\${desktopApp.processName.toLowerCase()}`
@@ -1113,6 +1310,7 @@ async function waitForWindow(
   veiled.set(appId, hidden)
   let wake: (() => void) | null = null
   const unwatch = w.watchShownWindows((hwnd) => {
+    if (exclude?.has(hwnd)) return
     const path = w.getProcessPath(w.getProcessId(hwnd)).toLowerCase()
     if (!path.endsWith(name) && !(ownFolder && path.startsWith(folder))) return
     // Fenêtre de l'application (écran de démarrage, fenêtre principale) : masquée tout de suite,
@@ -1134,10 +1332,10 @@ async function waitForWindow(
       // Déjà insérée (une application masquée, comme Discord, se réaffiche : OBJECT_SHOW)
       if ((current && !current.hiddenByApp) || docking.has(appId)) return true
       const allowUnframed = Date.now() - start > UNFRAMED_AFTER_MS
-      const found = current ? undefined : findMainWindow(desktopApp, allowUnframed)
+      const found = current ? undefined : findMainWindow(desktopApp, allowUnframed, exclude)
       if (found) {
         if (!found.framed) await sleep(800)
-        if (connect(desktopApp, allowUnframed)) return true
+        if (connect(desktopApp, allowUnframed, exclude)) return true
       }
       await new Promise<void>((resolve) => {
         const timer = setTimeout(resolve, 400)
@@ -1180,9 +1378,17 @@ function releaseVeiled(appId: string, hidden: Set<w.Hwnd>): void {
   }, VEIL_CHECK_MS)
 }
 
-/** Insère la fenêtre de l'application si elle est déjà ouverte. */
-function connect(desktopApp: DesktopApp, allowUnframed = true): boolean {
-  const found = findMainWindow(desktopApp, allowUnframed)
+/**
+ * Insère la fenêtre de l'application si elle est déjà ouverte. Jamais pour une navigation
+ * privée sans `exclude` (elle n'insère que la fenêtre qu'elle a ouverte).
+ */
+function connect(
+  desktopApp: DesktopApp,
+  allowUnframed = true,
+  exclude?: ReadonlySet<w.Hwnd>
+): boolean {
+  if (isPrivateAppId(desktopApp.id) && !exclude) return false
+  const found = findMainWindow(desktopApp, allowUnframed, exclude)
   if (!found) return false
   void dock(desktopApp.id, found.hwnd, found.pid)
   return true
@@ -1213,13 +1419,15 @@ export async function launchApp(appId: string): Promise<void> {
     return
   }
   setState(appId, { status: 'starting', error: null })
+  // Navigation privée : seule la fenêtre qu'elle ouvre est insérée
+  const exclude = existingWindows(desktopApp)
   // Lancé comme un double-clic : l'application n'hérite d'aucune ressource de Tessera
   if (!w.shellExecute(desktopApp.path, desktopApp.args, dirname(desktopApp.path))) {
     setState(appId, { status: 'error', error: 'launch' })
     return
   }
 
-  if (!(await waitForWindow(desktopApp, LAUNCH_TIMEOUT_MS))) {
+  if (!(await waitForWindow(desktopApp, LAUNCH_TIMEOUT_MS, undefined, exclude))) {
     setState(appId, { status: 'error', error: 'timeout' })
   }
 }
@@ -1345,16 +1553,28 @@ export function refreshApp(appId: string): void {
     w.showWindow(docked.hwnd, w.SW.SHOWNA)
     setState(appId, { status: 'running', error: null })
   }
+  // Masquée puis réaffichée, puis relancée (`place`)
   docked.target = null
-  hideFrame(docked)
+  hideFrame(docked, 'hide')
   place(docked)
-  nudge(docked)
 }
 
 /* ---------- Fenêtre qui ne se dessine plus (grise) ---------- */
 
 /** Délai entre un réaffichage et la vérification de ce qui est à l'écran. */
 const PAINT_CHECK_MS = 700
+/**
+ * Vérification régulière d'une fenêtre affichée : au plus toutes les 30 s. Relever des points de
+ * l'écran oblige Windows à recopier l'image de l'écran (un léger à-coup) ; toutes les 2 s, pour
+ * chaque application, cela se voyait dans une vidéo ou un jeu.
+ */
+const PAINT_WATCH_MS = 30_000
+/** Délai entre le réaffichage d'une fenêtre masquée et son redessin forcé. */
+const NUDGE_AFTER_SHOW_MS = 200
+
+/** Région vide (cadre découpé en entier) ou absente. */
+const emptyRegion = (region: w.Rect | null): boolean =>
+  !!region && (region.right <= region.left || region.bottom <= region.top)
 /** Points relevés sur la fenêtre. */
 const PAINT_COLUMNS = 12
 const PAINT_ROWS = 8
@@ -1376,7 +1596,8 @@ const sameColor = (a: number, b: number): boolean =>
 function checkPainted(docked: DockedWindow): void {
   if (windows.get(docked.appId) !== docked || !docked.shown || docked.tabDrop) return
   if (docked.fullScreen || !w.isWindow(docked.hwnd) || !w.isVisible(docked.frame)) return
-  const frame = w.getWindowRect(docked.frame)
+  // Partie visible du bloc seulement (le reste du cadre est découpé)
+  const frame = docked.visible ?? w.getWindowRect(docked.frame)
   const inset = 6
   const rect = {
     left: frame.left + inset,
@@ -1394,6 +1615,7 @@ function checkPainted(docked: DockedWindow): void {
     [rect.right - 1, rect.bottom - 1]
   ]
   if (!points.every(([x, y]) => w.rootWindowAt(x, y) === docked.frame)) return
+  docked.paintCheckedAt = Date.now()
   const colors = w.sampleScreen(rect, PAINT_COLUMNS, PAINT_ROWS)
   if (!colors) return
   if (!colors.every((color) => sameColor(color, colors[0]))) {
@@ -1515,12 +1737,17 @@ function watch(docked: DockedWindow): void {
       )
     }
     if (!sameRect(docked.placed, w.getWindowRect(docked.hwnd))) problems.push('fenêtre déplacée')
+    // Région restée vide (ou découpée sans interface par-dessus)
+    if (docked.holes === '' && w.getWindowRegion(docked.frame)) problems.push('cadre découpé')
     repair = problems.length > 0
     // Une application figée ne se redessine plus (fenêtre grise ou blanche) : Tessera n'y peut
     // rien, mais le journal le dit
     if (w.isHung(docked.hwnd)) problems.push('l’application ne répond plus')
-  } else if (docked.shown || w.isVisible(docked.frame)) {
-    problems.push(`cadre affiché alors qu'il devrait être masqué (${hiddenReason(docked)})`)
+  } else if (docked.shown || (w.isVisible(docked.frame) && !docked.cut)) {
+    problems.push(`cadre affiché alors qu'il devrait être retiré (${hiddenReason(docked)})`)
+    repair = true
+  } else if (docked.cut && !emptyRegion(w.getWindowRegion(docked.frame))) {
+    problems.push(`cadre découpé visible (${hiddenReason(docked)})`)
     repair = true
   }
   const key = problems.join(', ')
@@ -1533,15 +1760,18 @@ function watch(docked: DockedWindow): void {
     )
   }
   if (!repair) {
-    if (layout) checkPainted(docked)
+    if (layout && Date.now() - docked.paintCheckedAt > PAINT_WATCH_MS) checkPainted(docked)
     return
   }
   if (!layout) {
     docked.shown = true
+    docked.cut = false
     return hideFrame(docked)
   }
   docked.shown = false
+  docked.cut = false
   docked.target = null
+  docked.holes = CUT
   place(docked)
 }
 
@@ -1574,21 +1804,54 @@ function snapshot(docked: DockedWindow): DesktopAppSnapshot | null {
 export function captureApps(): Record<string, DesktopAppSnapshot> {
   const images: Record<string, DesktopAppSnapshot> = {}
   for (const docked of windows.values()) {
-    const image = docked.shown ? snapshot(docked) : docked.lastShot
+    // Une fenêtre découpée se dessine toujours : photographiée elle aussi
+    const image = docked.shown || docked.cut ? snapshot(docked) : docked.lastShot
     if (image) images[docked.appId] = image
   }
   return images
 }
 
-/** Applications supprimées des réglages : elles sont fermées. */
+/** Applications supprimées des réglages (navigation privée comprise) : elles sont fermées. */
 export function closeRemovedApps(): void {
   const ids = new Set(getSettings().apps.items.map((item) => item.id))
-  for (const appId of [...windows.keys()]) if (!ids.has(appId)) closeApp(appId)
+  for (const appId of [...windows.keys()]) if (!ids.has(publicAppId(appId))) closeApp(appId)
 }
 
-/** Avant de quitter : les applications sont fermées, ou rendues au bureau (réglage). */
+/**
+ * Réglage « Fermeture de Tessera » des blocs (Application installée, Navigateur), par
+ * application affichée ou mise de côté (et sa navigation privée) ; le plus ouvert si plusieurs
+ * blocs l'affichent.
+ */
+function blockQuitModes(): Map<string, QuitMode> {
+  const modes = new Map<string, QuitMode[]>()
+  for (const page of getDashboard().pages) {
+    for (const widget of page.widgets) {
+      const mode = widget.config.onQuit
+      if (!isInstalledAppBlock(widget.type)) continue
+      if (!(QUIT_MODES as readonly unknown[]).includes(mode)) continue
+      const { appId, parked } = widget.config
+      const ids = [appId, ...(Array.isArray(parked) ? parked : [])].filter(
+        (id): id is string => typeof id === 'string'
+      )
+      for (const id of ids.flatMap((id) => [id, privateAppId(id)])) {
+        modes.set(id, [...(modes.get(id) ?? []), mode as QuitMode])
+      }
+    }
+  }
+  return new Map([...modes].map(([id, list]) => [id, mostOpen(list) ?? 'close']))
+}
+
+/**
+ * Avant de quitter : les applications sont fermées, laissées ouvertes ou affichées sur le bureau.
+ * Réglage du bloc qui l'affiche, sinon celui de l'application, sinon le réglage commun.
+ */
 export function releaseAllApps(mode: QuitMode): void {
-  // Réglage propre à une application (navigateur gardé ouvert…), sinon le réglage commun
+  let blocks = new Map<string, QuitMode>()
+  try {
+    blocks = blockQuitModes()
+  } catch {
+    // Disposition illisible : les réglages des applications suffisent
+  }
   const own = new Map(
     getSettings()
       .apps.items.filter(isDesktopApp)
@@ -1596,7 +1859,8 @@ export function releaseAllApps(mode: QuitMode): void {
   )
   // Un jeu n'est jamais fermé par Tessera (partie non sauvegardée) : rendu au bureau
   for (const docked of [...windows.values()]) {
-    undock(docked, docked.fixedSize ? 'restore' : (own.get(docked.appId) ?? mode))
+    const chosen = blocks.get(docked.appId) ?? own.get(publicAppId(docked.appId)) ?? mode
+    undock(docked, docked.fixedSize && chosen === 'close' ? 'restore' : chosen)
   }
 }
 

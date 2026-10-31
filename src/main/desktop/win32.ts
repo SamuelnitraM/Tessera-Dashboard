@@ -244,7 +244,13 @@ export const SWP = {
   ASYNCWINDOWPOS: 0x4000
 } as const
 
-export const SW = { HIDE: 0, SHOWNORMAL: 1, SHOWNOACTIVATE: 4, SHOWNA: 8 } as const
+export const SW = {
+  HIDE: 0,
+  SHOWNORMAL: 1,
+  SHOWMAXIMIZED: 3,
+  SHOWNOACTIVATE: 4,
+  SHOWNA: 8
+} as const
 
 /** Premier plan, parmi les fenêtres du même propriétaire (SetWindowPos). */
 export const HWND_TOP = 0
@@ -509,20 +515,15 @@ export interface RegionHole {
 }
 
 /**
- * Fenêtre de `width` × `height` dont les trous ne sont pas affichés (ce qui est dessous se
- * voit, et y reçoit la souris) ; sans trou, toute la fenêtre est affichée.
+ * Fenêtre dont seule la partie `shown` (px, relatifs à elle) est affichée, moins ses trous (ce
+ * qui est dessous se voit, et y reçoit la souris) ; `null` : toute la fenêtre est affichée.
  */
-export function setWindowHoles(
-  hwnd: Hwnd,
-  width: number,
-  height: number,
-  holes: RegionHole[]
-): void {
-  if (holes.length === 0) {
+export function setWindowHoles(hwnd: Hwnd, shown: Rect | null, holes: RegionHole[]): void {
+  if (!shown) {
     api.SetWindowRgn(hwnd, 0, true)
     return
   }
-  const region = api.CreateRectRgn(0, 0, width, height)
+  const region = api.CreateRectRgn(shown.left, shown.top, shown.right, shown.bottom)
   for (const hole of holes) {
     const right = hole.x + hole.width
     const bottom = hole.y + hole.height
@@ -565,7 +566,10 @@ export interface TopWindow {
   title: string
   width: number
   height: number
-  /** Barre de titre ou bord redimensionnable : une vraie fenêtre, pas un écran de démarrage. */
+  /**
+   * Barre de titre, bord redimensionnable, ou boutons réduire / agrandir (fenêtre principale
+   * dessinée par l'application) : une vraie fenêtre, pas un écran de démarrage.
+   */
   framed: boolean
 }
 
@@ -602,7 +606,7 @@ export function findTopWindows(
       title: buffer.toString('utf16le', 0, length * 2),
       width: rect.right - rect.left,
       height: rect.bottom - rect.top,
-      framed: (style & (WS.CAPTION | WS.THICKFRAME)) !== 0
+      framed: (style & (WS.CAPTION | WS.THICKFRAME | WS.MINIMIZEBOX | WS.MAXIMIZEBOX)) !== 0
     })
     return true
   }, 0)

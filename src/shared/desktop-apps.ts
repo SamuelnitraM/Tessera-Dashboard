@@ -144,9 +144,27 @@ export interface DesktopAppSnapshot {
   height: number
 }
 
-/** À la fermeture de Tessera : fermer les applications installées, ou les rendre au bureau. */
-export const QUIT_MODES = ['close', 'restore'] as const
+/**
+ * À la fermeture de Tessera : fermer les applications installées (`close`), les laisser
+ * ouvertes telles qu'elles étaient (`restore` : une fenêtre fermée dans sa zone de notification
+ * y reste), ou les laisser ouvertes et afficher leur fenêtre sur le bureau (`show`).
+ */
+export const QUIT_MODES = ['close', 'restore', 'show'] as const
 export type QuitMode = (typeof QUIT_MODES)[number]
+
+/**
+ * Réglage « Fermeture de Tessera » d'un bloc Application installée ou Navigateur (`onQuit`) :
+ * `default`, le réglage de l'application.
+ */
+export const BLOCK_QUIT_DEFAULT = 'default'
+
+/**
+ * Le plus « ouvert » de plusieurs réglages (une application affichée par deux blocs) : rien
+ * n'est fermé si l'un d'eux la garde ouverte.
+ */
+export function mostOpen(modes: readonly QuitMode[]): QuitMode | undefined {
+  return (['show', 'restore', 'close'] as const).find((mode) => modes.includes(mode))
+}
 
 /** Bloc « application installée » (extension intégrée tessera.desktop), configuré par `{ appId }`. */
 export const DESKTOP_APP_WIDGET = 'tessera.desktop/app'

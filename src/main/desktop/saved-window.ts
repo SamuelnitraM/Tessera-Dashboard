@@ -45,9 +45,15 @@ export const isChromium = (hwnd: w.Hwnd): boolean =>
 
 /**
  * Sort la fenêtre de son cadre et lui rend son style et sa position d'origine.
- * `visible: false` : elle reste masquée (avant de la fermer).
+ * `visible: false` : elle reste masquée (avant de la fermer). `shown` : elle est affichée sur le
+ * bureau, ni réduite ni masquée, même si elle l'était avant son insertion.
  */
-export function returnWindow(hwnd: w.Hwnd, saved: SavedWindow, visible: boolean): void {
+export function returnWindow(
+  hwnd: w.Hwnd,
+  saved: SavedWindow,
+  visible: boolean,
+  shown = false
+): void {
   if (!w.isWindow(hwnd)) return
   w.showWindowAsync(hwnd, w.SW.HIDE)
   w.setParent(hwnd, 0)
@@ -61,5 +67,12 @@ export function returnWindow(hwnd: w.Hwnd, saved: SavedWindow, visible: boolean)
     0,
     w.SWP.NOMOVE | w.SWP.NOSIZE | w.SWP.NOZORDER | w.SWP.FRAMECHANGED | w.SWP.NOACTIVATE
   )
-  w.setPlacement(hwnd, visible ? saved.placement : { ...saved.placement, showCmd: w.SW.HIDE })
+  const showCmd = !visible
+    ? w.SW.HIDE
+    : !shown
+      ? saved.placement.showCmd
+      : saved.placement.showCmd === w.SW.SHOWMAXIMIZED
+        ? w.SW.SHOWMAXIMIZED
+        : w.SW.SHOWNORMAL
+  w.setPlacement(hwnd, { ...saved.placement, showCmd })
 }
